@@ -12,7 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { Logo } from '@/components/common/logo';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react'; // Importar Loader2
+import { Loader2, Sun, Moon } from 'lucide-react'; // Importar Loader2, Sun, Moon
+import { ThemeToggle } from '@/components/layout/theme-toggle'; // Re-using existing toggle
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Por favor, insira um endereço de e-mail válido.' }),
@@ -26,6 +27,7 @@ export function LoginForm() {
   const [showSplash, setShowSplash] = useState(true);
   const { login, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('dark'); // Assuming default dark for login
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -37,11 +39,28 @@ export function LoginForm() {
   });
 
   useEffect(() => {
+    // Attempt to get theme from localStorage or default to dark
+    const storedTheme = localStorage.getItem('safetynet-theme') as 'light' | 'dark' | null;
+    if (storedTheme) {
+      setCurrentTheme(storedTheme);
+      document.documentElement.classList.toggle('dark', storedTheme === 'dark');
+    } else {
+      document.documentElement.classList.add('dark'); // Default to dark if nothing stored
+    }
+
     const timer = setTimeout(() => {
       setShowSplash(false);
     }, 1500); // Duração do splash screen (1.5 segundos)
     return () => clearTimeout(timer);
   }, []);
+
+  const toggleThemeInternal = () => {
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    setCurrentTheme(newTheme);
+    localStorage.setItem('safetynet-theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
+
 
   async function onSubmit(data: LoginFormValues) {
     try {
@@ -52,7 +71,7 @@ export function LoginForm() {
       });
       // router.push('/dashboard'); // useAuth hook já faz o redirecionamento
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Falha no Login:", error);
       toast({
         variant: 'destructive',
         title: 'Falha no Login',
@@ -64,7 +83,10 @@ export function LoginForm() {
   if (showSplash) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen animate-fadeInLayout">
-        <Logo className="w-48 h-auto mb-2" /> {/* Ajuste o tamanho conforme necessário */}
+        {/* Simple "moving a little" animation: pulse */}
+        <div className="animate-pulse">
+          <Logo className="w-48 h-auto mb-2" />
+        </div>
         <p className="text-sm text-muted-foreground">GESTÃO | CONSULTORIA | TREINAMENTO</p>
       </div>
     );
@@ -72,6 +94,19 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-md p-6 sm:p-8 space-y-6 sm:space-y-8 text-foreground">
+      {/* Language and Theme Toggles at the top */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex space-x-2">
+          {/* Placeholder Flags - Non-functional */}
+          <Button variant="ghost" size="sm" disabled={authLoading} className="opacity-50 cursor-not-allowed" title="English (Placeholder)">EN</Button>
+          <Button variant="ghost" size="sm" disabled={authLoading} className="font-semibold text-yellow-400 cursor-not-allowed" title="Português (Atual - Placeholder)">PT</Button>
+          <Button variant="ghost" size="sm" disabled={authLoading} className="opacity-50 cursor-not-allowed" title="Español (Placeholder)">ES</Button>
+        </div>
+        <Button variant="ghost" size="icon" onClick={toggleThemeInternal} aria-label={currentTheme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'} disabled={authLoading}>
+            {currentTheme === 'dark' ? <Sun className="h-5 w-5 text-gray-400 hover:text-yellow-400" /> : <Moon className="h-5 w-5 text-gray-400 hover:text-yellow-400" />}
+        </Button>
+      </div>
+      
       <div className="flex flex-col items-center mb-6 sm:mb-8">
         <Logo className="w-40 sm:w-48 h-auto mb-1" />
         <p className="text-xs text-muted-foreground mb-6">GESTÃO | CONSULTORIA | TREINAMENTO</p>

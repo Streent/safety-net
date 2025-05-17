@@ -16,3 +16,4 @@ export default function LoginLayout({
 }
 
 // Added animate-fadeInLayout to globals.css for a subtle page load animation
+
