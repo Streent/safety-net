@@ -20,10 +20,11 @@ import { usePathname } from 'next/navigation';
 import {
   useSidebar,
 } from "@/components/ui/sidebar"; 
-
+import { cn } from '@/lib/utils'; // Import cn
 
 interface AppHeaderProps {
   pageTitle?: string;
+  isVisible?: boolean; // Add isVisible prop
 }
 
 // Simplified breadcrumb logic
@@ -34,7 +35,6 @@ function generateBreadcrumbs(pathname: string) {
   let currentPath = '';
   pathSegments.forEach(segment => {
     currentPath += `/${segment}`;
-    // Capitalize first letter for label, handle special cases if any
     let label = segment.charAt(0).toUpperCase() + segment.slice(1);
     if (label === "Predictive-analysis") label = "Análise Preditiva";
     if (label === "Reports") label = "Relatórios";
@@ -45,8 +45,8 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Campanhas") label = "Campanhas";
     if (label === "Biblioteca") label = "Biblioteca";
     if (label === "Financeiro") label = "Financeiro";
-    if (label === "Gamification") label = "Gamificação";
     if (label === "Suporte") label = "Suporte";
+    if (label === "Gamification") label = "Gamificação";
     if (label === "Programas") label = "Programas";
     if (label === "Auditorias") label = "Auditorias";
     if (label === "Riscos") label = "Riscos";
@@ -54,9 +54,11 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Iot") label = "IOT";
     if (label === "Esocial") label = "eSocial";
     if (label === "Settings") label = "Configurações";
+
     if (segment === "new") label = "Novo";
-    if (segment.match(/^RPT\d{3}$/i) || segment.match(/^EMP\d{3}$/i) || segment.match(/^EPI\d{3}$/i)) { // Example for ID-based routes
-      label = `Detalhes ${segment.toUpperCase()}`; // Or "Editar Contrato XYZ"
+    // Regex para IDs como EMP001, RPT002, etc.
+    if (segment.match(/^(EMP|RPT|EPI|TRN|CAMP|PROG)\d+$/i)) {
+      label = `Detalhes ${segment.toUpperCase()}`;
     }
 
 
@@ -66,19 +68,22 @@ function generateBreadcrumbs(pathname: string) {
 }
 
 
-export function AppHeader({ pageTitle }: AppHeaderProps) {
+export function AppHeader({ pageTitle, isVisible = true }: AppHeaderProps) { // Default isVisible to true
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const breadcrumbs = generateBreadcrumbs(pathname);
   const { isMobile, toggleSidebar } = useSidebar();
 
   const currentTitleFromBreadcrumb = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length -1].label : "Painel";
-  // Allow pageTitle prop to override breadcrumb title for specific pages if needed
   const displayTitle = pageTitle || currentTitleFromBreadcrumb;
 
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className={cn(
+      "fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+      "transition-transform duration-300 ease-in-out",
+      isVisible ? "translate-y-0" : "-translate-y-full"
+    )}>
       <div className="container flex h-16 items-center justify-between max-w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
           {isMobile && (
@@ -115,17 +120,15 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
 
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center text-sm">
-            <Button variant="ghost" size="sm" aria-label="Mudar para Inglês">EN</Button>
+            <Button variant="ghost" size="sm" aria-label="Mudar para Inglês (Placeholder)">EN</Button>
             <span className="text-muted-foreground mx-1">|</span>
-            <Button variant="ghost" size="sm" aria-label="Mudar para Português" className="font-semibold text-primary">PT</Button>
+            <Button variant="ghost" size="sm" aria-label="Idioma Atual: Português" className="font-semibold text-primary">PT</Button>
             <span className="text-muted-foreground mx-1">|</span>
-            <Button variant="ghost" size="sm" aria-label="Mudar para Espanhol">ES</Button>
+            <Button variant="ghost" size="sm" aria-label="Mudar para Espanhol (Placeholder)">ES</Button>
           </div>
           <ThemeToggle />
           <Button variant="ghost" size="icon" aria-label="Notificações">
             <Bell className="h-5 w-5" />
-            {/* Placeholder para badge de notificação */}
-            {/* <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" /> */}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -147,10 +150,12 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem>
-                  <UserCircle className="mr-2 h-4 w-4" />
-                  <span>Perfil</span> 
-                </DropdownMenuItem>
+                <Link href="/settings" passHref>
+                    <DropdownMenuItem>
+                        <UserCircle className="mr-2 h-4 w-4" />
+                        <span>Perfil</span> 
+                    </DropdownMenuItem>
+                </Link>
                 <Link href="/settings" passHref>
                   <DropdownMenuItem>
                     <Settings className="mr-2 h-4 w-4" />

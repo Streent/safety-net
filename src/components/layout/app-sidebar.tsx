@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Home, FileText, Brain, Users, Car, Gem, ShieldCheck, Building, Megaphone, Library, Landmark, Settings, ShieldQuestion, LifeBuoy,
-  ClipboardList, FileSearch, AlertOctagon, Signal, UploadCloud // Novos ícones
+  ClipboardList, FileSearch, AlertOctagon, Signal, UploadCloud
 } from 'lucide-react';
 import {
   Sidebar,
@@ -41,23 +41,38 @@ const moduleNavItems = [
   { href: '/programas', label: 'Programas', icon: ClipboardList },
   { href: '/auditorias', label: 'Auditorias', icon: FileSearch },
   { href: '/riscos', label: 'Riscos', icon: AlertOctagon },
-  { href: '/cipa', label: 'CIPA', icon: Users }, // Reutilizando Users, pode ser trocado
+  { href: '/cipa', label: 'CIPA', icon: Users }, 
   { href: '/iot', label: 'IOT', icon: Signal },
   { href: '/esocial', label: 'eSocial', icon: UploadCloud },
   { href: '/suporte', label: 'Suporte', icon: LifeBuoy },
 ];
 
+interface AppSidebarProps {
+  isVisible?: boolean;
+}
 
-export function AppSidebar() {
+export function AppSidebar({ isVisible = true }: AppSidebarProps) {
   const pathname = usePathname();
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, isMobile } = useSidebar();
 
   const handleLinkClick = () => {
-    setOpenMobile(false); // Close mobile sidebar on link click
+    if (isMobile) { // Apenas fecha se estiver em modo mobile (Sheet)
+      setOpenMobile(false);
+    }
   };
 
   return (
-    <Sidebar variant="sidebar" collapsible="icon" side="left" className="border-r">
+    <Sidebar 
+      variant="sidebar" 
+      collapsible="icon" 
+      side="left" 
+      className={cn(
+        "border-r fixed top-0 left-0 h-screen pt-16 z-30", // Adjust z-index to be below header, add pt-16
+        "transition-transform duration-300 ease-in-out",
+        (!isMobile && !isVisible) && "-translate-x-full",
+        (!isMobile && isVisible) && "translate-x-0"
+      )}
+    >
       <SidebarHeader className="p-4">
         <Link href="/dashboard" className="flex items-center gap-2" onClick={handleLinkClick}>
           <Logo className="h-8 w-auto group-data-[collapsible=icon]:hidden" />
