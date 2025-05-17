@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Send, Bot, User } from 'lucide-react'; // Bot pode ser removido se não for mais usado como fallback
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Importar AvatarImage
-import Image from 'next/image'; // Importar o componente Image
+import { X, Send, Bot, User } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 interface ChatWindowProps {
@@ -72,6 +72,7 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     setInputValue('');
 
+    // Simular resposta do bot
     setTimeout(() => {
       const botResponse: Message = {
         id: `bot-${Date.now()}`,
@@ -89,13 +90,12 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
   }
 
   return (
-    <Card className="fixed bottom-[5.5rem] right-6 z-[60] w-[calc(100%-3rem)] max-w-sm sm:max-w-md h-[60vh] max-h-[500px] shadow-2xl rounded-xl flex flex-col overflow-hidden border-border bg-card/95 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80 animate-in slide-in-from-bottom-4 fade-in-25 duration-300 ease-out">
+    <Card className="fixed bottom-[5.5rem] right-4 sm:right-6 z-[60] w-[calc(100%-2rem)] sm:w-[calc(100%-3rem)] max-w-sm sm:max-w-md h-[60vh] max-h-[500px] shadow-2xl rounded-xl flex flex-col overflow-hidden border-border bg-card/95 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80 animate-in slide-in-from-bottom-4 fade-in-25 duration-300 ease-out">
       <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-4 border-b shrink-0">
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8 hidden sm:flex">
-            {/* Usar a imagem do mascote no Avatar */}
             <AvatarImage src="/images/mascote-leao.png" alt="Leão Assistente" />
-            <AvatarFallback><Bot size={18}/></AvatarFallback> {/* Fallback caso a imagem não carregue */}
+            <AvatarFallback><Bot size={18}/></AvatarFallback> 
           </Avatar>
           <CardTitle className="text-base sm:text-lg">Leão Assistente SafetyNet</CardTitle>
         </div>

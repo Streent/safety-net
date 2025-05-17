@@ -1,7 +1,7 @@
 
 'use client';
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react'; // Added useState
+import { useEffect, useState } from 'react'; 
 import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppSidebar } from '@/components/layout/app-sidebar';
@@ -48,7 +48,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div className="flex flex-1">
           <AppSidebar />
           <SidebarInset className="flex-1">
-            <main className="flex-1 p-4 sm:p-6 lg:p-8 mb-16 md:mb-0 min-w-0"> {/* Added min-w-0 */}
+            {/* 
+              mb-16 (margin-bottom: 4rem) on mobile ensures content doesn't hide behind BottomNav (h-16 or 4rem height).
+              md:mb-0 removes this margin on medium screens and up where BottomNav is hidden.
+              min-w-0 is important for flex children to prevent overflow if their content is too wide.
+            */}
+            <main className="flex-1 p-4 sm:p-6 lg:p-8 mb-16 md:mb-0 min-w-0"> 
               {children}
             </main>
           </SidebarInset>
