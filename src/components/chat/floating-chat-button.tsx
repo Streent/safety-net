@@ -13,8 +13,8 @@ export function FloatingChatButton({ onClick, isChatOpen }: FloatingChatButtonPr
   return (
     <Button
       onClick={onClick}
-      className="fixed bottom-6 right-6 z-50 rounded-full shadow-xl w-16 h-16 p-0 hover:scale-110 active:scale-105 transition-transform duration-200 ease-in-out flex items-center justify-center"
-      aria-label={isChatOpen ? "Fechar chat com Leão Assistente" : "Abrir chat com Leão Assistente"}
+      className="fixed right-4 bottom-[calc(4rem+1.5rem)] md:bottom-6 md:right-6 z-50 rounded-full shadow-xl w-16 h-16 p-0 hover:scale-110 active:scale-105 transition-transform duration-200 ease-in-out flex items-center justify-center"
+      aria-label={isChatOpen ? "Fechar chat com Leão Assistente" : "Abrir chat com Leão Assistente SafetyNet"}
       data-ai-hint="chat assistant button"
       variant={isChatOpen ? "secondary" : "default"}
     >

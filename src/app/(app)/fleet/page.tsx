@@ -42,7 +42,7 @@ function VehicleCard({ vehicle }: VehicleCardProps) {
           alt={`Imagem do ${vehicle.model}`}
           width={600}
           height={400}
-          className="object-cover w-full h-48"
+          className="object-cover w-full h-40 md:h-48" // Reduced height for mobile
           data-ai-hint={vehicle.dataAiHint}
         />
       </CardHeader>
@@ -76,7 +76,7 @@ export default function FleetPage() {
   return (
     <>
       <PageHeader
-        title="Gerenciamento de Frota"
+        title="Gestão de Frota"
         description="Monitore solicitações de veículos, checklists e registros de combustível."
       />
 
@@ -185,5 +185,3 @@ export default function FleetPage() {
     </>
   );
 }
-
-    
