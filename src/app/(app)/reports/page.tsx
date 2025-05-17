@@ -1,6 +1,7 @@
+
 'use client';
 import Link from 'next/link';
-import { PlusCircle, Filter, Download, FilePenLine, Eye } from 'lucide-react';
+import { PlusCircle, Filter, Download, FilePenLine, Eye, MoreHorizontal, Calendar as CalendarIconLucide } from 'lucide-react'; // Added MoreHorizontal, CalendarIconLucide
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/common/page-header';
 import {
@@ -26,6 +27,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation'; // Added useRouter
 
 // Mock data for reports
 const mockReports = [
@@ -47,6 +49,11 @@ const statusColors: Record<ReportStatus, string> = {
 
 export default function ReportsListPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const router = useRouter(); // Initialize useRouter
+
+  const handleRowClick = (reportId: string) => {
+    router.push(`/reports/${reportId}`);
+  };
 
   return (
     <>
@@ -72,7 +79,7 @@ export default function ReportsListPage() {
             <Popover>
                 <PopoverTrigger asChild>
                     <Button id="date-range" variant="outline" className="w-full justify-start text-left font-normal">
-                        <Filter className="mr-2 h-4 w-4" />
+                        <CalendarIconLucide className="mr-2 h-4 w-4" /> {/* Changed Filter to CalendarIconLucide */}
                         {dateRange?.from ? (
                             dateRange.to ? (
                                 <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>
@@ -140,7 +147,11 @@ export default function ReportsListPage() {
           </TableHeader>
           <TableBody>
             {mockReports.map((report) => (
-              <TableRow key={report.id} className="hover:bg-muted/50 cursor-pointer">
+              <TableRow 
+                key={report.id} 
+                className="hover:bg-muted/50 cursor-pointer"
+                onClick={() => handleRowClick(report.id)} // Added onClick handler
+              >
                 <TableCell className="font-medium">{report.id}</TableCell>
                 <TableCell>{format(report.date, 'PP')}</TableCell>
                 <TableCell>{report.technician}</TableCell>
@@ -153,26 +164,31 @@ export default function ReportsListPage() {
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Filter className="h-4 w-4 transform rotate-90" /> {/* Placeholder for MoreVertical */}
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={(e) => e.stopPropagation()} // Prevent row click when clicking dropdown
+                      >
+                        <MoreHorizontal className="h-4 w-4" /> {/* Changed icon */}
                         <span className="sr-only">Actions</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
+                      <DropdownMenuItem asChild onClick={(e) => e.stopPropagation()}>
                         <Link href={`/reports/${report.id}`}>
                           <Eye className="mr-2 h-4 w-4" />
                           <span>View</span> {/* i18n: reportsList.actionView */}
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
+                      <DropdownMenuItem asChild onClick={(e) => e.stopPropagation()}>
                          <Link href={`/reports/${report.id}`}> {/* Should be edit link if separate */}
                           <FilePenLine className="mr-2 h-4 w-4" />
                           <span>Edit</span> {/* i18n: reportsList.actionEdit */}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
                         <Download className="mr-2 h-4 w-4" />
                         <span>Export PDF</span> {/* i18n: reportsList.actionExportPDF */}
                       </DropdownMenuItem>
