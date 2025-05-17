@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  Home, FileText, Brain, Users, Car, Gem, ShieldCheck, Building, Megaphone, Library, Landmark, Settings, ShieldQuestion 
+  Home, FileText, Brain, Users, Car, Gem, ShieldCheck, Building, Megaphone, Library, Landmark, Settings, ShieldQuestion, LifeBuoy
 } from 'lucide-react';
 import {
   Sidebar,
@@ -23,20 +23,21 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const mainNavItems = [
-  { href: '/dashboard', label: 'Painel', icon: Home }, // i18n: sidebar.dashboard
-  { href: '/reports', label: 'Relatórios', icon: FileText }, // i18n: sidebar.reports
-  { href: '/predictive-analysis', label: 'Análise Preditiva', icon: Brain }, // i18n: sidebar.predictiveAnalysis
+  { href: '/dashboard', label: 'Painel', icon: Home }, 
+  { href: '/reports', label: 'Relatórios', icon: FileText }, 
+  { href: '/predictive-analysis', label: 'Análise Preditiva', icon: Brain }, 
 ];
 
 const moduleNavItems = [
-  { href: '/trainings', label: 'Treinamentos', icon: Users }, // i18n: sidebar.trainings
-  { href: '/fleet', label: 'Frota', icon: Car }, // i18n: sidebar.fleet
-  { href: '/epis', label: 'EPIs', icon: ShieldCheck }, // i18n: sidebar.epis
-  { href: '/empresas', label: 'Empresas', icon: Building }, // i18n: sidebar.empresas
-  { href: '/campanhas', label: 'Campanhas', icon: Megaphone }, // i18n: sidebar.campanhas
-  { href: '/biblioteca', label: 'Biblioteca', icon: Library }, // i18n: sidebar.biblioteca
-  { href: '/financeiro', label: 'Financeiro', icon: Landmark }, // i18n: sidebar.financeiro
-  { href: '/gamification', label: 'Gamificação', icon: Gem } // i18n: sidebar.gamification 
+  { href: '/trainings', label: 'Treinamentos', icon: Users }, 
+  { href: '/fleet', label: 'Frota', icon: Car }, 
+  { href: '/epis', label: 'EPIs', icon: ShieldCheck }, 
+  { href: '/empresas', label: 'Empresas', icon: Building }, 
+  { href: '/campanhas', label: 'Campanhas', icon: Megaphone }, 
+  { href: '/biblioteca', label: 'Biblioteca', icon: Library }, 
+  { href: '/financeiro', label: 'Financeiro', icon: Landmark }, 
+  { href: '/gamification', label: 'Gamificação', icon: Gem },
+  { href: '/suporte', label: 'Suporte', icon: LifeBuoy }, // Adicionado Suporte
 ];
 
 
@@ -61,7 +62,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarGroup>
             <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
-              Navegação Principal {/* i18n: sidebar.mainNavigation */}
+              Navegação Principal 
             </SidebarGroupLabel>
             {mainNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
@@ -88,7 +89,7 @@ export function AppSidebar() {
           <SidebarSeparator />
            <SidebarGroup>
              <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
-              Módulos {/* i18n: sidebar.otherModules */}
+              Módulos 
             </SidebarGroupLabel>
             {moduleNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
@@ -117,7 +118,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-2 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
         <Button variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:p-2">
             <Settings className="h-5 w-5"/>
-            <span className="group-data-[collapsible=icon]:hidden ml-2">Configurações</span> {/* i18n: sidebar.settings */}
+            <span className="group-data-[collapsible=icon]:hidden ml-2">Configurações</span> 
         </Button>
       </SidebarFooter>
     </Sidebar>

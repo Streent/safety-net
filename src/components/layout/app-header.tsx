@@ -29,7 +29,7 @@ interface AppHeaderProps {
 // Simplified breadcrumb logic
 function generateBreadcrumbs(pathname: string) {
   const pathSegments = pathname.split('/').filter(segment => segment);
-  const breadcrumbs = [{ href: '/', label: 'Início' }]; // i18n: breadcrumbs.home
+  const breadcrumbs = [{ href: '/', label: 'Início' }]; 
 
   let currentPath = '';
   pathSegments.forEach(segment => {
@@ -47,6 +47,7 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Biblioteca") label = "Biblioteca";
     if (label === "Financeiro") label = "Financeiro";
     if (label === "Gamification") label = "Gamificação";
+    if (label === "Suporte") label = "Suporte"; // Adicionado Suporte
     if (segment === "new") label = "Novo";
 
     breadcrumbs.push({ href: currentPath, label });
@@ -136,17 +137,17 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
               <DropdownMenuGroup>
                 <DropdownMenuItem>
                   <UserCircle className="mr-2 h-4 w-4" />
-                  <span>Perfil</span> {/* i18n: header.profile */}
+                  <span>Perfil</span> 
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>Configurações</span> {/* i18n: header.settings */}
+                  <span>Configurações</span> 
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Sair</span> {/* i18n: header.logout */}
+                <span>Sair</span> 
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
