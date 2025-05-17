@@ -12,16 +12,14 @@ import { Toaster } from '@/components/ui/toaster';
 import { FloatingChatButton } from '@/components/chat/floating-chat-button';
 import { ChatWindow } from '@/components/chat/chat-window';
 
-const SCROLL_VISIBILITY_THRESHOLD = 50; // Pixels to scroll before hiding/showing nav
-const NAV_ALWAYS_VISIBLE_TOP_OFFSET = 100; // If scrollY is less than this, nav is always visible
+// Constantes de scroll removidas, pois não serão mais usadas para o header/sidebar principal aqui
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isSidebarVisibleOnScroll, setIsSidebarVisibleOnScroll] = useState(true); // Renamed state
-  const lastScrollY = useRef(0);
+  // Estado isSidebarVisibleOnScroll e lógica de scroll removidos
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -29,38 +27,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated, loading, router]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (typeof window === 'undefined') return;
-
-      const currentScrollY = window.scrollY;
-      const scrollDirectionDown = currentScrollY > lastScrollY.current;
-
-      // Only apply scroll hiding logic to sidebar on non-mobile screens
-      if (window.innerWidth >= 768) { // md breakpoint
-        if (currentScrollY < NAV_ALWAYS_VISIBLE_TOP_OFFSET) {
-          setIsSidebarVisibleOnScroll(true);
-        } else {
-          if (scrollDirectionDown && currentScrollY > lastScrollY.current + SCROLL_VISIBILITY_THRESHOLD) {
-            setIsSidebarVisibleOnScroll(false);
-          } else if (!scrollDirectionDown && currentScrollY < lastScrollY.current - SCROLL_VISIBILITY_THRESHOLD / 2 ) {
-            setIsSidebarVisibleOnScroll(true);
-          }
-        }
-      } else {
-        setIsSidebarVisibleOnScroll(true); // Sidebar is a sheet on mobile, always "logically" visible for the sheet mechanism
-      }
-      lastScrollY.current = currentScrollY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    lastScrollY.current = window.scrollY; 
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
-
+  // useEffect para scroll removido
 
   const toggleChat = () => setIsChatOpen(!isChatOpen);
   const closeChat = () => setIsChatOpen(false);
@@ -81,11 +48,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SidebarProvider defaultOpen={true}>
+    // defaultOpen={true} para a sidebar começar expandida em desktop
+    <SidebarProvider defaultOpen={true}> 
       <div className="flex min-h-screen flex-col">
-        <AppHeader /> {/* Removed isVisible prop */}
-        <div className="flex flex-1 pt-16"> {/* pt-16 for fixed AppHeader space */}
-          <AppSidebar isVisible={isSidebarVisibleOnScroll} /> {/* Pass the correct state to AppSidebar */}
+        <AppHeader /> {/* AppHeader sempre visível */}
+        <div className="flex flex-1 pt-16"> {/* pt-16 para o AppHeader fixo */}
+          <AppSidebar /> {/* AppSidebar não recebe mais isVisible, seu estado é gerenciado pelo SidebarProvider */}
           <SidebarInset className="flex-1 min-w-0"> 
             <main
               key={pathname}

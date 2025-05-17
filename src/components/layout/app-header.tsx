@@ -1,7 +1,7 @@
 
 'use client';
 import Link from 'next/link';
-import { Bell,ChevronLeft, Home, LogOut, Settings, UserCircle, Menu } from 'lucide-react';
+import { Bell, ChevronLeft, Home, LogOut, Settings, UserCircle, Menu, PanelLeft } from 'lucide-react'; // Adicionado PanelLeft
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,10 +24,8 @@ import { cn } from '@/lib/utils';
 
 interface AppHeaderProps {
   pageTitle?: string;
-  // isVisible prop removed
 }
 
-// Simplified breadcrumb logic
 function generateBreadcrumbs(pathname: string) {
   const pathSegments = pathname.split('/').filter(segment => segment);
   const breadcrumbs = [{ href: '/', label: 'Início' }]; 
@@ -36,7 +34,6 @@ function generateBreadcrumbs(pathname: string) {
   pathSegments.forEach(segment => {
     currentPath += `/${segment}`;
     let label = segment.charAt(0).toUpperCase() + segment.slice(1);
-    // Manual translations for breadcrumbs
     if (label === "Dashboard") label = "Painel";
     if (label === "Predictive-analysis") label = "Análise Preditiva";
     if (label === "Reports") label = "Relatórios";
@@ -53,17 +50,14 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Auditorias") label = "Auditorias";
     if (label === "Riscos") label = "Riscos";
     if (label === "Cipa") label = "CIPA";
-    if (label === "Iot") label = "IOT"; // Assuming IOT is fine as is
-    if (label === "Esocial") label = "eSocial"; // Assuming eSocial is fine
+    if (label === "Iot") label = "IOT"; 
+    if (label === "Esocial") label = "eSocial"; 
     if (label === "Settings") label = "Configurações";
 
-
     if (segment === "new") label = "Novo";
-    // Regex para IDs como EMP001, RPT002, etc.
     if (segment.match(/^(EMP|RPT|EPI|TRN|CAMP|PROG)\d+$/i)) {
       label = `Detalhes ${segment.toUpperCase()}`;
     }
-
 
     breadcrumbs.push({ href: currentPath, label });
   });
@@ -75,30 +69,35 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const breadcrumbs = generateBreadcrumbs(pathname);
-  const { isMobile, toggleSidebar } = useSidebar();
+  const { isMobile, toggleSidebar, open } = useSidebar(); // 'open' é o estado do SidebarProvider
 
   const currentTitleFromBreadcrumb = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length -1].label : "Painel";
   const displayTitle = pageTitle || currentTitleFromBreadcrumb;
 
-
   return (
     <header className={cn(
       "fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-      // Removed translate-y classes, header is always visible
     )}>
       <div className="container flex h-16 items-center justify-between max-w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
-          {isMobile && (
-            <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-2 md:hidden">
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Alternar Sidebar</span>
-            </Button>
-          )}
-          {!isMobile && (
-            <Link href="/dashboard" className="mr-4 hidden md:flex">
-              <Logo className="h-8 w-auto" />
-            </Link>
-          )}
+          {/* Botão para alternar sidebar em mobile E desktop */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleSidebar} 
+            className={cn(
+              "mr-2",
+              isMobile ? "md:hidden" : "hidden md:flex" // Mostra Menu em mobile, PanelLeft em desktop
+            )}
+            aria-label="Alternar Sidebar"
+          >
+            {isMobile ? <Menu className="h-6 w-6" /> : (open ? <PanelLeft className="h-6 w-6" /> : <Menu className="h-6 w-6" />)}
+          </Button>
+          
+          <Link href="/dashboard" className="mr-4 hidden md:flex">
+            <Logo className="h-8 w-auto" />
+          </Link>
+          
            <div className="hidden md:flex items-center text-sm text-muted-foreground">
             {breadcrumbs.map((crumb, index) => (
               <span key={crumb.href} className="flex items-center">

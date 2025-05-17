@@ -3,13 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  Home, FileText, Brain, Users, Car, Gem, ShieldCheck, Building, Megaphone, Library, Landmark, Settings, ShieldQuestion, LifeBuoy,
-  ClipboardList, FileSearch, AlertOctagon, Signal, UploadCloud, Settings as SettingsIcon // Explicitly importing SettingsIcon
+  Home, FileText, Brain, Users, Car, Gem, ShieldCheck, Building, Megaphone, Library, Landmark, Settings as SettingsIcon, ShieldQuestion, LifeBuoy,
+  ClipboardList, FileSearch, AlertOctagon, Signal, UploadCloud 
 } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
-  // SidebarHeader, // Removed SidebarHeader import
   SidebarFooter,
   SidebarMenu,
   SidebarMenuItem,
@@ -19,7 +18,6 @@ import {
   SidebarSeparator,
   useSidebar,
 } from '@/components/ui/sidebar';
-// import { Logo } from '@/components/common/logo'; // Logo no longer needed here
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -36,52 +34,42 @@ const moduleNavItems = [
   { href: '/empresas', label: 'Empresas', icon: Building }, 
   { href: '/campanhas', label: 'Campanhas', icon: Megaphone }, 
   { href: '/biblioteca', label: 'Biblioteca', icon: Library }, 
-  { href: '/financeiro', label: 'Financeiro', icon: Landmark }, 
-  { href: '/suporte', label: 'Suporte', icon: LifeBuoy },
-  { href: '/gamification', label: 'Gamificação', icon: Gem },
+  { href: '/financeiro', label: 'Financeiro', icon: Landmark },
   { href: '/programas', label: 'Programas', icon: ClipboardList },
   { href: '/auditorias', label: 'Auditorias', icon: FileSearch },
   { href: '/riscos', label: 'Riscos', icon: AlertOctagon },
   { href: '/cipa', label: 'CIPA', icon: Users }, 
   { href: '/iot', label: 'IOT', icon: Signal },
   { href: '/esocial', label: 'eSocial', icon: UploadCloud },
+  { href: '/gamification', label: 'Gamificação', icon: Gem },
+  { href: '/suporte', label: 'Suporte', icon: LifeBuoy },
 ];
 
-interface AppSidebarProps {
-  isVisible?: boolean;
-}
-
-export function AppSidebar({ isVisible = true }: AppSidebarProps) {
+// isVisible prop removida
+export function AppSidebar() {
   const pathname = usePathname();
-  const { setOpenMobile, isMobile } = useSidebar();
+  const { setOpenMobile, isMobile, open } = useSidebar(); // 'open' aqui é o estado do SidebarProvider
 
   const handleLinkClick = () => {
     if (isMobile) { 
       setOpenMobile(false);
     }
+    // Não precisamos fechar a sidebar em desktop ao clicar em um link,
+    // a menos que esse seja o comportamento desejado.
+    // Se for, podemos adicionar: else if (!open) { /* não fazer nada se já estiver recolhida */ }
   };
 
   return (
     <Sidebar 
       variant="sidebar" 
-      collapsible="icon" 
+      collapsible="icon" // Esta prop permite que a sidebar encolha para ícones
       side="left" 
+      // Classes de transition-transform e translate-x removidas
       className={cn(
-        "border-r fixed top-0 left-0 h-screen pt-16 z-30", 
-        "transition-transform duration-300 ease-in-out",
-        (!isMobile && !isVisible) && "-translate-x-full", // Apply translate only if not mobile and not visible
-        (!isMobile && isVisible) && "translate-x-0"    // Apply translate only if not mobile and visible
+        "border-r fixed top-0 left-0 h-screen pt-16 z-30"
       )}
     >
-      {/* SidebarHeader removed to prevent duplicate logo */}
-      {/* <SidebarHeader className="p-4">
-        <Link href="/dashboard" className="flex items-center gap-2" onClick={handleLinkClick}>
-          <Logo className="h-8 w-auto group-data-[collapsible=icon]:hidden" />
-          <ShieldQuestion className="h-8 w-8 text-primary hidden group-data-[collapsible=icon]:block" />
-        </Link>
-      </SidebarHeader> */}
-
-      <SidebarContent className="flex-1 pt-4"> {/* Added pt-4 to SidebarContent if SidebarHeader is removed */}
+      <SidebarContent className="flex-1 pt-4">
         <SidebarMenu>
           <SidebarGroup>
             <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
@@ -141,7 +129,7 @@ export function AppSidebar({ isVisible = true }: AppSidebarProps) {
       <SidebarFooter className="p-2 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
         <Link href="/settings" passHref legacyBehavior>
           <Button variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:p-2" onClick={handleLinkClick}>
-              <SettingsIcon className="h-5 w-5"/> {/* Changed to SettingsIcon */}
+              <SettingsIcon className="h-5 w-5"/>
               <span className="group-data-[collapsible=icon]:hidden ml-2">Configurações</span> 
           </Button>
         </Link>
