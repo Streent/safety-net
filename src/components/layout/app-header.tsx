@@ -20,11 +20,11 @@ import { usePathname } from 'next/navigation';
 import {
   useSidebar,
 } from "@/components/ui/sidebar"; 
-import { cn } from '@/lib/utils'; // Import cn
+import { cn } from '@/lib/utils';
 
 interface AppHeaderProps {
   pageTitle?: string;
-  isVisible?: boolean; // Add isVisible prop
+  // isVisible prop removed
 }
 
 // Simplified breadcrumb logic
@@ -36,6 +36,8 @@ function generateBreadcrumbs(pathname: string) {
   pathSegments.forEach(segment => {
     currentPath += `/${segment}`;
     let label = segment.charAt(0).toUpperCase() + segment.slice(1);
+    // Manual translations for breadcrumbs
+    if (label === "Dashboard") label = "Painel";
     if (label === "Predictive-analysis") label = "Análise Preditiva";
     if (label === "Reports") label = "Relatórios";
     if (label === "Trainings") label = "Treinamentos";
@@ -51,9 +53,10 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Auditorias") label = "Auditorias";
     if (label === "Riscos") label = "Riscos";
     if (label === "Cipa") label = "CIPA";
-    if (label === "Iot") label = "IOT";
-    if (label === "Esocial") label = "eSocial";
+    if (label === "Iot") label = "IOT"; // Assuming IOT is fine as is
+    if (label === "Esocial") label = "eSocial"; // Assuming eSocial is fine
     if (label === "Settings") label = "Configurações";
+
 
     if (segment === "new") label = "Novo";
     // Regex para IDs como EMP001, RPT002, etc.
@@ -68,7 +71,7 @@ function generateBreadcrumbs(pathname: string) {
 }
 
 
-export function AppHeader({ pageTitle, isVisible = true }: AppHeaderProps) { // Default isVisible to true
+export function AppHeader({ pageTitle }: AppHeaderProps) { 
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const breadcrumbs = generateBreadcrumbs(pathname);
@@ -80,9 +83,8 @@ export function AppHeader({ pageTitle, isVisible = true }: AppHeaderProps) { // 
 
   return (
     <header className={cn(
-      "fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
-      "transition-transform duration-300 ease-in-out",
-      isVisible ? "translate-y-0" : "-translate-y-full"
+      "fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      // Removed translate-y classes, header is always visible
     )}>
       <div className="container flex h-16 items-center justify-between max-w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">

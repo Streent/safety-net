@@ -1,7 +1,7 @@
 
 'use client';
 import type { ReactNode } from 'react';
-import { useEffect, useState, useRef } from 'react'; // Added useRef
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppSidebar } from '@/components/layout/app-sidebar';
@@ -20,7 +20,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isNavElementsVisible, setIsNavElementsVisible] = useState(true);
+  const [isSidebarVisibleOnScroll, setIsSidebarVisibleOnScroll] = useState(true); // Renamed state
   const lastScrollY = useRef(0);
 
   useEffect(() => {
@@ -36,20 +36,25 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       const currentScrollY = window.scrollY;
       const scrollDirectionDown = currentScrollY > lastScrollY.current;
 
-      if (currentScrollY < NAV_ALWAYS_VISIBLE_TOP_OFFSET) {
-        setIsNavElementsVisible(true);
-      } else {
-        if (scrollDirectionDown && currentScrollY > lastScrollY.current + SCROLL_VISIBILITY_THRESHOLD) {
-          setIsNavElementsVisible(false);
-        } else if (!scrollDirectionDown && currentScrollY < lastScrollY.current - SCROLL_VISIBILITY_THRESHOLD / 2 ) { // More sensitive to show
-          setIsNavElementsVisible(true);
+      // Only apply scroll hiding logic to sidebar on non-mobile screens
+      if (window.innerWidth >= 768) { // md breakpoint
+        if (currentScrollY < NAV_ALWAYS_VISIBLE_TOP_OFFSET) {
+          setIsSidebarVisibleOnScroll(true);
+        } else {
+          if (scrollDirectionDown && currentScrollY > lastScrollY.current + SCROLL_VISIBILITY_THRESHOLD) {
+            setIsSidebarVisibleOnScroll(false);
+          } else if (!scrollDirectionDown && currentScrollY < lastScrollY.current - SCROLL_VISIBILITY_THRESHOLD / 2 ) {
+            setIsSidebarVisibleOnScroll(true);
+          }
         }
+      } else {
+        setIsSidebarVisibleOnScroll(true); // Sidebar is a sheet on mobile, always "logically" visible for the sheet mechanism
       }
       lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    lastScrollY.current = window.scrollY; // Initialize lastScrollY
+    lastScrollY.current = window.scrollY; 
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -78,10 +83,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen flex-col">
-        <AppHeader isVisible={isNavElementsVisible} />
-        <div className="flex flex-1 pt-16"> {/* Add pt-16 for fixed AppHeader space */}
-          <AppSidebar isVisible={isNavElementsVisible} />
-          <SidebarInset className="flex-1 min-w-0"> {/* Added min-w-0 */}
+        <AppHeader /> {/* Removed isVisible prop */}
+        <div className="flex flex-1 pt-16"> {/* pt-16 for fixed AppHeader space */}
+          <AppSidebar isVisible={isSidebarVisibleOnScroll} /> {/* Pass the correct state to AppSidebar */}
+          <SidebarInset className="flex-1 min-w-0"> 
             <main
               key={pathname}
               className="flex-1 p-4 sm:p-6 lg:p-8 mb-16 md:mb-0 min-w-0 animate-pageTransition"
