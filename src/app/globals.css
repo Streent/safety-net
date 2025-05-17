@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -56,33 +57,33 @@ body {
   }
 
   .dark {
-    --background: 0 0% 10%; /* Dark background */
-    --foreground: 0 0% 95%; /* Light foreground */
+    --background: 220 15% 10%; /* Very Dark Blueish Gray - e.g., #12151A */
+    --foreground: 0 0% 95%; /* Light foreground - e.g., #f2f2f2 */
 
-    --card: 0 0% 12%; /* Slightly lighter than dark background */
+    --card: 220 15% 15%; /* Slightly lighter than dark background - e.g., #1A1D24 */
     --card-foreground: 0 0% 95%;
 
-    --popover: 0 0% 12%;
+    --popover: 220 15% 15%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 165 37% 55%; /* Muted Teal - keep consistent */
-    --primary-foreground: 0 0% 100%; /* White */
+    --primary: 50 100% 50%; /* Yellow for primary actions in dark mode, matching button */
+    --primary-foreground: 0 0% 10%; /* Black for text on yellow button */
 
-    --secondary: 0 0% 18%; /* Dark secondary */
+    --secondary: 220 10% 20%; /* Dark secondary - e.g., #2C2F3B */
     --secondary-foreground: 0 0% 95%;
 
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 220 10% 20%;
+    --muted-foreground: 0 0% 60%; /* Lighter muted text - e.g., #999999 */
 
-    --accent: 40 25% 69%; /* Soft Gold - keep consistent */
+    --accent: 50 100% 50%; /* Yellow accent */
     --accent-foreground: 0 0% 10%; /* Dark for contrast on gold */
 
-    --destructive: 0 70% 50%;
+    --destructive: 0 70% 50%; /* Destructive red */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 165 37% 55%;
+    --border: 220 10% 30%;      /* Slightly lighter border - e.g., #40434D */
+    --input: 220 10% 25%;       /* Darker input background - e.g. #333640 */
+    --ring: 50 100% 50%;        /* Yellow ring for focus */
 
     --chart-1: 165 37% 55%;
     --chart-2: 40 25% 69%;
@@ -114,3 +115,4 @@ body {
     transition-duration: 150ms;
   }
 }
+
