@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Home, FileText, Brain, ShieldQuestion, Settings } from 'lucide-react';
+import { BarChart3, Home, FileText, Brain, ShieldQuestion, Settings, Users, Car, Gem } from 'lucide-react'; // Added Users, Car, Gem
 import {
   Sidebar,
   SidebarContent,
@@ -27,8 +27,9 @@ const mainNavItems = [
 ];
 
 const otherNavItems = [
-  { href: '/placeholder-1', label: 'Trainings', icon: ShieldQuestion }, // i18n: sidebar.trainings (placeholder)
-  { href: '/placeholder-2', label: 'Fleet', icon: ShieldQuestion }, // i18n: sidebar.fleet (placeholder)
+  { href: '/trainings', label: 'Trainings', icon: Users }, // i18n: sidebar.trainings Changed icon and href
+  { href: '/fleet', label: 'Fleet', icon: Car }, // i18n: sidebar.fleet Changed icon and href
+  { href: '/gamification', label: 'Gamification', icon: Gem } // i18n: sidebar.gamification Added
 ];
 
 
@@ -45,6 +46,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <Link href="/dashboard" className="flex items-center gap-2" onClick={handleLinkClick}>
           <Logo className="h-8 w-auto group-data-[collapsible=icon]:hidden" />
+          {/* Using ShieldQuestion as a generic app icon when collapsed */}
           <ShieldQuestion className="h-8 w-8 text-primary hidden group-data-[collapsible=icon]:block" />
         </Link>
       </SidebarHeader>
@@ -61,12 +63,12 @@ export function AppSidebar() {
                 <Link href={item.href} passHref legacyBehavior>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname.startsWith(item.href)}
+                    isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
                     onClick={handleLinkClick}
                     tooltip={{children: item.label, className: "ml-2"}}
                     className={cn(
                       "justify-start",
-                      pathname.startsWith(item.href) && "bg-sidebar-accent text-sidebar-accent-foreground"
+                      (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))) && "bg-sidebar-accent text-sidebar-accent-foreground"
                     )}
                   >
                     <a>
@@ -82,7 +84,7 @@ export function AppSidebar() {
            <SidebarGroup>
              <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
               {/* i18n: sidebar.otherModules */}
-              Other Modules (Placeholders)
+              Modules
             </SidebarGroupLabel>
             {otherNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
