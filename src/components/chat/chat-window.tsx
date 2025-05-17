@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Send, Bot, User } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { X, Send, Bot, User } from 'lucide-react'; // Bot pode ser removido se não for mais usado como fallback
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Importar AvatarImage
+import Image from 'next/image'; // Importar o componente Image
 import { cn } from '@/lib/utils';
 
 interface ChatWindowProps {
@@ -33,27 +34,25 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
       setMessages([
         {
           id: 'welcome-' + Date.now(),
-          text: 'Olá! Sou o Leão Assistente do SafetyNet. Como posso ajudar você hoje?', // i18n: chat.welcomeMessage (updated)
+          text: 'Olá! Sou o Leão Assistente do SafetyNet. Como posso ajudar você hoje?',
           sender: 'bot',
           timestamp: new Date(),
         },
       ]);
     }
-  }, [isOpen, messages.length]); // Added messages.length to dependency array
+  }, [isOpen, messages.length]);
 
   useEffect(() => {
     if (isOpen) {
-      // Focus input when chat opens
       inputRef.current?.focus();
     }
   }, [isOpen]);
 
   useEffect(() => {
-    // Scroll to bottom when new messages are added
     if (scrollAreaRef.current) {
       const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (viewport) {
-        setTimeout(() => { // Allow DOM to update before scrolling
+        setTimeout(() => {
           viewport.scrollTop = viewport.scrollHeight;
         }, 0);
       }
@@ -73,11 +72,10 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     setInputValue('');
 
-    // Simulate bot response (replace with actual AI call later)
     setTimeout(() => {
       const botResponse: Message = {
         id: `bot-${Date.now()}`,
-        text: 'Obrigado pela sua mensagem! Ainda estou aprendendo, mas farei o meu melhor para ajudar. Rugidos de sabedoria em breve!', // i18n: chat.botPlaceholderResponse (updated)
+        text: 'Obrigado pela sua mensagem! Ainda estou aprendendo, mas farei o meu melhor para ajudar. Rugidos de sabedoria em breve!',
         sender: 'bot',
         timestamp: new Date(),
       };
@@ -95,11 +93,13 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
       <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-4 border-b shrink-0">
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8 hidden sm:flex">
-            <AvatarFallback><Bot size={18}/></AvatarFallback>
+            {/* Usar a imagem do mascote no Avatar */}
+            <AvatarImage src="/images/mascote-leao.png" alt="Leão Assistente" />
+            <AvatarFallback><Bot size={18}/></AvatarFallback> {/* Fallback caso a imagem não carregue */}
           </Avatar>
-          <CardTitle className="text-base sm:text-lg">Leão Assistente SafetyNet</CardTitle> {/* i18n: chat.assistantTitle (updated) */}
+          <CardTitle className="text-base sm:text-lg">Leão Assistente SafetyNet</CardTitle>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar chat"> {/* i18n: chat.closeChatAriaLabel */}
+        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar chat">
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>
@@ -116,6 +116,7 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
               >
                 {message.sender === 'bot' && (
                   <Avatar className="h-8 w-8 self-start shrink-0">
+                    <AvatarImage src="/images/mascote-leao.png" alt="Leão Assistente" />
                     <AvatarFallback><Bot size={18}/></AvatarFallback>
                   </Avatar>
                 )}
@@ -150,7 +151,7 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
           <Input
             ref={inputRef}
             type="text"
-            placeholder="Digite sua mensagem..." // i18n: chat.inputPlaceholder
+            placeholder="Digite sua mensagem..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={(e) => {
@@ -163,7 +164,7 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
             data-ai-hint="chat message input"
             autoComplete="off"
           />
-          <Button onClick={handleSendMessage} aria-label="Enviar mensagem" disabled={!inputValue.trim()}> {/* i18n: chat.sendAriaLabel */}
+          <Button onClick={handleSendMessage} aria-label="Enviar mensagem" disabled={!inputValue.trim()}>
             <Send className="h-5 w-5" />
           </Button>
         </div>
