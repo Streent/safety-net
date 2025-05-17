@@ -92,7 +92,7 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
           <div className="hidden sm:flex items-center text-sm">
             <Button variant="ghost" size="sm">EN</Button>
             <span className="text-muted-foreground mx-1">|</span>
-            <Button variant="ghost" size="sm">sistema de linguagem automatica não está funcionando</Button>
+            <Button variant="ghost" size="sm">PT</Button>
             <span className="text-muted-foreground mx-1">|</span>
             <Button variant="ghost" size="sm">ES</Button>
           </div>
