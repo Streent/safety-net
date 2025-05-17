@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  Home, FileText, Brain, Users, Car, Gem, ShieldCheck, Building, Megaphone, Library, Landmark, Settings, ShieldQuestion, LifeBuoy
+  Home, FileText, Brain, Users, Car, Gem, ShieldCheck, Building, Megaphone, Library, Landmark, Settings, ShieldQuestion, LifeBuoy,
+  ClipboardList, FileSearch, AlertOctagon, Signal, UploadCloud // Novos ícones
 } from 'lucide-react';
 import {
   Sidebar,
@@ -37,7 +38,13 @@ const moduleNavItems = [
   { href: '/biblioteca', label: 'Biblioteca', icon: Library }, 
   { href: '/financeiro', label: 'Financeiro', icon: Landmark }, 
   { href: '/gamification', label: 'Gamificação', icon: Gem },
-  { href: '/suporte', label: 'Suporte', icon: LifeBuoy }, // Adicionado Suporte
+  { href: '/programas', label: 'Programas', icon: ClipboardList },
+  { href: '/auditorias', label: 'Auditorias', icon: FileSearch },
+  { href: '/riscos', label: 'Riscos', icon: AlertOctagon },
+  { href: '/cipa', label: 'CIPA', icon: Users }, // Reutilizando Users, pode ser trocado
+  { href: '/iot', label: 'IOT', icon: Signal },
+  { href: '/esocial', label: 'eSocial', icon: UploadCloud },
+  { href: '/suporte', label: 'Suporte', icon: LifeBuoy },
 ];
 
 
@@ -116,10 +123,12 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
-        <Button variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:p-2">
-            <Settings className="h-5 w-5"/>
-            <span className="group-data-[collapsible=icon]:hidden ml-2">Configurações</span> 
-        </Button>
+        <Link href="/settings" passHref legacyBehavior>
+          <Button variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:p-2" onClick={handleLinkClick}>
+              <Settings className="h-5 w-5"/>
+              <span className="group-data-[collapsible=icon]:hidden ml-2">Configurações</span> 
+          </Button>
+        </Link>
       </SidebarFooter>
     </Sidebar>
   );

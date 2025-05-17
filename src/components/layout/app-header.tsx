@@ -37,7 +37,6 @@ function generateBreadcrumbs(pathname: string) {
     // Capitalize first letter for label, handle special cases if any
     let label = segment.charAt(0).toUpperCase() + segment.slice(1);
     if (label === "Predictive-analysis") label = "Análise Preditiva";
-    // Add more translations for path segments if needed
     if (label === "Reports") label = "Relatórios";
     if (label === "Trainings") label = "Treinamentos";
     if (label === "Fleet") label = "Frota";
@@ -47,8 +46,19 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Biblioteca") label = "Biblioteca";
     if (label === "Financeiro") label = "Financeiro";
     if (label === "Gamification") label = "Gamificação";
-    if (label === "Suporte") label = "Suporte"; // Adicionado Suporte
+    if (label === "Suporte") label = "Suporte";
+    if (label === "Programas") label = "Programas";
+    if (label === "Auditorias") label = "Auditorias";
+    if (label === "Riscos") label = "Riscos";
+    if (label === "Cipa") label = "CIPA";
+    if (label === "Iot") label = "IOT";
+    if (label === "Esocial") label = "eSocial";
+    if (label === "Settings") label = "Configurações";
     if (segment === "new") label = "Novo";
+    if (segment.match(/^RPT\d{3}$/i) || segment.match(/^EMP\d{3}$/i) || segment.match(/^EPI\d{3}$/i)) { // Example for ID-based routes
+      label = `Detalhes ${segment.toUpperCase()}`; // Or "Editar Contrato XYZ"
+    }
+
 
     breadcrumbs.push({ href: currentPath, label });
   });
@@ -114,6 +124,8 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
           <ThemeToggle />
           <Button variant="ghost" size="icon" aria-label="Notificações">
             <Bell className="h-5 w-5" />
+            {/* Placeholder para badge de notificação */}
+            {/* <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" /> */}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -139,10 +151,12 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
                   <UserCircle className="mr-2 h-4 w-4" />
                   <span>Perfil</span> 
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Configurações</span> 
-                </DropdownMenuItem>
+                <Link href="/settings" passHref>
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Configurações</span> 
+                  </DropdownMenuItem>
+                </Link>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>
