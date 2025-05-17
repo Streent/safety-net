@@ -27,7 +27,7 @@ const mockEpis = [
   { id: 'EPI003', name: 'Óculos de Segurança', quantity: 5, validity: addMonths(new Date(), 1), location: 'Laboratório', status: 'baixo_estoque' },
   { id: 'EPI004', name: 'Máscara PFF2', quantity: 200, validity: addMonths(new Date(), 2), location: 'Almoxarifado B', status: 'proximo_validade' },
   { id: 'EPI005', name: 'Protetor Auricular', quantity: 75, validity: addMonths(new Date(), 24), location: 'Linha de Produção', status: 'ok' },
-  { id: 'EPI006', name: 'Cinto de Segurança (altura)', quantity: 8, validity: new Date(), location: 'Estoque Emergência', status: 'expirado' },
+  { id: 'EPI006', name: 'Cinto de Segurança (altura)', quantity: 8, validity: new Date(2023, 11, 31), location: 'Estoque Emergência', status: 'expirado' }, // Intentionally expired for testing
 ];
 
 interface EpiItem {
@@ -41,7 +41,11 @@ interface EpiItem {
 
 const getValidityStatus = (validityDate: Date, quantity: number): EpiItem['status'] => {
   const today = new Date();
-  const daysUntilExpiry = differenceInDays(validityDate, today);
+  today.setHours(0,0,0,0); // Normalize today to the start of the day
+  const expiryDate = new Date(validityDate);
+  expiryDate.setHours(0,0,0,0); // Normalize expiry date to the start of the day
+
+  const daysUntilExpiry = differenceInDays(expiryDate, today);
 
   if (daysUntilExpiry < 0) return 'expirado';
   if (quantity < 10) return 'baixo_estoque'; // Threshold for low stock
@@ -133,7 +137,7 @@ export default function EpisPage() {
         {/* Placeholder for filters: status, location, type */}
       </div>
       
-      <div className="rounded-lg border shadow-sm overflow-hidden bg-card">
+      <div className="rounded-lg border shadow-sm bg-card"> {/* Removed overflow-hidden */}
         <Table>
           <TableHeader>
             <TableRow>
@@ -162,7 +166,7 @@ export default function EpisPage() {
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Ações</span>
+                        <span className="sr-only">Ações para {item.name}</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -210,5 +214,3 @@ export default function EpisPage() {
     </>
   );
 }
-
-    

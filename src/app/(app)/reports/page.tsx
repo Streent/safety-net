@@ -1,7 +1,7 @@
 
 'use client';
 import Link from 'next/link';
-import { PlusCircle, Download, FilePenLine, Eye, MoreHorizontal, Calendar as CalendarIconLucide } from 'lucide-react';
+import { PlusCircle, Download, FilePenLine, Eye, MoreHorizontal, Calendar as CalendarIconLucide, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/common/page-header';
 import {
@@ -129,7 +129,7 @@ export default function ReportsListPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border shadow-sm overflow-hidden bg-card">
+      <div className="rounded-lg border shadow-sm bg-card"> {/* Removed overflow-hidden */}
         <Table>
           <TableHeader>
             <TableRow>
@@ -164,10 +164,10 @@ export default function ReportsListPage() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()} // Prevent row click when clicking dropdown
                       >
                         <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Ações</span>
+                        <span className="sr-only">Ações para {report.id}</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
