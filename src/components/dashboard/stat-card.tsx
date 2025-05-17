@@ -17,10 +17,10 @@ const iconMap = {
 interface StatCardProps {
   title: string;
   value: number;
-  iconName: keyof typeof iconMap; // Use string literal type for icon names
+  iconName: keyof typeof iconMap;
   subtitle?: string;
   className?: string;
-  iconColor?: string; // e.g. text-blue-500
+  iconColor?: string;
 }
 
 export function StatCard({ title, value, iconName, subtitle, className, iconColor }: StatCardProps) {
@@ -45,18 +45,17 @@ export function StatCard({ title, value, iconName, subtitle, className, iconColo
   const IconComponent = iconMap[iconName];
 
   if (!IconComponent) {
-    // Fallback for an invalid iconName, though TypeScript should prevent this.
     console.error(`Invalid iconName provided to StatCard: ${iconName}`);
     return null; 
   }
 
   return (
     <Card className={cn("shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-[1.02]", className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         <IconComponent className={cn("h-5 w-5 text-muted-foreground", iconColor)} />
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 pt-0">
         <div className="text-3xl font-bold text-foreground">{animatedValue.toLocaleString()}</div>
         {subtitle && <p className="text-xs text-muted-foreground pt-1">{subtitle}</p>}
       </CardContent>
