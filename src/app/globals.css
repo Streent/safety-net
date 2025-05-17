@@ -78,7 +78,7 @@ body {
 
     /* Accent can remain gold or be adjusted if needed */
     --accent: 40 25% 69%; /* Soft Gold */
-    --accent-foreground: 0 0% 20%; 
+    --accent-foreground: 0 0% 20%;
 
     --destructive: 0 70% 50%; /* Destructive red */
     --destructive-foreground: 0 0% 98%;
@@ -125,5 +125,19 @@ body {
   @keyframes fadeInLayout {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-pageTransition {
+    animation: pageTransition 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  @keyframes pageTransition {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 }
