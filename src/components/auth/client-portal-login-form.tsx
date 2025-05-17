@@ -11,10 +11,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { Logo } from '@/components/common/logo';
 import Link from 'next/link';
-import { Loader2, Fingerprint, Sun, Moon } from 'lucide-react'; // Adicionado Fingerprint
+import { Loader2, Fingerprint, Sun, Moon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const clientLoginSchema = z.object({
-  emailOrCnpj: z.string().min(1, { message: 'Por favor, insira um e-mail ou CNPJ válido.' }), // Alterado para aceitar email ou CNPJ no label
+  // Accepts email or a string that might represent CNPJ (min 1 char).
+  // More specific CNPJ validation can be added if needed.
+  emailOrCnpj: z.string().min(1, { message: 'Por favor, insira seu e-mail ou CNPJ.' }),
   password: z.string().min(1, { message: 'A senha é obrigatória.' }),
 });
 
@@ -24,7 +27,7 @@ export function ClientPortalLoginForm() {
   const { login, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [showSplash, setShowSplash] = useState(true);
-  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('dark'); // Assumindo escuro como padrão
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('dark');
 
   const form = useForm<ClientLoginFormValues>({
     resolver: zodResolver(clientLoginSchema),
@@ -35,18 +38,18 @@ export function ClientPortalLoginForm() {
   });
 
   useEffect(() => {
-    // Tenta obter o tema do localStorage ou usa 'dark' como padrão
     const storedTheme = localStorage.getItem('safetynet-portal-theme') as 'light' | 'dark' | null;
-    if (storedTheme) {
-      setCurrentTheme(storedTheme);
-      document.documentElement.classList.toggle('dark', storedTheme === 'dark');
-    } else {
-      document.documentElement.classList.add('dark'); // Padrão para escuro se nada armazenado
-    }
+    const initialTheme = storedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    setCurrentTheme(initialTheme);
+    document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+    
+    // Clear main app theme to avoid conflicts if user switches between portals
+    localStorage.removeItem('safetynet-theme');
+
 
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 3000); // Duração do splash screen (3 segundos)
+    }, 2000); // Splash screen duration (2 seconds)
     return () => clearTimeout(timer);
   }, []);
 
@@ -59,15 +62,12 @@ export function ClientPortalLoginForm() {
 
   async function onSubmit(data: ClientLoginFormValues) {
     try {
-      // Para a lógica de login, ainda usaremos o campo como 'email' para o useAuth,
-      // mas o usuário pode digitar email ou CNPJ.
       await login(data.emailOrCnpj, data.password);
+      // useAuth hook now handles redirection based on profile
       toast({
-        title: 'Login bem-sucedido',
-        description: 'Bem-vindo ao Portal do Cliente!',
+        title: 'Login bem-sucedido!',
+        description: 'Bem-vindo(a) ao Portal do Cliente SafetyNet.',
       });
-      // Idealmente, redirecionar para /portal/dashboard
-      // router.push('/portal/dashboard'); // useAuth atualmente redireciona para /dashboard
     } catch (error) {
       console.error("Falha no Login do Portal:", error);
       toast({
@@ -80,27 +80,26 @@ export function ClientPortalLoginForm() {
 
   if (showSplash) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen animate-fadeInLayout">
-        {/* Animação de fade e scale para o logo */}
-        <div className="animate-in fade-in zoom-in-50 duration-1000">
+      <div className="flex flex-col items-center justify-center min-h-screen animate-fadeInLayout bg-background text-foreground">
+        <div className="animate-in fade-in zoom-in-75 duration-1000">
           <Logo className="w-52 h-auto mb-3" />
         </div>
-        <p className="text-sm text-muted-foreground">Carregando Portal do Cliente...</p>
+        <p className="text-sm text-muted-foreground mt-2">Carregando Portal do Cliente SafetyNet...</p>
+        <Loader2 className="animate-spin mt-4 h-6 w-6 text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-md p-6 sm:p-8 space-y-6 sm:space-y-8 text-foreground animate-fadeInLayout">
+    <div className={cn("w-full max-w-md p-6 sm:p-8 space-y-6 sm:space-y-8 text-foreground animate-fadeInLayout", currentTheme === 'dark' ? 'bg-slate-900' : 'bg-slate-50' )}>
       <div className="flex justify-between items-center mb-4">
         <div className="flex space-x-1">
-          {/* Placeholder para seletores de idioma */}
-          <Button variant="ghost" size="sm" disabled={authLoading} className="text-xs opacity-70" title="English (Placeholder)">EN</Button>
-          <Button variant="ghost" size="sm" disabled={authLoading} className="text-xs font-semibold text-yellow-400" title="Português (Atual)">PT</Button>
-          <Button variant="ghost" size="sm" disabled={authLoading} className="text-xs opacity-70" title="Español (Placeholder)">ES</Button>
+          <Button variant="ghost" size="sm" disabled={authLoading} className="text-xs opacity-70 hover:bg-slate-700" title="English (Placeholder)">EN</Button>
+          <Button variant="ghost" size="sm" disabled={authLoading} className="text-xs font-semibold text-primary hover:bg-slate-700" title="Português (Atual)">PT</Button>
+          <Button variant="ghost" size="sm" disabled={authLoading} className="text-xs opacity-70 hover:bg-slate-700" title="Español (Placeholder)">ES</Button>
         </div>
-        <Button variant="ghost" size="icon" onClick={toggleThemeInternal} aria-label={currentTheme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'} disabled={authLoading}>
-            {currentTheme === 'dark' ? <Sun className="h-5 w-5 text-gray-400 hover:text-yellow-400" /> : <Moon className="h-5 w-5 text-gray-400 hover:text-yellow-400" />}
+        <Button variant="ghost" size="icon" onClick={toggleThemeInternal} aria-label={currentTheme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'} disabled={authLoading} className="hover:bg-slate-700">
+            {currentTheme === 'dark' ? <Sun className="h-5 w-5 text-gray-400 hover:text-yellow-400" /> : <Moon className="h-5 w-5 text-gray-600 hover:text-slate-800" />}
         </Button>
       </div>
 
@@ -110,55 +109,55 @@ export function ClientPortalLoginForm() {
           Portal do Cliente
         </h1>
         <p className="text-sm text-muted-foreground text-center mt-1 sm:mt-2">
-          Acesse suas informações e documentos.
+          Acesse suas informações e documentos de segurança.
         </p>
       </div>
       
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
         <div className="space-y-1.5">
-          <Label htmlFor="emailOrCnpj">Email / CNPJ</Label>
+          <Label htmlFor="emailOrCnpj" className={cn(currentTheme === 'dark' ? 'text-slate-300' : 'text-slate-700')}>Email / CNPJ</Label>
           <Input
             id="emailOrCnpj"
-            type="text" // Alterado para text para aceitar CNPJ, validação de email ainda no Zod.
-            placeholder="seu@email.com ou CNPJ"
+            type="text"
+            placeholder="seu@email.com ou CNPJ da empresa"
             {...form.register('emailOrCnpj')}
             disabled={authLoading}
-            className="bg-gray-800 border-gray-700 placeholder-gray-500 focus:ring-yellow-400 focus:border-yellow-400"
+            className={cn("focus:ring-primary focus:border-primary", currentTheme === 'dark' ? "bg-slate-800 border-slate-700 placeholder-slate-500" : "bg-white border-slate-300 placeholder-slate-400" )}
             data-ai-hint="email ou CNPJ do cliente"
           />
           {form.formState.errors.emailOrCnpj && (
-            <p className="text-xs text-red-400">{form.formState.errors.emailOrCnpj.message}</p>
+            <p className="text-xs text-red-500 dark:text-red-400">{form.formState.errors.emailOrCnpj.message}</p>
           )}
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Senha</Label>
-            <Link href="#" className="text-xs text-yellow-400 hover:underline">
+            <Label htmlFor="password" className={cn(currentTheme === 'dark' ? 'text-slate-300' : 'text-slate-700')}>Senha</Label>
+            <Link href="#" className="text-xs text-primary hover:underline">
               Esqueceu a senha?
             </Link>
           </div>
           <Input
             id="password"
             type="password"
+            placeholder="Digite sua senha"
             disabled={authLoading}
-            className="bg-gray-800 border-gray-700 placeholder-gray-500 focus:ring-yellow-400 focus:border-yellow-400"
+            className={cn("focus:ring-primary focus:border-primary", currentTheme === 'dark' ? "bg-slate-800 border-slate-700 placeholder-slate-500" : "bg-white border-slate-300 placeholder-slate-400" )}
             {...form.register('password')}
             data-ai-hint="senha do cliente"
           />
           {form.formState.errors.password && (
-            <p className="text-xs text-red-400">{form.formState.errors.password.message}</p>
+            <p className="text-xs text-red-500 dark:text-red-400">{form.formState.errors.password.message}</p>
           )}
         </div>
 
-        {/* Dica Biométrica - Visível apenas em mobile (placeholder) */}
-        <div className="sm:hidden flex items-center text-xs text-gray-400 mt-2">
+        <div className="sm:hidden flex items-center text-xs text-muted-foreground mt-2">
           <Fingerprint className="h-4 w-4 mr-1.5" />
-          <span>Use sua impressão digital para entrar (placeholder).</span>
+          <span className={cn(currentTheme === 'dark' ? 'text-slate-400' : 'text-slate-600')}>Use sua impressão digital para entrar (placeholder).</span>
         </div>
         
         <Button 
           type="submit" 
-          className="w-full bg-yellow-400 hover:bg-yellow-500 text-black text-base sm:text-lg py-2.5 sm:py-3 font-semibold" 
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-base sm:text-lg py-2.5 sm:py-3 font-semibold" 
           disabled={authLoading}
         >
           {authLoading ? (
@@ -172,10 +171,9 @@ export function ClientPortalLoginForm() {
         </Button>
       </form>
 
-      <p className="mt-8 text-center text-xs text-gray-500">
+      <p className={cn("mt-8 text-center text-xs", currentTheme === 'dark' ? 'text-slate-500' : 'text-slate-400')}>
         SafetyNet © {new Date().getFullYear()}
       </p>
     </div>
   );
 }
-
