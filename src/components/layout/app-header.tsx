@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { Bell,ChevronLeft, Home, LogOut, Settings, UserCircle, Menu } from 'lucide-react';
@@ -91,7 +92,7 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
           <div className="hidden sm:flex items-center text-sm">
             <Button variant="ghost" size="sm">EN</Button>
             <span className="text-muted-foreground mx-1">|</span>
-            <Button variant="ghost" size="sm">PT</Button>
+            <Button variant="ghost" size="sm">sistema de linguagem automatica não está funcionando</Button>
             <span className="text-muted-foreground mx-1">|</span>
             <Button variant="ghost" size="sm">ES</Button>
           </div>
