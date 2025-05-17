@@ -9,13 +9,13 @@ import { BottomNav } from '@/components/layout/bottom-nav';
 import { useAuth } from '@/hooks/use-auth';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
-import { FloatingChatButton } from '@/components/chat/floating-chat-button'; // Added
-import { ChatWindow } from '@/components/chat/chat-window'; // Added
+import { FloatingChatButton } from '@/components/chat/floating-chat-button';
+import { ChatWindow } from '@/components/chat/chat-window';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
-  const [isChatOpen, setIsChatOpen] = useState(false); // Added state for chat window
+  const [isChatOpen, setIsChatOpen] = useState(false); 
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -38,7 +38,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    // This will be briefly shown before redirect, or null can be returned
     return null; 
   }
 
@@ -49,7 +48,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div className="flex flex-1">
           <AppSidebar />
           <SidebarInset className="flex-1">
-            <main className="flex-1 p-4 sm:p-6 lg:p-8 mb-16 md:mb-0">
+            <main className="flex-1 p-4 sm:p-6 lg:p-8 mb-16 md:mb-0 min-w-0"> {/* Added min-w-0 */}
               {children}
             </main>
           </SidebarInset>

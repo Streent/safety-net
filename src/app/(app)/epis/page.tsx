@@ -41,15 +41,15 @@ interface EpiItem {
 
 const getValidityStatus = (validityDate: Date, quantity: number): EpiItem['status'] => {
   const today = new Date();
-  today.setHours(0,0,0,0); // Normalize today to the start of the day
+  today.setHours(0,0,0,0); 
   const expiryDate = new Date(validityDate);
-  expiryDate.setHours(0,0,0,0); // Normalize expiry date to the start of the day
+  expiryDate.setHours(0,0,0,0); 
 
   const daysUntilExpiry = differenceInDays(expiryDate, today);
 
   if (daysUntilExpiry < 0) return 'expirado';
-  if (quantity < 10) return 'baixo_estoque'; // Threshold for low stock
-  if (daysUntilExpiry <= 30) return 'proximo_validade'; // Nearing expiry if <= 30 days
+  if (quantity < 10) return 'baixo_estoque'; 
+  if (daysUntilExpiry <= 30) return 'proximo_validade'; 
   return 'ok';
 };
 
@@ -93,7 +93,6 @@ export default function EpisPage() {
       title: 'Adicionar Novo EPI',
       description: 'Funcionalidade de modal para adicionar novo EPI será implementada aqui.',
     });
-    // Placeholder: Logic to open a modal for adding a new EPI
   };
 
   const handleViewDetails = (epiId: string) => {
@@ -124,74 +123,72 @@ export default function EpisPage() {
         }
       />
 
-      {/* Inventory Dashboard */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
         <StatCard title="Total de Itens em Estoque" value={totalItems} iconName="Archive" iconColor="text-blue-500" />
         <StatCard title="Itens com Baixo Estoque" value={lowStockItems} iconName="AlertCircle" iconColor="text-yellow-500" subtitle={`${lowStockItems} tipo(s) abaixo do mínimo`} />
         <StatCard title="Itens Próximos da Validade / Expirados" value={expiringSoonItems} iconName="CalendarClock" iconColor="text-red-500" subtitle={`${expiringSoonItems} tipo(s) requerem atenção`} />
       </div>
 
-      {/* List View */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold mb-4 text-foreground">Lista de EPIs</h2>
-        {/* Placeholder for filters: status, location, type */}
       </div>
       
-      <div className="rounded-lg border shadow-sm bg-card"> {/* Removed overflow-hidden */}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome do Item</TableHead>
-              <TableHead className="text-center">Quantidade</TableHead>
-              <TableHead>Validade</TableHead>
-              <TableHead>Localização</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {epis.map((item) => (
-              <TableRow key={item.id} className="hover:bg-muted/50">
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="text-center">{item.quantity}</TableCell>
-                <TableCell>{format(item.validity, 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
-                <TableCell>{item.location}</TableCell>
-                <TableCell className="text-center">
-                  <Badge variant="outline" className={`text-xs ${getStatusBadgeClass(item.status)}`}>
-                    {getStatusText(item.status)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Ações para {item.name}</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleViewDetails(item.id)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        <span>Ver Detalhes</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEditItem(item.id)}>
-                        <Edit2 className="mr-2 h-4 w-4" />
-                        <span>Editar</span>
-                      </DropdownMenuItem>
-                      {/* Placeholder for "Log Usage" especially for extinguishers */}
-                      {item.name.toLowerCase().includes("extintor") && (
-                        <DropdownMenuItem onClick={() => toast({title: "Registrar Uso de Extintor", description:"Funcionalidade para registrar uso e disparar manutenção."})}>
-                            <AlertCircle className="mr-2 h-4 w-4 text-destructive" />
-                            <span className="text-destructive">Registrar Uso</span>
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+      <div className="rounded-lg border shadow-sm bg-card">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome do Item</TableHead>
+                <TableHead className="text-center">Quantidade</TableHead>
+                <TableHead>Validade</TableHead>
+                <TableHead>Localização</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {epis.map((item) => (
+                <TableRow key={item.id} className="hover:bg-muted/50">
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="text-center">{item.quantity}</TableCell>
+                  <TableCell>{format(item.validity, 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                  <TableCell>{item.location}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="outline" className={`text-xs ${getStatusBadgeClass(item.status)}`}>
+                      {getStatusText(item.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Ações para {item.name}</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDetails(item.id)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          <span>Ver Detalhes</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditItem(item.id)}>
+                          <Edit2 className="mr-2 h-4 w-4" />
+                          <span>Editar</span>
+                        </DropdownMenuItem>
+                        {item.name.toLowerCase().includes("extintor") && (
+                          <DropdownMenuItem onClick={() => toast({title: "Registrar Uso de Extintor", description:"Funcionalidade para registrar uso e disparar manutenção."})}>
+                              <AlertCircle className="mr-2 h-4 w-4 text-destructive" />
+                              <span className="text-destructive">Registrar Uso</span>
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
        <div className="flex items-center justify-end space-x-2 py-4">
         <Button variant="outline" size="sm" disabled>
@@ -201,16 +198,6 @@ export default function EpisPage() {
           Próximo
         </Button>
       </div>
-      {/* 
-        Placeholder for Detail View (Tabs: Overview, Usage History, Attachments)
-        This would likely be a separate page or a large modal.
-        - Overview: Basic details, photo, specifications.
-        - Usage History: Table of technician, date, quantity, signature.
-        - Attachments: List of related documents (manuals, certificates).
-
-        Extinguisher Tracking:
-        - Specific logic for extinguishers. Logging usage could trigger a maintenance request (flow).
-      */}
     </>
   );
 }
