@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation'; // Importar useRouter
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,16 +53,12 @@ const getStatusBadgeClass = (status: Empresa['status']) => {
 
 export default function EmpresasPage() {
   const { toast } = useToast();
+  const router = useRouter(); // Inicializar useRouter
   const [empresas, setEmpresas] = useState<Empresa[]>(mockEmpresas);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // @TODO: Add logic for the 'Details' button to navigate to a company detail page, passing the company ID.
   const handleViewDetails = (empresaId: string) => {
-    toast({
-      title: 'Ver Detalhes da Empresa',
-      description: `Funcionalidade para ver detalhes da empresa ${empresaId} (com informações, técnicos, relatórios, documentos, etc.) será implementada aqui.`,
-    });
-    // Placeholder: router.push(`/empresas/${empresaId}`);
+    router.push(`/empresas/${empresaId}`); // Navegar para a página de detalhes
   };
 
   const handleEditItem = (empresaId: string) => {
@@ -69,6 +66,7 @@ export default function EmpresasPage() {
       title: 'Editar Empresa',
       description: `Funcionalidade para editar empresa ${empresaId} será implementada.`,
     });
+    // Placeholder: router.push(`/empresas/${empresaId}/edit`);
   };
   
   const handleAddItem = () => {
@@ -76,6 +74,7 @@ export default function EmpresasPage() {
       title: 'Adicionar Nova Empresa',
       description: 'Funcionalidade de modal/página para adicionar nova empresa será implementada aqui.',
     });
+    // Placeholder: router.push('/empresas/nova');
   };
 
   const filteredEmpresas = empresas.filter(empresa => 
@@ -187,12 +186,6 @@ export default function EmpresasPage() {
           Próximo
         </Button>
       </div>
-      {/* 
-        Placeholder for Detail Page/Modal:
-        - Company info, linked technicians, reports, trainings
-        - Documents tab (PGR, PCMSO, Audit Reports)
-        - Client Portal Link button
-      */}
     </>
   );
 }
