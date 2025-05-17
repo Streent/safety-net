@@ -1,3 +1,4 @@
+
 import { BarChart3, FileText, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/dashboard/stat-card';
@@ -8,6 +9,7 @@ import { GamificationSummary } from '@/components/dashboard/gamification-summary
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button'; // Added import for Button
 
 // Placeholder for Reports List
 function RecentReportsListPlaceholder() {
@@ -77,10 +79,10 @@ export default function DashboardPage() {
       <div className="flex-grow overflow-y-auto pb-4"> {/* Added for scrollability of content */}
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-          <StatCard title="Reports This Month" value={125} icon={FileText} subtitle="+15 since last month" iconColor="text-blue-500" /> {/* i18n: dashboard.statReports */}
-          <StatCard title="Scheduled Trainings" value={8} icon={ShieldCheck} subtitle="2 upcoming this week" iconColor="text-green-500" /> {/* i18n: dashboard.statTrainings */}
-          <StatCard title="EPIs Low Stock" value={3} icon={AlertTriangle} subtitle="Order new masks" iconColor="text-yellow-500" /> {/* i18n: dashboard.statEPIs */}
-          <StatCard title="Incidents (30 Days)" value={22} icon={BarChart3} subtitle="-5 since last month" iconColor="text-red-500" /> {/* i18n: dashboard.statIncidents */}
+          <StatCard title="Reports This Month" value={125} iconName="FileText" subtitle="+15 since last month" iconColor="text-blue-500" /> {/* i18n: dashboard.statReports */}
+          <StatCard title="Scheduled Trainings" value={8} iconName="ShieldCheck" subtitle="2 upcoming this week" iconColor="text-green-500" /> {/* i18n: dashboard.statTrainings */}
+          <StatCard title="EPIs Low Stock" value={3} iconName="AlertTriangle" subtitle="Order new masks" iconColor="text-yellow-500" /> {/* i18n: dashboard.statEPIs */}
+          <StatCard title="Incidents (30 Days)" value={22} iconName="BarChart3" subtitle="-5 since last month" iconColor="text-red-500" /> {/* i18n: dashboard.statIncidents */}
         </div>
 
         {/* Charts and Lists Section */}
