@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 // Mock data for companies
+// @TODO: Fetch real company data from an API or data source.
 const mockEmpresas = [
   { id: 'EMP001', nome: 'Construtora Segura Ltda.', cnpj: '12.345.678/0001-99', status: 'Ativo', cidade: 'São Paulo, SP' },
   { id: 'EMP002', nome: 'Indústria Forte S.A.', cnpj: '98.765.432/0001-11', status: 'Inativo', cidade: 'Rio de Janeiro, RJ' },
@@ -54,6 +55,7 @@ export default function EmpresasPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>(mockEmpresas);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // @TODO: Add logic for the 'Details' button to navigate to a company detail page, passing the company ID.
   const handleViewDetails = (empresaId: string) => {
     toast({
       title: 'Ver Detalhes da Empresa',

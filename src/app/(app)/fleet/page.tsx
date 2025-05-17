@@ -11,6 +11,8 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
+import { useState } from 'react';
+
 // Mock data for vehicles
 const mockVehicles = [
   { id: '1', imageUrl: 'https://placehold.co/600x400.png', model: 'Fiat Strada', plate: 'BRA2E19', status: 'Disponível', type: 'Utilitário Leve', dataAiHint: 'pickup truck' },

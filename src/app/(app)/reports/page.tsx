@@ -51,7 +51,7 @@ export default function ReportsListPage() {
   const router = useRouter(); 
 
   const handleRowClick = (reportId: string) => {
-    router.push(`/reports/${reportId}`);
+ router.push(`/reports/${reportId}`);
   };
 
   return (
@@ -69,59 +69,73 @@ export default function ReportsListPage() {
         }
       />
 
-      <div className="mb-6 p-4 border rounded-lg bg-card shadow">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-          <div className="space-y-1">
-            <label htmlFor="date-range" className="text-sm font-medium text-muted-foreground">Período</label> 
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button id="date-range" variant="outline" className="w-full justify-start text-left font-normal">
-                        <CalendarIconLucide className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                            dateRange.to ? (
-                                <>{format(dateRange.from, "dd/MM/y", { locale: ptBR })} - {format(dateRange.to, "dd/MM/y", { locale: ptBR })}</>
-                            ) : (
-                                format(dateRange.from, "dd/MM/y", { locale: ptBR })
-                            )
-                        ) : (
-                            <span>Selecione um período</span> 
-                        )}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="range" selected={dateRange} onSelect={setDateRange} numberOfMonths={2} locale={ptBR}/>
-                </PopoverContent>
-            </Popover>
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="technician" className="text-sm font-medium text-muted-foreground">Técnico</label> 
-            <Select>
-              <SelectTrigger id="technician">
-                <SelectValue placeholder="Todos os Técnicos" /> 
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Técnicos</SelectItem>
-                <SelectItem value="alice">Alice Silva</SelectItem>
-                <SelectItem value="bob">Roberto Costa</SelectItem>
-                <SelectItem value="charlie">Carlos Neves</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="status" className="text-sm font-medium text-muted-foreground">Status</label> 
-            <Select>
-              <SelectTrigger id="status">
-                <SelectValue placeholder="Todos os Status" /> 
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="Open">Aberto</SelectItem>
-                <SelectItem value="In Progress">Em Progresso</SelectItem>
-                <SelectItem value="Closed">Fechado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button variant="outline">
+ {/* Section for filters */}
+ <div className="mb-6 p-4 border rounded-lg bg-card shadow">
+ <h3 className="text-lg font-semibold mb-4 flex items-center"><Filter className="mr-2"/> Filtros</h3> {/* Filter icon and title */}
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> {/* Adjusted grid for 3 filter types */}
+ {/* Date Range Filter */}
+ <div className="space-y-1">
+ <label htmlFor="date-range" className="text-sm font-medium text-muted-foreground">Período</label>
+ {/* Add Date Range Picker Component Here */}
+ {/* Add logic to filter reports by date range */}
+ <Popover>
+ <PopoverTrigger asChild>
+ <Button id="date-range" variant="outline" className="w-full justify-start text-left font-normal">
+ <CalendarIconLucide className="mr-2 h-4 w-4" />
+ {dateRange?.from ? (
+ dateRange.to ? (
+ <>{format(dateRange.from, "dd/MM/y", { locale: ptBR })} - {format(dateRange.to, "dd/MM/y", { locale: ptBR })}</>
+ ) : (
+ format(dateRange.from, "dd/MM/y", { locale: ptBR })
+ )
+ ) : (
+ <span>Selecione um período</span>
+ )}
+ </Button>
+ </PopoverTrigger>
+ <PopoverContent className="w-auto p-0" align="start">
+ <Calendar mode="range" selected={dateRange} onSelect={setDateRange} numberOfMonths={2} locale={ptBR}/>
+ </PopoverContent>
+ </Popover>
+ </div>
+ {/* Status Filter (Dropdown) */}
+ <div className="space-y-1">
+ <label htmlFor="status" className="text-sm font-medium text-muted-foreground">Status</label>
+ {/* Add Status Dropdown Component Here */}
+ {/* Add logic to filter reports by status */}
+ <Select>
+ <SelectTrigger id="status">
+ <SelectValue placeholder="Todos os Status" />
+ </SelectTrigger>
+ <SelectContent>
+ <SelectItem value="all">Todos os Status</SelectItem>
+ <SelectItem value="Open">Aberto</SelectItem>
+ <SelectItem value="In Progress">Em Progresso</SelectItem>
+ <SelectItem value="Closed">Fechado</SelectItem>
+ </SelectContent>
+ </Select>
+ </div>
+ {/* Add other filter types as needed (e.g., Technician) */}
+ <div className="space-y-1">
+ <label htmlFor="technician" className="text-sm font-medium text-muted-foreground">Técnico</label>
+ <Select>
+ <SelectTrigger id="technician">
+ <SelectValue placeholder="Todos os Técnicos" />
+ </SelectTrigger>
+ <SelectContent>
+ <SelectItem value="all">Todos os Técnicos</SelectItem>
+ <SelectItem value="alice">Alice Silva</SelectItem>
+ <SelectItem value="bob">Roberto Costa</SelectItem>
+ <SelectItem value="charlie">Carlos Neves</SelectItem>
+ </SelectContent>
+ </Select>
+ </div>
+ {/* Add a filter button or apply filters automatically */}
+ {/* <Button>Aplicar Filtros</Button> */}
+ </div>
+ {/* Export Button - Moved to filter section for better organization */}
+ <div className="flex justify-end mt-4">
+ <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
             Exportar Tudo (CSV) 
           </Button>
@@ -130,11 +144,11 @@ export default function ReportsListPage() {
 
       <div className="rounded-lg border shadow-sm bg-card">
         <div className="overflow-x-auto">
+ {/* Table to display reports */}
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[120px]">ID do Relatório</TableHead> 
-                <TableHead>Data</TableHead> 
                 <TableHead>Técnico</TableHead> 
                 <TableHead>Tipo</TableHead> 
                 <TableHead>Status</TableHead> 
@@ -149,7 +163,6 @@ export default function ReportsListPage() {
                   onClick={() => handleRowClick(report.id)}
                 >
                   <TableCell className="font-medium">{report.id}</TableCell>
-                  <TableCell>{format(report.date, 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                   <TableCell>{report.technician}</TableCell>
                   <TableCell>{report.type}</TableCell>
                   <TableCell>
@@ -161,11 +174,13 @@ export default function ReportsListPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
-                          variant="ghost" 
-                          size="icon" 
+                          variant="ghost"
+                          size="icon"
                           className="h-8 w-8"
-                          onClick={(e) => e.stopPropagation()} 
+                          onClick={(e) => e.stopPropagation()}
                         >
+ {/* Buttons to View and Edit */}
+ {/* Add logic for View and Edit buttons (e.g., navigate to detail page) */}
                           <MoreHorizontal className="h-4 w-4" />
                           <span className="sr-only">Ações para {report.id}</span>
                         </Button>
@@ -189,14 +204,16 @@ export default function ReportsListPage() {
                           <span>Exportar PDF</span> 
                         </DropdownMenuItem>
                       </DropdownMenuContent>
-                    </DropdownMenu>
+ </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
+ {/* Add a section for pagination */}
       </div>
+ {/* Pagination buttons */}
         <div className="flex items-center justify-end space-x-2 py-4">
           <Button variant="outline" size="sm" disabled>
             Anterior 

@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { PlusCircle, Megaphone, CalendarDays, Eye } from 'lucide-react';
+import { PlusCircle, Megaphone, CalendarDays, Eye, Edit, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -69,6 +69,22 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
       description: `Funcionalidade para ver detalhes da campanha ${campaignId} (com descrição em rich text, galeria de mídia, checklist anexado e opções de envio) será implementada aqui.`,
     });
   };
+
+  // TODO: Add logic for 'Edit Campaign' button
+  const handleEditCampaign = (campaignId: string) => {
+    toast({
+      title: 'Editar Campanha',
+      description: `Funcionalidade para editar a campanha ${campaignId} será implementada aqui (provavelmente em um modal ou nova página).`,
+    });
+  };
+
+  // TODO: Add logic for 'Send' button
+  const handleSendCampaign = (campaignId: string) => {
+    toast({
+      title: 'Enviar Campanha',
+      description: `Funcionalidade para enviar a campanha ${campaignId} para pessoas ou grupos será implementada aqui.`,
+    });
+  };
   
   const getStatusColor = (status: Campaign['status']) => {
     switch (status) {
@@ -108,15 +124,27 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
           </div>
           <Progress value={campaign.progress} aria-label={`Progresso da campanha: ${campaign.progress}%`} className="h-2.5" />
         </div>
-        <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full"
-            onClick={() => handleViewDetails(campaign.id)}
-        >
-          <Eye className="mr-2 h-4 w-4" />
-          Ver Detalhes
-        </Button>
+        {/* TODO: Add styling for buttons and layout */}
+        <div className="flex space-x-2">
+          <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => handleEditCampaign(campaign.id)}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Editar Campanha
+          </Button>
+           <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => handleSendCampaign(campaign.id)}
+          >
+            <Send className="mr-2 h-4 w-4" />
+            Enviar
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
