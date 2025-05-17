@@ -66,7 +66,8 @@ body {
     --popover: 220 15% 15%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 50 100% 50%; /* Yellow for primary actions in dark mode, matching button */
+    /* Primary yellow for dark mode (login button, checkbox) */
+    --primary: 45 90% 50%; /* Brighter Yellow for dark mode */
     --primary-foreground: 0 0% 10%; /* Black for text on yellow button */
 
     --secondary: 220 10% 20%; /* Dark secondary - e.g., #2C2F3B */
@@ -75,15 +76,16 @@ body {
     --muted: 220 10% 20%;
     --muted-foreground: 0 0% 60%; /* Lighter muted text - e.g., #999999 */
 
-    --accent: 50 100% 50%; /* Yellow accent */
-    --accent-foreground: 0 0% 10%; /* Dark for contrast on gold */
+    /* Accent can remain gold or be adjusted if needed */
+    --accent: 40 25% 69%; /* Soft Gold */
+    --accent-foreground: 0 0% 20%; 
 
     --destructive: 0 70% 50%; /* Destructive red */
     --destructive-foreground: 0 0% 98%;
 
     --border: 220 10% 30%;      /* Slightly lighter border - e.g., #40434D */
     --input: 220 10% 25%;       /* Darker input background - e.g. #333640 */
-    --ring: 50 100% 50%;        /* Yellow ring for focus */
+    --ring: 45 90% 50%;        /* Yellow ring for focus */
 
     --chart-1: 165 37% 55%;
     --chart-2: 40 25% 69%;
@@ -94,12 +96,12 @@ body {
     /* Dark mode sidebar might be same or slightly adjusted if needed */
     --sidebar-background: 210 15% 12%; /* Even darker for dark mode */
     --sidebar-foreground: 210 15% 80%;
-    --sidebar-primary: 165 37% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 165 37% 50%;
-    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-primary: 45 90% 50%; /* Yellow accent for sidebar in dark mode */
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 45 90% 45%; /* Darker Yellow */
+    --sidebar-accent-foreground: 0 0% 10%;
     --sidebar-border: 210 15% 20%;
-    --sidebar-ring: 165 37% 55%;
+    --sidebar-ring: 45 90% 50%;
   }
 }
 
@@ -116,3 +118,12 @@ body {
   }
 }
 
+@layer utilities {
+  .animate-fadeInLayout {
+    animation: fadeInLayout 0.5s ease-out forwards;
+  }
+  @keyframes fadeInLayout {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

@@ -16,8 +16,8 @@ function RecentReportsListPlaceholder() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{/* i18n: dashboard.recentReportsTitle */}Recent Reports</CardTitle>
-        <CardDescription>{/* i18n: dashboard.recentReportsDesc */}Latest incidents and safety observations.</CardDescription>
+        <CardTitle>Relatórios Recentes</CardTitle> {/* i18n: dashboard.recentReportsTitle */}
+        <CardDescription>Últimos incidentes e observações de segurança.</CardDescription> {/* i18n: dashboard.recentReportsDesc */}
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[300px]">
@@ -43,8 +43,8 @@ function AlertsListPlaceholder() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{/* i18n: dashboard.alertsTitle */}Active Alerts</CardTitle>
-        <CardDescription>{/* i18n: dashboard.alertsDesc */}Unread notifications and critical alerts.</CardDescription>
+        <CardTitle>Alertas Ativos</CardTitle> {/* i18n: dashboard.alertsTitle */}
+        <CardDescription>Notificações não lidas e alertas críticos.</CardDescription> {/* i18n: dashboard.alertsDesc */}
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[300px]">
@@ -53,15 +53,14 @@ function AlertsListPlaceholder() {
               <div key={i} className="flex items-start space-x-3 p-3 border rounded-md bg-destructive/10 border-destructive/30">
                 <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-destructive"> {/* i18n: dashboard.alertItemTitle */}High Priority Alert {i + 1}</p>
-                  <p className="text-xs text-muted-foreground">{/* i18n: dashboard.alertItemDesc */}Details about the alert requiring attention.</p>
+                  <p className="text-sm font-medium text-destructive">Alerta de Alta Prioridade {i + 1}</p> {/* i18n: dashboard.alertItemTitle */}
+                  <p className="text-xs text-muted-foreground">Detalhes sobre o alerta que requer atenção.</p> {/* i18n: dashboard.alertItemDesc */}
                 </div>
-                <Button variant="ghost" size="sm" className="text-xs"> {/* i18n: dashboard.dismissAlertButton */}Dismiss</Button>
+                <Button variant="ghost" size="sm" className="text-xs">Dispensar</Button> {/* i18n: dashboard.dismissAlertButton */}
               </div>
             ))}
              <div className="text-center text-sm text-muted-foreground py-4">
-              {/* i18n: dashboard.noNewAlerts */}
-              No new alerts.
+              Sem novos alertas. {/* i18n: dashboard.noNewAlerts */}
             </div>
           </div>
         </ScrollArea>
@@ -74,25 +73,23 @@ function AlertsListPlaceholder() {
 export default function DashboardPage() {
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="Dashboard" description="Welcome to SafetyNet. Here's your safety overview." /> {/* i18n: dashboard.title, dashboard.description */}
+      <PageHeader title="Painel Principal" description="Bem-vindo ao SafetyNet. Aqui está sua visão geral de segurança." /> {/* i18n: dashboard.title, dashboard.description */}
       
-      <div className="flex-grow overflow-y-auto pb-4 space-y-6"> {/* Added for scrollability and consistent spacing */}
+      <div className="flex-grow overflow-y-auto pb-4 space-y-6">
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Reports This Month" value={125} iconName="FileText" subtitle="+15 since last month" iconColor="text-blue-500" /> {/* i18n: dashboard.statReports */}
-          <StatCard title="Scheduled Trainings" value={8} iconName="ShieldCheck" subtitle="2 upcoming this week" iconColor="text-green-500" /> {/* i18n: dashboard.statTrainings */}
-          <StatCard title="EPIs Low Stock" value={3} iconName="AlertTriangle" subtitle="Order new masks" iconColor="text-yellow-500" /> {/* i18n: dashboard.statEPIs */}
-          <StatCard title="Incidents (30 Days)" value={22} iconName="BarChart3" subtitle="-5 since last month" iconColor="text-red-500" /> {/* i18n: dashboard.statIncidents */}
+          <StatCard title="Relatórios Este Mês" value={125} iconName="FileText" subtitle="+15 desde o mês passado" iconColor="text-blue-500" /> {/* i18n: dashboard.statReports */}
+          <StatCard title="Treinamentos Agendados" value={8} iconName="ShieldCheck" subtitle="2 próximos esta semana" iconColor="text-green-500" /> {/* i18n: dashboard.statTrainings */}
+          <StatCard title="EPIs com Baixo Estoque" value={3} iconName="AlertTriangle" subtitle="Pedir novas máscaras" iconColor="text-yellow-500" /> {/* i18n: dashboard.statEPIs */}
+          <StatCard title="Incidentes (30 Dias)" value={22} iconName="BarChart3" subtitle="-5 desde o mês passado" iconColor="text-red-500" /> {/* i18n: dashboard.statIncidents */}
         </div>
 
-        {/* Main Content Area: Tabs on Left, Alerts on Right (for larger screens) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Tabs for Overview and Reports */}
           <div className="lg:col-span-2 space-y-4">
             <Tabs defaultValue="overview">
-              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2"> {/* Adjusted for 2 tabs */}
-                <TabsTrigger value="overview">{/* i18n: dashboard.tabOverview */}Overview</TabsTrigger>
-                <TabsTrigger value="reports">{/* i18n: dashboard.tabReports */}Reports</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
+                <TabsTrigger value="overview">Visão Geral</TabsTrigger> {/* i18n: dashboard.tabOverview */}
+                <TabsTrigger value="reports">Relatórios</TabsTrigger> {/* i18n: dashboard.tabReports */}
               </TabsList>
               <TabsContent value="overview" className="space-y-4">
                 <OverviewCharts />
@@ -103,7 +100,6 @@ export default function DashboardPage() {
             </Tabs>
           </div>
 
-          {/* Right Column: Alerts Panel */}
           <div className="lg:col-span-1">
             <AlertsListPlaceholder />
           </div>
@@ -111,7 +107,7 @@ export default function DashboardPage() {
       </div>
       
       <OfflineBanner />
-      <div className="mt-auto"> {/* Pushes GamificationSummary to the bottom */}
+      <div className="mt-auto">
         <GamificationSummary />
       </div>
     </div>

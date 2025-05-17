@@ -1,7 +1,10 @@
+
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Home, FileText, Brain, ShieldQuestion, Settings, Users, Car, Gem } from 'lucide-react'; // Added Users, Car, Gem
+import { 
+  Home, FileText, Brain, Users, Car, Gem, ShieldCheck, Building, Megaphone, Library, Landmark, Settings, ShieldQuestion 
+} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -19,17 +22,21 @@ import { Logo } from '@/components/common/logo';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-
 const mainNavItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home }, // i18n: sidebar.dashboard
-  { href: '/reports', label: 'Reports', icon: FileText }, // i18n: sidebar.reports
-  { href: '/predictive-analysis', label: 'Predictive Analysis', icon: Brain }, // i18n: sidebar.predictiveAnalysis
+  { href: '/dashboard', label: 'Painel', icon: Home }, // i18n: sidebar.dashboard
+  { href: '/reports', label: 'Relatórios', icon: FileText }, // i18n: sidebar.reports
+  { href: '/predictive-analysis', label: 'Análise Preditiva', icon: Brain }, // i18n: sidebar.predictiveAnalysis
 ];
 
-const otherNavItems = [
-  { href: '/trainings', label: 'Trainings', icon: Users }, // i18n: sidebar.trainings Changed icon and href
-  { href: '/fleet', label: 'Fleet', icon: Car }, // i18n: sidebar.fleet Changed icon and href
-  { href: '/gamification', label: 'Gamification', icon: Gem } // i18n: sidebar.gamification Added
+const moduleNavItems = [
+  { href: '/trainings', label: 'Treinamentos', icon: Users }, // i18n: sidebar.trainings
+  { href: '/fleet', label: 'Frota', icon: Car }, // i18n: sidebar.fleet
+  { href: '/epis', label: 'EPIs', icon: ShieldCheck }, // i18n: sidebar.epis
+  { href: '/empresas', label: 'Empresas', icon: Building }, // i18n: sidebar.empresas
+  { href: '/campanhas', label: 'Campanhas', icon: Megaphone }, // i18n: sidebar.campanhas
+  { href: '/biblioteca', label: 'Biblioteca', icon: Library }, // i18n: sidebar.biblioteca
+  { href: '/financeiro', label: 'Financeiro', icon: Landmark }, // i18n: sidebar.financeiro
+  { href: '/gamification', label: 'Gamificação', icon: Gem } // i18n: sidebar.gamification 
 ];
 
 
@@ -46,7 +53,6 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <Link href="/dashboard" className="flex items-center gap-2" onClick={handleLinkClick}>
           <Logo className="h-8 w-auto group-data-[collapsible=icon]:hidden" />
-          {/* Using ShieldQuestion as a generic app icon when collapsed */}
           <ShieldQuestion className="h-8 w-8 text-primary hidden group-data-[collapsible=icon]:block" />
         </Link>
       </SidebarHeader>
@@ -55,8 +61,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarGroup>
             <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
-              {/* i18n: sidebar.mainNavigation */}
-              Main Navigation
+              Navegação Principal {/* i18n: sidebar.mainNavigation */}
             </SidebarGroupLabel>
             {mainNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
@@ -83,10 +88,9 @@ export function AppSidebar() {
           <SidebarSeparator />
            <SidebarGroup>
              <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
-              {/* i18n: sidebar.otherModules */}
-              Modules
+              Módulos {/* i18n: sidebar.otherModules */}
             </SidebarGroupLabel>
-            {otherNavItems.map((item) => (
+            {moduleNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href} passHref legacyBehavior>
                   <SidebarMenuButton
@@ -113,7 +117,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-2 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
         <Button variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:p-2">
             <Settings className="h-5 w-5"/>
-            <span className="group-data-[collapsible=icon]:hidden ml-2">{/* i18n: sidebar.settings */}Settings</span>
+            <span className="group-data-[collapsible=icon]:hidden ml-2">Configurações</span> {/* i18n: sidebar.settings */}
         </Button>
       </SidebarFooter>
     </Sidebar>

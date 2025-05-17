@@ -12,17 +12,18 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { Logo } from '@/components/common/logo';
 import Link from 'next/link';
+import { Loader2 } from 'lucide-react'; // Importar Loader2
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Por favor, insira um endereço de e-mail válido.' }),
-  password: z.string().min(1, { message: 'A senha é obrigatória.' }), // Min 1 to ensure it's not empty
+  password: z.string().min(1, { message: 'A senha é obrigatória.' }),
   rememberMe: z.boolean().optional(),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const [showSplash, setShowSplash] = useState(true); // Splash screen can be kept or removed based on final preference
+  const [showSplash, setShowSplash] = useState(true);
   const { login, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
@@ -36,10 +37,9 @@ export function LoginForm() {
   });
 
   useEffect(() => {
-    // If you want to keep the splash, keep this. Otherwise, remove and set setShowSplash(false) directly.
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 1000); // Shortened splash for quicker development, adjust as needed
+    }, 1500); // Duração do splash screen (1.5 segundos)
     return () => clearTimeout(timer);
   }, []);
 
@@ -50,6 +50,7 @@ export function LoginForm() {
         title: 'Login bem-sucedido',
         description: 'Bem-vindo de volta!',
       });
+      // router.push('/dashboard'); // useAuth hook já faz o redirecionamento
     } catch (error) {
       console.error("Login failed:", error);
       toast({
@@ -62,28 +63,28 @@ export function LoginForm() {
 
   if (showSplash) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen animate-fadeIn">
-        <Logo className="w-48 h-auto mb-2" />
+      <div className="flex flex-col items-center justify-center min-h-screen animate-fadeInLayout">
+        <Logo className="w-48 h-auto mb-2" /> {/* Ajuste o tamanho conforme necessário */}
         <p className="text-sm text-muted-foreground">GESTÃO | CONSULTORIA | TREINAMENTO</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-md p-8 space-y-8 text-foreground">
-      <div className="flex flex-col items-center">
-        <Logo className="w-56 h-auto mb-2" /> {/* Adjusted size */}
-        <p className="text-xs text-muted-foreground mb-8">GESTÃO | CONSULTORIA | TREINAMENTO</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-center">
+    <div className="w-full max-w-md p-6 sm:p-8 space-y-6 sm:space-y-8 text-foreground">
+      <div className="flex flex-col items-center mb-6 sm:mb-8">
+        <Logo className="w-40 sm:w-48 h-auto mb-1" />
+        <p className="text-xs text-muted-foreground mb-6">GESTÃO | CONSULTORIA | TREINAMENTO</p>
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-center">
           Bem-vindo de volta
         </h1>
-        <p className="text-sm text-muted-foreground text-center mt-2">
+        <p className="text-sm text-muted-foreground text-center mt-1 sm:mt-2">
           Entre com suas credenciais para acessar o sistema
         </p>
       </div>
       
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-2">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+        <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
@@ -91,14 +92,14 @@ export function LoginForm() {
             placeholder="seu@email.com"
             {...form.register('email')}
             disabled={authLoading}
-            className="bg-gray-800 border-gray-700 placeholder-gray-500"
-            data-ai-hint="email address"
+            className="bg-gray-800 border-gray-700 placeholder-gray-500 focus:ring-yellow-400 focus:border-yellow-400"
+            data-ai-hint="endereço de email"
           />
           {form.formState.errors.email && (
             <p className="text-xs text-red-400">{form.formState.errors.email.message}</p>
           )}
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Senha</Label>
             <Link href="#" className="text-xs text-yellow-400 hover:underline">
@@ -109,38 +110,33 @@ export function LoginForm() {
             id="password"
             type="password"
             disabled={authLoading}
-            className="bg-gray-800 border-gray-700 placeholder-gray-500"
+            className="bg-gray-800 border-gray-700 placeholder-gray-500 focus:ring-yellow-400 focus:border-yellow-400"
             {...form.register('password')}
-            data-ai-hint="password"
+            data-ai-hint="senha"
           />
           {form.formState.errors.password && (
             <p className="text-xs text-red-400">{form.formState.errors.password.message}</p>
           )}
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="rememberMe" 
-              {...form.register('rememberMe')} 
-              className="data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black border-yellow-400"
-              disabled={authLoading}
-            />
-            <Label htmlFor="rememberMe" className="text-sm font-normal text-gray-300">Lembrar-me</Label>
-          </div>
+        <div className="flex items-center space-x-2 pt-1">
+          <Checkbox 
+            id="rememberMe" 
+            {...form.register('rememberMe')} 
+            className="data-[state=checked]:bg-yellow-400 data-[state=checked]:text-black border-yellow-400 focus:ring-yellow-400"
+            disabled={authLoading}
+          />
+          <Label htmlFor="rememberMe" className="text-sm font-normal text-gray-300 cursor-pointer">Lembrar-me</Label>
         </div>
         
         <Button 
           type="submit" 
-          className="w-full bg-yellow-400 hover:bg-yellow-500 text-black text-lg py-3" 
+          className="w-full bg-yellow-400 hover:bg-yellow-500 text-black text-base sm:text-lg py-2.5 sm:py-3 font-semibold" 
           disabled={authLoading}
         >
           {authLoading ? (
             <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
               Entrando...
             </>
           ) : (
@@ -149,12 +145,12 @@ export function LoginForm() {
         </Button>
       </form>
 
-      <Button variant="link" className="w-full text-gray-400 hover:text-yellow-400">
+      <Button variant="link" className="w-full text-gray-400 hover:text-yellow-400 text-sm">
         Ou acesse em modo offline
       </Button>
 
-      <p className="mt-12 text-center text-xs text-gray-500">
-        Safety Solutions © 2025 - Gestão | Consultoria | Treinamento
+      <p className="mt-8 text-center text-xs text-gray-500">
+        SafetyNet © 2025 - Gestão | Consultoria | Treinamento
       </p>
     </div>
   );

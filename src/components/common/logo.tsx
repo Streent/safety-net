@@ -1,12 +1,17 @@
+
 import type { SVGProps } from 'react';
 
 export function Logo(props: SVGProps<SVGSVGElement>) {
+  // Changed text to SafetyNet to match overall branding
+  // The wireframe showed "Safety Solutions" specifically for login, 
+  // but using a consistent "SafetyNet" for the logo component itself.
+  // "GESTÃO | CONSULTORIA | TREINAMENTO" is added separately in login-form.
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 200 50"
-      width="150"
-      height="37.5"
+      width="150" 
+      height="37.5" 
       aria-label="SafetyNet Logo"
       {...props}
     >
@@ -17,6 +22,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         </linearGradient>
       </defs>
       <rect width="200" height="50" rx="8" fill="transparent" />
+      {/* S Shape */}
       <path
         d="M25 10 Q20 10, 15 15 L15 35 Q20 40, 25 40 M25 10 L45 10 Q50 10, 50 15 L50 35 Q50 40, 45 40 L25 40"
         stroke="url(#logoGradient)"
@@ -25,9 +31,10 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {/* Text: SafetyNet */}
       <text
         x="60"
-        y="32"
+        y="32" 
         fontFamily="var(--font-geist-sans), Arial, sans-serif"
         fontSize="24"
         fontWeight="bold"

@@ -18,9 +18,8 @@ import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { useAuth } from '@/hooks/use-auth';
 import { usePathname } from 'next/navigation';
 import {
-  SidebarTrigger,
   useSidebar,
-} from "@/components/ui/sidebar"; // Assuming SidebarTrigger is for mobile toggle
+} from "@/components/ui/sidebar"; 
 
 
 interface AppHeaderProps {
@@ -30,13 +29,26 @@ interface AppHeaderProps {
 // Simplified breadcrumb logic
 function generateBreadcrumbs(pathname: string) {
   const pathSegments = pathname.split('/').filter(segment => segment);
-  const breadcrumbs = [{ href: '/', label: 'Home' }]; // i18n: breadcrumbs.home
+  const breadcrumbs = [{ href: '/', label: 'Início' }]; // i18n: breadcrumbs.home
 
   let currentPath = '';
   pathSegments.forEach(segment => {
     currentPath += `/${segment}`;
-    // Capitalize first letter for label
-    const label = segment.charAt(0).toUpperCase() + segment.slice(1); 
+    // Capitalize first letter for label, handle special cases if any
+    let label = segment.charAt(0).toUpperCase() + segment.slice(1);
+    if (label === "Predictive-analysis") label = "Análise Preditiva";
+    // Add more translations for path segments if needed
+    if (label === "Reports") label = "Relatórios";
+    if (label === "Trainings") label = "Treinamentos";
+    if (label === "Fleet") label = "Frota";
+    if (label === "Epis") label = "EPIs";
+    if (label === "Empresas") label = "Empresas";
+    if (label === "Campanhas") label = "Campanhas";
+    if (label === "Biblioteca") label = "Biblioteca";
+    if (label === "Financeiro") label = "Financeiro";
+    if (label === "Gamification") label = "Gamificação";
+    if (segment === "new") label = "Novo";
+
     breadcrumbs.push({ href: currentPath, label });
   });
   return breadcrumbs;
@@ -49,7 +61,10 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
   const breadcrumbs = generateBreadcrumbs(pathname);
   const { isMobile, toggleSidebar } = useSidebar();
 
-  const currentTitle = pageTitle || (breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length -1].label : "Dashboard");
+  const currentTitleFromBreadcrumb = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length -1].label : "Painel";
+  // Allow pageTitle prop to override breadcrumb title for specific pages if needed
+  const displayTitle = pageTitle || currentTitleFromBreadcrumb;
+
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -58,7 +73,7 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
           {isMobile && (
             <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-2 md:hidden">
               <Menu className="h-6 w-6" />
-              <span className="sr-only">Toggle Sidebar</span>
+              <span className="sr-only">Alternar Sidebar</span>
             </Button>
           )}
           {!isMobile && (
@@ -84,41 +99,36 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
               </span>
             ))}
           </div>
-          <h1 className="text-lg font-semibold md:hidden">{currentTitle}</h1>
+          <h1 className="text-lg font-semibold md:hidden">{displayTitle}</h1>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Placeholder for Language Switcher */}
           <div className="hidden sm:flex items-center text-sm">
-            <Button variant="ghost" size="sm">EN</Button>
+            <Button variant="ghost" size="sm" aria-label="Mudar para Inglês">EN</Button>
             <span className="text-muted-foreground mx-1">|</span>
-            <Button variant="ghost" size="sm">PT</Button>
+            <Button variant="ghost" size="sm" aria-label="Mudar para Português" className="font-semibold text-primary">PT</Button>
             <span className="text-muted-foreground mx-1">|</span>
-            <Button variant="ghost" size="sm">ES</Button>
+            <Button variant="ghost" size="sm" aria-label="Mudar para Espanhol">ES</Button>
           </div>
           <ThemeToggle />
-          <Button variant="ghost" size="icon" aria-label="Notifications">
+          <Button variant="ghost" size="icon" aria-label="Notificações">
             <Bell className="h-5 w-5" />
-            {/* Example badge: <span className="absolute top-1 right-1 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span> */}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={user?.photoURL || `https://placehold.co/100x100.png`} alt={user?.displayName || 'User'}  data-ai-hint="user avatar" />
-                  <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
+                  <AvatarImage src={user?.photoURL || `https://placehold.co/100x100.png`} alt={user?.displayName || 'Usuário'}  data-ai-hint="avatar usuário" />
+                  <AvatarFallback>{user?.displayName?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.displayName || 'User Name'}</p>
+                  <p className="text-sm font-medium leading-none">{user?.displayName || 'Nome do Usuário'}</p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {user?.email || 'user@example.com'}
+                    {user?.email || 'usuario@example.com'}
                   </p>
                 </div>
               </DropdownMenuLabel>
@@ -126,17 +136,17 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
               <DropdownMenuGroup>
                 <DropdownMenuItem>
                   <UserCircle className="mr-2 h-4 w-4" />
-                  <span>Profile</span> {/* i18n: header.profile */}
+                  <span>Perfil</span> {/* i18n: header.profile */}
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span> {/* i18n: header.settings */}
+                  <span>Configurações</span> {/* i18n: header.settings */}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span> {/* i18n: header.logout */}
+                <span>Sair</span> {/* i18n: header.logout */}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
