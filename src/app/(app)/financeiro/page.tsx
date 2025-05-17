@@ -3,6 +3,8 @@
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Landmark, FileText, DollarSign, CheckCircle, XCircle, Download } from 'lucide-react'; // Example Icons
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export default function FinanceiroPage() {
   return (
