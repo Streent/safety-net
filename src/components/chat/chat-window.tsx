@@ -33,13 +33,13 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
       setMessages([
         {
           id: 'welcome-' + Date.now(),
-          text: 'Olá! Sou o assistente SafetyNet. Como posso ajudar você hoje?', // i18n: chat.welcomeMessage
+          text: 'Olá! Sou o Leão Assistente do SafetyNet. Como posso ajudar você hoje?', // i18n: chat.welcomeMessage (updated)
           sender: 'bot',
           timestamp: new Date(),
         },
       ]);
     }
-  }, [isOpen]); // Only re-run if isOpen changes and messages are empty
+  }, [isOpen, messages.length]); // Added messages.length to dependency array
 
   useEffect(() => {
     if (isOpen) {
@@ -77,7 +77,7 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
     setTimeout(() => {
       const botResponse: Message = {
         id: `bot-${Date.now()}`,
-        text: 'Obrigado pela sua mensagem! Ainda estou aprendendo, mas farei o meu melhor para ajudar.', // i18n: chat.botPlaceholderResponse
+        text: 'Obrigado pela sua mensagem! Ainda estou aprendendo, mas farei o meu melhor para ajudar. Rugidos de sabedoria em breve!', // i18n: chat.botPlaceholderResponse (updated)
         sender: 'bot',
         timestamp: new Date(),
       };
@@ -97,7 +97,7 @@ export function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
           <Avatar className="h-8 w-8 hidden sm:flex">
             <AvatarFallback><Bot size={18}/></AvatarFallback>
           </Avatar>
-          <CardTitle className="text-base sm:text-lg">Assistente SafetyNet</CardTitle> {/* i18n: chat.assistantTitle */}
+          <CardTitle className="text-base sm:text-lg">Leão Assistente SafetyNet</CardTitle> {/* i18n: chat.assistantTitle (updated) */}
         </div>
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar chat"> {/* i18n: chat.closeChatAriaLabel */}
           <X className="h-5 w-5" />
