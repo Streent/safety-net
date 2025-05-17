@@ -1,15 +1,18 @@
+
 'use client';
-import { BarChart, PieChart as RechartsPieChart, TrendingUp, Users } from 'lucide-react';
+import { TrendingUp, Users } from 'lucide-react'; // Corrected: Removed BarChart and PieChart icons
 import {
   Bar,
   Cell,
   Pie,
-  ResponsiveContainer,
+  // ResponsiveContainer, // Removed: ChartContainer handles this
   Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
   CartesianGrid,
   Legend,
+  BarChart as RechartsBarChartComponent, // Added: Actual BarChart component from recharts
+  PieChart as RechartsPieChartComponent, // Added: Actual PieChart component from recharts
 } from 'recharts';
 import {
   Card,
@@ -137,17 +140,16 @@ export function OverviewCharts() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={barChartConfig} className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsBarChart data={barChartData}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
-                  <YAxis tickLine={false} tickMargin={10} axisLine={false} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <ChartLegend content={<ChartLegendContent />} />
-                  <Bar dataKey="technicianA" fill="var(--color-technicianA)" radius={4} />
-                  <Bar dataKey="technicianB" fill="var(--color-technicianB)" radius={4} />
-                </RechartsBarChart>
-              </ResponsiveContainer>
+              {/* Removed explicit ResponsiveContainer, ChartContainer handles it */}
+              <RechartsBarChartComponent data={barChartData}> {/* Used actual Recharts BarChart */}
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
+                <YAxis tickLine={false} tickMargin={10} axisLine={false} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="technicianA" fill="var(--color-technicianA)" radius={4} />
+                <Bar dataKey="technicianB" fill="var(--color-technicianB)" radius={4} />
+              </RechartsBarChartComponent>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -166,17 +168,16 @@ export function OverviewCharts() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={pieChartConfig} className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                 <RechartsPieChart>
-                  <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
-                  <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label >
-                     {pieChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                  </Pie>
-                   <ChartLegend content={<ChartLegendContent nameKey="name" />} className="-mt-4" />
-                </RechartsPieChart>
-              </ResponsiveContainer>
+              {/* Removed explicit ResponsiveContainer, ChartContainer handles it */}
+               <RechartsPieChartComponent> {/* Used actual Recharts PieChart */}
+                <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
+                <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label >
+                   {pieChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                </Pie>
+                 <ChartLegend content={<ChartLegendContent nameKey="name" />} className="-mt-4" />
+              </RechartsPieChartComponent>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -185,5 +186,4 @@ export function OverviewCharts() {
   );
 }
 
-// Renaming to avoid conflict with lucide-react BarChart icon
-const RechartsBarChart = BarChart;
+// Removed: const RechartsBarChart = BarChart; // This was causing BarChart to be the lucide icon
