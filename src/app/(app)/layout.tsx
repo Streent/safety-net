@@ -1,6 +1,7 @@
+
 'use client';
 import type { ReactNode } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react'; // Added useState
 import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppSidebar } from '@/components/layout/app-sidebar';
@@ -8,16 +9,22 @@ import { BottomNav } from '@/components/layout/bottom-nav';
 import { useAuth } from '@/hooks/use-auth';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
+import { FloatingChatButton } from '@/components/chat/floating-chat-button'; // Added
+import { ChatWindow } from '@/components/chat/chat-window'; // Added
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
+  const [isChatOpen, setIsChatOpen] = useState(false); // Added state for chat window
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/login');
     }
   }, [isAuthenticated, loading, router]);
+
+  const toggleChat = () => setIsChatOpen(!isChatOpen);
+  const closeChat = () => setIsChatOpen(false);
 
   if (loading) {
     return (
@@ -50,6 +57,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <BottomNav />
       </div>
       <Toaster />
+      <FloatingChatButton onClick={toggleChat} isChatOpen={isChatOpen} />
+      <ChatWindow isOpen={isChatOpen} onClose={closeChat} />
     </SidebarProvider>
   );
 }
