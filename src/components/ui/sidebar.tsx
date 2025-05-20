@@ -213,6 +213,7 @@ const Sidebar = React.forwardRef<
                 Navegue pelas seções do SafetyNet.
               </SheetDescription>
             </SheetHeader>
+            {/* Ensure children are rendered within a scrollable container */}
             <div className="flex-1 flex flex-col overflow-y-auto">
               {children}
             </div>
@@ -243,7 +244,7 @@ const Sidebar = React.forwardRef<
         />
         <div
           className={cn(
-            "duration-200 fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex",
+            "duration-200 fixed inset-y-0 z-30 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex",
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -770,5 +771,7 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
 
     
