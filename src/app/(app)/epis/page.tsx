@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { PlusCircle, Archive, AlertCircle, CalendarClock, Edit2, MoreHorizontal, Eye, Loader2, Check, Calendar as CalendarIconLucide, CloudUpload, ImageIcon, Filter as FilterIcon, Search, Trash2, FileSpreadsheet } from 'lucide-react';
+import { PlusCircle, Archive, AlertCircle, CalendarClock, Edit2, MoreHorizontal, Eye, Loader2, Check, Calendar as CalendarIconLucide, CloudUpload, ImageIcon, Filter as FilterIcon, Search, Trash2, FileSpreadsheet, X as XIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, addMonths, differenceInDays, isValid, startOfDay, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -44,9 +44,10 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { cn } from '@/lib/utils';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription as UiFormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription as UiFormDescription, FormMessage as UiFormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from '@/components/ui/card';
 import Link from 'next/link';
+import Image from 'next/image';
 
 
 export interface Epi {
@@ -65,7 +66,7 @@ export interface Epi {
 type EpiStatus = 'OK' | 'Baixo Estoque' | 'Próximo Validade' | 'Validade Crítica' | 'Expirado';
 
 export const mockEpis: Epi[] = [
-  { id: 'EPI001', name: 'Máscara N95 (PFF2)', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345', category: 'protecao_respiratoria', minimumStock: 10, responsible: 'Carlos Silva' },
+  { id: 'EPI001', name: 'Máscara N95 (PFF2)', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345', category: 'protecao_respiratoria', minimumStock: 10, responsible: 'Carlos Silva', photoUrls: ['https://placehold.co/100x100.png'] },
   { id: 'EPI002', name: 'Capacete de Segurança Amarelo', quantity: 5, validity: addMonths(new Date(), 12), location: 'Estante B1', category: 'protecao_cabeca', minimumStock: 8, responsible: 'Ana Lima' },
   { id: 'EPI003', name: 'Luvas de Proteção (par) Tamanho M', quantity: 20, validity: addMonths(new Date(), -1), location: 'Almoxarifado A', category: 'protecao_maos', minimumStock: 10, responsible: 'Carlos Silva' }, // Expirado
   { id: 'EPI004', name: 'Protetor Auricular Plug Silicone', quantity: 10, validity: addMonths(new Date(), 0.5), location: 'Estante C3', caNumber: '67890', category: 'protecao_auditiva', minimumStock: 25, responsible: 'João Souza' }, // Validade Crítica (aprox. 15 dias) e Baixo Estoque
@@ -98,7 +99,10 @@ export default function EpisPage() {
   const [epis, setEpis] = useState<Epi[]>(mockEpis);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoadingForm, setIsLoadingForm] = useState(false);
+  
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
+
   const [editingEpi, setEditingEpi] = useState<Epi | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [epiToDelete, setEpiToDelete] = useState<Epi | null>(null);
@@ -125,8 +129,55 @@ export default function EpisPage() {
   });
 
   useEffect(() => {
+    // Cleanup object URLs on component unmount
+    return () => {
+      photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [photoPreviewUrls]);
+
+  const resetAndCloseModal = () => {
+    form.reset({
+      name: '',
+      quantity: 1,
+      validity: undefined,
+      location: '',
+      caNumber: '',
+      category: '',
+      photos: undefined,
+      minimumStock: 0,
+      responsible: '',
+    });
+    photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    setPhotoFiles([]);
+    setPhotoPreviewUrls([]);
+    setEditingEpi(null);
+    setIsAddModalOpen(false);
+  };
+
+
+  useEffect(() => {
     if (!isAddModalOpen) {
+      resetAndCloseModal();
+    } else if (editingEpi) {
       form.reset({
+        name: editingEpi.name,
+        quantity: editingEpi.quantity,
+        validity: new Date(editingEpi.validity), 
+        location: editingEpi.location,
+        caNumber: editingEpi.caNumber || '',
+        category: editingEpi.category || '',
+        minimumStock: editingEpi.minimumStock || 0,
+        responsible: editingEpi.responsible || '',
+        photos: undefined, 
+      });
+      // Pre-load existing photo URLs for viewing if editing, but not as files for re-upload
+      // For simplicity, we'll just show new uploads for now.
+      // A more complex UI would show existing images and allow removal/addition.
+      setPhotoFiles([]);
+      setPhotoPreviewUrls(editingEpi.photoUrls || []); // Show existing, but they are not "files" for re-upload
+    } else {
+      // Reset for new EPI
+       form.reset({
         name: '',
         quantity: 1,
         validity: undefined,
@@ -138,15 +189,7 @@ export default function EpisPage() {
         responsible: '',
       });
       setPhotoFiles([]);
-      setEditingEpi(null);
-    } else if (editingEpi) {
-      form.reset({
-        ...editingEpi,
-        validity: new Date(editingEpi.validity), // Garante que é um objeto Date
-        photos: undefined, // Fotos não são pré-preenchidas no input file
-      });
-      // Para photoUrls, se quiséssemos mostrar as existentes (não como files, mas como info):
-      // setExistingPhotoUrls(editingEpi.photoUrls || []); 
+      setPhotoPreviewUrls([]);
     }
   }, [isAddModalOpen, editingEpi, form]);
 
@@ -162,11 +205,11 @@ export default function EpisPage() {
 
     if (daysRemaining < 0) {
       status = 'Expirado';
-    } else if (daysRemaining < 15) { // 0-14 dias
+    } else if (daysRemaining < 15) { 
       status = 'Validade Crítica';
-    } else if (daysRemaining <= 30) { // 15-30 dias
+    } else if (daysRemaining <= 30) { 
       status = 'Próximo Validade';
-    } else { // Se a validade está OK, então verificamos o estoque
+    } else { 
       status = isLowStock ? 'Baixo Estoque' : 'OK';
     }
     
@@ -177,8 +220,7 @@ export default function EpisPage() {
   
   const lowStockItemsCount = epis.filter(item => {
     const { isLowStock, status } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
-    // Conta como baixo estoque apenas se estiver em baixo estoque E não estiver com validade mais crítica
-    return isLowStock && status !== 'Expirado' && status !== 'Validade Crítica';
+    return isLowStock && status !== 'Expirado' && status !== 'Validade Crítica' && status !== 'Próximo Validade';
   }).length;
 
   const criticalValidityItemsCount = epis.filter(item => {
@@ -191,11 +233,11 @@ export default function EpisPage() {
     switch (status) {
       case 'OK':
         return 'bg-green-500/20 text-green-700 border-green-500/30';
-      case 'Baixo Estoque': // Usado se validade estiver OK mas estoque baixo
+      case 'Baixo Estoque': 
         return 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30';
-      case 'Próximo Validade': // 15-30 dias
+      case 'Próximo Validade': 
         return 'bg-amber-500/20 text-amber-700 border-amber-500/30'; 
-      case 'Validade Crítica': // 0-14 dias
+      case 'Validade Crítica': 
         return 'bg-orange-500/20 text-orange-700 border-orange-500/30'; 
       case 'Expirado':
         return 'bg-red-500/20 text-red-700 border-red-500/30';
@@ -243,24 +285,50 @@ export default function EpisPage() {
   };
   
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Revoke old preview URLs
+    photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+
     if (event.target.files) {
       const filesArray = Array.from(event.target.files);
       setPhotoFiles(filesArray);
-      form.setValue('photos', filesArray); // Atualiza react-hook-form
+      const newPreviewUrls = filesArray.map(file => URL.createObjectURL(file));
+      setPhotoPreviewUrls(newPreviewUrls);
+      form.setValue('photos', filesArray); // Update react-hook-form
+    } else {
+      setPhotoFiles([]);
+      setPhotoPreviewUrls([]);
+      form.setValue('photos', undefined);
     }
   };
+
+  const handleRemovePhoto = (indexToRemove: number) => {
+    URL.revokeObjectURL(photoPreviewUrls[indexToRemove]); // Revoke the specific URL
+    setPhotoFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToRemove));
+    setPhotoPreviewUrls(prevUrls => prevUrls.filter((_, index) => index !== indexToRemove));
+    // Update form value if needed (e.g., if react-hook-form needs the FileList)
+    const updatedFiles = photoFiles.filter((_, index) => index !== indexToRemove);
+    form.setValue('photos', updatedFiles.length > 0 ? updatedFiles : undefined);
+  };
+
 
   async function onFormSubmit(data: EpiFormValues) {
     setIsLoadingForm(true);
     await new Promise(resolve => setTimeout(resolve, 1000)); 
     
+    // Simulate image upload and getting URLs
+    const uploadedPhotoUrls = photoFiles.map(file => `https://placehold.co/100x100.png?text=${encodeURIComponent(file.name.substring(0,10))}`);
+    
     const newOrUpdatedEpi: Epi = {
       id: editingEpi ? editingEpi.id : `EPI${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`,
-      ...data,
+      name: data.name,
+      quantity: data.quantity,
+      validity: data.validity,
+      location: data.location,
+      caNumber: data.caNumber,
+      category: data.category,
       minimumStock: data.minimumStock || 0, 
-      photoUrls: photoFiles.length > 0 
-        ? photoFiles.map(file => URL.createObjectURL(file)) // Placeholder URLs
-        : (editingEpi?.photoUrls || []), 
+      responsible: data.responsible,
+      photoUrls: uploadedPhotoUrls.length > 0 ? uploadedPhotoUrls : (editingEpi?.photoUrls || []), 
     };
 
     if (editingEpi) {
@@ -278,7 +346,7 @@ export default function EpisPage() {
     }
     
     setIsLoadingForm(false);
-    setIsAddModalOpen(false);
+    resetAndCloseModal();
   }
 
   const filteredEpis = useMemo(() => {
@@ -429,7 +497,7 @@ export default function EpisPage() {
                               <DropdownMenuItem onClick={() => handleViewDetails(item.id)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 <span>Ver Detalhes</span>
-                              </DropdownMenuItem>
+                              DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleOpenModal(item)}>
                                 <Edit2 className="mr-2 h-4 w-4" />
                                 <span>Editar</span>
@@ -491,7 +559,7 @@ export default function EpisPage() {
                       <FormControl className="sm:col-span-3">
                         <Input {...field} className={cn(form.formState.errors.name && "border-destructive")} />
                       </FormControl>
-                      <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
+                      <UiFormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -504,7 +572,7 @@ export default function EpisPage() {
                       <FormControl className="sm:col-span-3">
                         <Input type="number" {...field} className={cn(form.formState.errors.quantity && "border-destructive")} />
                       </FormControl>
-                      <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
+                      <UiFormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -517,7 +585,7 @@ export default function EpisPage() {
                       <FormControl className="sm:col-span-3">
                         <Input type="number" {...field} placeholder="0" className={cn(form.formState.errors.minimumStock && "border-destructive")} />
                       </FormControl>
-                      <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
+                      <UiFormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -554,7 +622,7 @@ export default function EpisPage() {
                           />
                         </PopoverContent>
                       </Popover>
-                      <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
+                      <UiFormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -567,7 +635,7 @@ export default function EpisPage() {
                       <FormControl className="sm:col-span-3">
                         <Input {...field} className={cn(form.formState.errors.location && "border-destructive")} />
                       </FormControl>
-                      <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
+                      <UiFormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -580,7 +648,7 @@ export default function EpisPage() {
                       <FormControl className="sm:col-span-3">
                         <Input {...field} placeholder="Opcional" />
                       </FormControl>
-                       <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
+                       <UiFormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -593,7 +661,7 @@ export default function EpisPage() {
                       <FormControl className="sm:col-span-3">
                         <Input {...field} placeholder="Opcional" />
                       </FormControl>
-                       <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
+                       <UiFormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -622,7 +690,7 @@ export default function EpisPage() {
                           <SelectItem value="outros">Outros</SelectItem>
                         </SelectContent>
                       </Select>
-                       <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
+                       <UiFormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -640,25 +708,40 @@ export default function EpisPage() {
                             type="file" 
                             multiple 
                             accept="image/*"
-                            onChange={(e) => {
-                              handlePhotoChange(e); 
-                            }}
+                            onChange={handlePhotoChange}
                             className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                           />
                         </FormControl>
-                        {photoFiles.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            <p className="text-xs text-muted-foreground">Arquivos Selecionados ({photoFiles.length}):</p>
-                            <ul className="list-disc list-inside text-xs text-muted-foreground max-h-20 overflow-y-auto">
-                              {photoFiles.map(file => <li key={file.name}>{file.name} ({(file.size / 1024).toFixed(1)} KB)</li>)}
-                            </ul>
+                        {photoPreviewUrls.length > 0 && (
+                          <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {photoPreviewUrls.map((url, index) => (
+                              <div key={url} className="relative group aspect-square">
+                                <Image 
+                                  src={url} 
+                                  alt={`Pré-visualização ${index + 1}`} 
+                                  width={100} 
+                                  height={100} 
+                                  className="object-cover w-full h-full rounded-md border"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => handleRemovePhoto(index)}
+                                >
+                                  <XIcon className="h-4 w-4" />
+                                  <span className="sr-only">Remover imagem</span>
+                                </Button>
+                              </div>
+                            ))}
                           </div>
                         )}
                          <UiFormDescription className="text-xs mt-1 flex items-center">
                            <ImageIcon className="h-3 w-3 mr-1.5"/>
                            Anexe uma ou mais fotos do EPI (opcional).
                          </UiFormDescription>
-                         <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
+                         <UiFormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                       </div>
                     </FormItem>
                   )}
@@ -666,7 +749,7 @@ export default function EpisPage() {
               </div>
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="outline" disabled={isLoadingForm}>
+                  <Button type="button" variant="outline" disabled={isLoadingForm} onClick={resetAndCloseModal}>
                     Cancelar
                   </Button>
                 </DialogClose>
@@ -703,3 +786,5 @@ export default function EpisPage() {
     </>
   );
 }
+
+    
