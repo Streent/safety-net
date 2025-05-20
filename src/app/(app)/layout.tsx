@@ -11,23 +11,19 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { FloatingChatButton } from '@/components/chat/floating-chat-button';
 import { ChatWindow } from '@/components/chat/chat-window';
-
-// Constantes de scroll removidas, pois não serão mais usadas para o header/sidebar principal aqui
+import { QuickActionsFAB } from '@/components/common/QuickActionsFAB'; // Import the new FAB
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isChatOpen, setIsChatOpen] = useState(false);
-  // Estado isSidebarVisibleOnScroll e lógica de scroll removidos
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/login');
     }
   }, [isAuthenticated, loading, router]);
-
-  // useEffect para scroll removido
 
   const toggleChat = () => setIsChatOpen(!isChatOpen);
   const closeChat = () => setIsChatOpen(false);
@@ -48,12 +44,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    // defaultOpen={true} para a sidebar começar expandida em desktop
     <SidebarProvider defaultOpen={true}> 
       <div className="flex min-h-screen flex-col">
-        <AppHeader /> {/* AppHeader sempre visível */}
-        <div className="flex flex-1 pt-16"> {/* pt-16 para o AppHeader fixo */}
-          <AppSidebar /> {/* AppSidebar não recebe mais isVisible, seu estado é gerenciado pelo SidebarProvider */}
+        <AppHeader />
+        <div className="flex flex-1 pt-16">
+          <AppSidebar />
           <SidebarInset className="flex-1 min-w-0"> 
             <main
               key={pathname}
@@ -68,6 +63,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <Toaster />
       <FloatingChatButton onClick={toggleChat} isChatOpen={isChatOpen} />
       <ChatWindow isOpen={isChatOpen} onClose={closeChat} />
+      <QuickActionsFAB /> {/* Add the new FAB here */}
     </SidebarProvider>
   );
 }
