@@ -2,7 +2,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FileText, Users, ShieldCheck, Gem } from 'lucide-react';
+import { Home, FileText, Users, ShieldCheck, Gem, Car } from 'lucide-react'; // Added Car
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef } from 'react';
 
@@ -13,7 +13,7 @@ const navItems = [
   { href: '/reports', label: 'Relatórios', icon: FileText },
   { href: '/trainings', label: 'Treinos', icon: Users },
   { href: '/epis', label: 'EPIs', icon: ShieldCheck },
-  { href: '/gamification', label: 'Gamify', icon: Gem }, // Ajustado para "Gamify" para caber melhor
+  { href: '/gamification', label: 'Gamify', icon: Gem },
 ];
 
 const NAVBAR_HEIGHT_PX = 64; // Corresponde a h-16 (4rem)
@@ -80,7 +80,8 @@ export function BottomNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              'flex flex-col items-center justify-center space-y-0.5 p-1 rounded-md text-muted-foreground hover:text-primary transition-colors w-[19%]', // w-[19%] para 5 itens
+              'flex flex-col items-center justify-center space-y-0.5 p-1 rounded-md text-muted-foreground hover:text-primary transition-colors w-[19%]',
+              'active:scale-95 transition-transform duration-150 ease-in-out', // Added for tap animation
               (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))) ? 'text-primary font-medium' : ''
             )}
             aria-current={(pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))) ? 'page' : undefined}
