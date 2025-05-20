@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent } from "@/components/ui/sheet" 
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet" 
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -207,12 +207,10 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            {/* Simple visual header for context */}
-            <div className="p-4 border-b border-sidebar-border sticky top-0 bg-sidebar z-10">
-              <h2 className="text-lg font-semibold text-center text-sidebar-foreground">Menu Principal</h2>
-              {/* The SheetClose 'X' button is part of SheetContent and should be visible by default */}
-            </div>
-            {/* Scrollable area for the actual sidebar content (menu items) */}
+            <SheetHeader className="p-4 border-b border-sidebar-border sticky top-0 bg-sidebar z-10">
+              <SheetTitle className="text-lg font-semibold text-center text-sidebar-foreground">Menu Principal</SheetTitle>
+              {/* <SheetDescription className="text-xs text-center text-sidebar-foreground/70">Navegue pelas seções.</SheetDescription> */}
+            </SheetHeader>
             <div className="flex-1 overflow-y-auto">
               {children}
             </div>
@@ -770,3 +768,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
