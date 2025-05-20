@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/dashboard/stat-card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -44,7 +44,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { cn } from '@/lib/utils';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as UiFormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription as UiFormDescription } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 
@@ -66,13 +66,13 @@ type EpiStatus = 'OK' | 'Baixo Estoque' | 'Próximo Validade' | 'Validade Críti
 
 export const mockEpis: Epi[] = [
   { id: 'EPI001', name: 'Máscara N95 (PFF2)', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345', category: 'protecao_respiratoria', minimumStock: 10, responsible: 'Carlos Silva' },
-  { id: 'EPI002', name: 'Capacete de Segurança Amarelo', quantity: 5, validity: addMonths(new Date(), 12), location: 'Estante B1', category: 'protecao_cabeca', minimumStock: 3, responsible: 'Ana Lima' },
+  { id: 'EPI002', name: 'Capacete de Segurança Amarelo', quantity: 5, validity: addMonths(new Date(), 12), location: 'Estante B1', category: 'protecao_cabeca', minimumStock: 8, responsible: 'Ana Lima' },
   { id: 'EPI003', name: 'Luvas de Proteção (par) Tamanho M', quantity: 20, validity: addMonths(new Date(), -1), location: 'Almoxarifado A', category: 'protecao_maos', minimumStock: 10, responsible: 'Carlos Silva' }, // Expirado
-  { id: 'EPI004', name: 'Protetor Auricular Plug Silicone', quantity: 30, validity: addMonths(new Date(), 0.5), location: 'Estante C3', caNumber: '67890', category: 'protecao_auditiva', minimumStock: 25, responsible: 'João Souza' }, // Validade Crítica (aprox. 15 dias)
+  { id: 'EPI004', name: 'Protetor Auricular Plug Silicone', quantity: 10, validity: addMonths(new Date(), 0.5), location: 'Estante C3', caNumber: '67890', category: 'protecao_auditiva', minimumStock: 25, responsible: 'João Souza' }, // Validade Crítica (aprox. 15 dias) e Baixo Estoque
   { id: 'EPI005', name: 'Óculos de Segurança Incolor', quantity: 15, validity: addMonths(new Date(), 6), location: 'Almoxarifado B', category: 'protecao_visual', minimumStock: 5, responsible: 'Maria Oliveira' },
   { id: 'EPI006', name: 'Extintor ABC (2kg) - Corredor', quantity: 2, validity: startOfDay(new Date()), location: 'Corredor Principal', category: 'combate_incendio', minimumStock: 1, responsible: 'Equipe de Segurança' }, // Validade Crítica (hoje)
   { id: 'EPI007', name: 'Cinto de Segurança para Altura Completo', quantity: 8, validity: addMonths(new Date(), 24), location: 'Sala de Equipamentos', caNumber: '11223', category: 'trabalho_altura', minimumStock: 2, responsible: 'José Santos' },
-  { id: 'EPI008', name: 'Botina de Segurança com Bico de Aço Tam 42', quantity: 3, validity: addMonths(new Date(), 1), location: 'Vestiário Obra X', category: 'protecao_pes', minimumStock: 5, responsible: 'Pedro Costa' }, // Próximo Validade (1 mês)
+  { id: 'EPI008', name: 'Botina de Segurança com Bico de Aço Tam 42', quantity: 3, validity: addMonths(new Date(), 1), location: 'Vestiário Obra X', category: 'protecao_pes', minimumStock: 5, responsible: 'Pedro Costa' }, // Próximo Validade (1 mês) e Baixo Estoque
 ];
 
 const epiFormSchema = z.object({
@@ -145,13 +145,15 @@ export default function EpisPage() {
         validity: new Date(editingEpi.validity), // Garante que é um objeto Date
         photos: undefined, // Fotos não são pré-preenchidas no input file
       });
+      // Para photoUrls, se quiséssemos mostrar as existentes (não como files, mas como info):
+      // setExistingPhotoUrls(editingEpi.photoUrls || []); 
     }
   }, [isAddModalOpen, editingEpi, form]);
 
 
   const getValidityStatus = (validityDateInput: Date | string, quantity: number, minimumStock?: number): { status: EpiStatus; daysRemaining: number | null; isLowStock: boolean } => {
     const today = startOfDay(new Date());
-    const validityDate = startOfDay(new Date(validityDateInput)); // Garante que é Date object e normalizado
+    const validityDate = startOfDay(new Date(validityDateInput));
     const daysRemaining = differenceInDays(validityDate, today);
     const minStock = minimumStock || 0;
     const isLowStock = quantity <= minStock;
@@ -160,16 +162,13 @@ export default function EpisPage() {
 
     if (daysRemaining < 0) {
       status = 'Expirado';
-    } else if (daysRemaining < 15) {
+    } else if (daysRemaining < 15) { // 0-14 dias
       status = 'Validade Crítica';
-    } else if (daysRemaining <= 30) {
+    } else if (daysRemaining <= 30) { // 15-30 dias
       status = 'Próximo Validade';
     } else { // Se a validade está OK, então verificamos o estoque
       status = isLowStock ? 'Baixo Estoque' : 'OK';
     }
-    
-    // Precedência de status para cor do badge: Expirado > Validade Crítica > Próximo Validade > Baixo Estoque > OK
-    // A flag isLowStock é separada e pode ser usada para alertas adicionais.
     
     return { status, daysRemaining, isLowStock };
   };
@@ -179,7 +178,7 @@ export default function EpisPage() {
   const lowStockItemsCount = epis.filter(item => {
     const { isLowStock, status } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
     // Conta como baixo estoque apenas se estiver em baixo estoque E não estiver com validade mais crítica
-    return isLowStock && status !== 'Expirado' && status !== 'Validade Crítica' && status !== 'Próximo Validade';
+    return isLowStock && status !== 'Expirado' && status !== 'Validade Crítica';
   }).length;
 
   const criticalValidityItemsCount = epis.filter(item => {
@@ -192,11 +191,11 @@ export default function EpisPage() {
     switch (status) {
       case 'OK':
         return 'bg-green-500/20 text-green-700 border-green-500/30';
-      case 'Baixo Estoque':
+      case 'Baixo Estoque': // Usado se validade estiver OK mas estoque baixo
         return 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30';
-      case 'Próximo Validade': 
+      case 'Próximo Validade': // 15-30 dias
         return 'bg-amber-500/20 text-amber-700 border-amber-500/30'; 
-      case 'Validade Crítica': 
+      case 'Validade Crítica': // 0-14 dias
         return 'bg-orange-500/20 text-orange-700 border-orange-500/30'; 
       case 'Expirado':
         return 'bg-red-500/20 text-red-700 border-red-500/30';
@@ -245,8 +244,9 @@ export default function EpisPage() {
   
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
-      setPhotoFiles(Array.from(event.target.files));
-      form.setValue('photos', event.target.files); // Atualiza react-hook-form
+      const filesArray = Array.from(event.target.files);
+      setPhotoFiles(filesArray);
+      form.setValue('photos', filesArray); // Atualiza react-hook-form
     }
   };
 
@@ -258,7 +258,9 @@ export default function EpisPage() {
       id: editingEpi ? editingEpi.id : `EPI${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`,
       ...data,
       minimumStock: data.minimumStock || 0, 
-      photoUrls: photoFiles.length > 0 ? photoFiles.map(file => URL.createObjectURL(file)) : (editingEpi?.photoUrls || []), 
+      photoUrls: photoFiles.length > 0 
+        ? photoFiles.map(file => URL.createObjectURL(file)) // Placeholder URLs
+        : (editingEpi?.photoUrls || []), 
     };
 
     if (editingEpi) {
@@ -439,7 +441,7 @@ export default function EpisPage() {
                                 </DropdownMenuItem>
                               )}
                                <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleDeleteEpi(item)} className="text-destructive hover:!bg-destructive/10">
+                              <DropdownMenuItem onClick={() => handleDeleteEpi(item)} className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive-foreground">
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 <span>Excluir</span>
                               </DropdownMenuItem>
