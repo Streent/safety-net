@@ -9,9 +9,9 @@ import { BottomNav } from '@/components/layout/bottom-nav';
 import { useAuth } from '@/hooks/use-auth';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
-// import { FloatingChatButton } from '@/components/chat/floating-chat-button'; // Removido
 import { ChatWindow } from '@/components/chat/chat-window';
 import { QuickActionsFAB } from '@/components/common/QuickActionsFAB'; 
+import { FloatingChatButton } from '@/components/chat/floating-chat-button';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -49,21 +49,22 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <AppHeader />
         <div className="flex flex-1 pt-16"> {/* pt-16 para compensar o header fixo */}
           <AppSidebar />
-          <SidebarInset className="flex-1 min-w-0"> 
-            <main
-              key={pathname}
-              className="flex-1 p-4 sm:p-6 lg:p-8 mb-16 md:mb-0 min-w-0 animate-pageTransition"
-            >
-              {children}
-            </main>
+          {/* SidebarInset já renderiza uma tag <main>, então aplicamos as classes e key aqui */}
+          <SidebarInset
+            key={pathname}
+            className="flex-1 p-4 sm:p-6 lg:p-8 mb-16 md:mb-0 min-w-0 animate-pageTransition"
+          >
+            {children}
           </SidebarInset>
         </div>
         <BottomNav />
       </div>
       <Toaster />
-      {/* FloatingChatButton removido daqui */}
       <ChatWindow isOpen={isChatOpen} onClose={closeChat} />
-      <QuickActionsFAB onToggleChat={toggleChat} /> {/* Passando toggleChat */}
+      {/* QuickActionsFAB é para mobile */}
+      <QuickActionsFAB onToggleChat={toggleChat} /> 
+      {/* FloatingChatButton é para desktop */}
+      <FloatingChatButton onClick={toggleChat} isChatOpen={isChatOpen} />
     </SidebarProvider>
   );
 }
