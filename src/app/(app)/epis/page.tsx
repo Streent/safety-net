@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { PageHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -34,7 +35,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -46,7 +47,6 @@ import * as z from 'zod';
 import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription as UiFormDescription, FormMessage as UiFormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from '@/components/ui/card';
-import Link from 'next/link';
 import Image from 'next/image';
 
 
@@ -57,7 +57,7 @@ export interface Epi {
   validity: Date;
   location: string;
   category?: string;
-  caNumber?: string;
+  caNumber?: string; // Certificado de Aprovação
   photoUrls?: string[];
   minimumStock?: number;
   responsible?: string;
@@ -128,12 +128,17 @@ export default function EpisPage() {
     },
   });
 
+  const cleanupPhotoPreviews = () => {
+    photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    setPhotoPreviewUrls([]);
+  };
+
   useEffect(() => {
     // Cleanup object URLs on component unmount
     return () => {
-      photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+      cleanupPhotoPreviews();
     };
-  }, [photoPreviewUrls]);
+  }, [photoPreviewUrls]); // Depend on photoPreviewUrls to re-run if it changes externally (less likely here)
 
   const resetAndCloseModal = () => {
     form.reset({
@@ -147,9 +152,8 @@ export default function EpisPage() {
       minimumStock: 0,
       responsible: '',
     });
-    photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    cleanupPhotoPreviews();
     setPhotoFiles([]);
-    setPhotoPreviewUrls([]);
     setEditingEpi(null);
     setIsAddModalOpen(false);
   };
@@ -170,13 +174,12 @@ export default function EpisPage() {
         responsible: editingEpi.responsible || '',
         photos: undefined, 
       });
-      // Pre-load existing photo URLs for viewing if editing, but not as files for re-upload
-      // For simplicity, we'll just show new uploads for now.
-      // A more complex UI would show existing images and allow removal/addition.
-      setPhotoFiles([]);
-      setPhotoPreviewUrls(editingEpi.photoUrls || []); // Show existing, but they are not "files" for re-upload
+      setPhotoFiles([]); // Clear local file selection for editing
+      // If editingEpi.photoUrls are actual persistent URLs, display them differently (not via photoPreviewUrls meant for local files)
+      // For simplicity, we are not pre-filling local photo previews from existing URLs here.
+      // A real implementation would show existing images from URLs and allow adding new ones.
+      setPhotoPreviewUrls(editingEpi.photoUrls || []); 
     } else {
-      // Reset for new EPI
        form.reset({
         name: '',
         quantity: 1,
@@ -196,10 +199,16 @@ export default function EpisPage() {
 
   const getValidityStatus = (validityDateInput: Date | string, quantity: number, minimumStock?: number): { status: EpiStatus; daysRemaining: number | null; isLowStock: boolean } => {
     const today = startOfDay(new Date());
-    const validityDate = startOfDay(new Date(validityDateInput));
+    const validityDate = startOfDay(new Date(validityDateInput)); // Ensure we are comparing dates only
+    
+    if (!isValid(validityDate)) {
+      // Handle invalid date gracefully, e.g., return a default status
+      return { status: 'Expirado', daysRemaining: null, isLowStock: false };
+    }
+
     const daysRemaining = differenceInDays(validityDate, today);
-    const minStock = minimumStock || 0;
-    const isLowStock = quantity <= minStock;
+    const minStockVal = minimumStock === undefined || minimumStock < 0 ? 0 : minimumStock;
+    const isLowStock = quantity <= minStockVal;
 
     let status: EpiStatus;
 
@@ -210,7 +219,12 @@ export default function EpisPage() {
     } else if (daysRemaining <= 30) { 
       status = 'Próximo Validade';
     } else { 
-      status = isLowStock ? 'Baixo Estoque' : 'OK';
+      status = 'OK'; // Default to OK if valid and not low stock
+    }
+    
+    // Low stock can be a concurrent status unless validity is more critical
+    if (status === 'OK' && isLowStock) {
+        status = 'Baixo Estoque';
     }
     
     return { status, daysRemaining, isLowStock };
@@ -220,7 +234,7 @@ export default function EpisPage() {
   
   const lowStockItemsCount = epis.filter(item => {
     const { isLowStock, status } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
-    return isLowStock && status !== 'Expirado' && status !== 'Validade Crítica' && status !== 'Próximo Validade';
+    return isLowStock && status !== 'Expirado' && status !== 'Validade Crítica'; // Count low stock only if not already critically expired
   }).length;
 
   const criticalValidityItemsCount = epis.filter(item => {
@@ -285,29 +299,31 @@ export default function EpisPage() {
   };
   
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Revoke old preview URLs
-    photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    cleanupPhotoPreviews(); // Revoke old object URLs
 
     if (event.target.files) {
       const filesArray = Array.from(event.target.files);
       setPhotoFiles(filesArray);
       const newPreviewUrls = filesArray.map(file => URL.createObjectURL(file));
       setPhotoPreviewUrls(newPreviewUrls);
-      form.setValue('photos', filesArray); // Update react-hook-form
+      form.setValue('photos', filesArray, { shouldValidate: true }); 
     } else {
       setPhotoFiles([]);
-      setPhotoPreviewUrls([]);
-      form.setValue('photos', undefined);
+      // photoPreviewUrls already cleaned up
+      form.setValue('photos', undefined, { shouldValidate: true });
     }
   };
 
   const handleRemovePhoto = (indexToRemove: number) => {
-    URL.revokeObjectURL(photoPreviewUrls[indexToRemove]); // Revoke the specific URL
-    setPhotoFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToRemove));
-    setPhotoPreviewUrls(prevUrls => prevUrls.filter((_, index) => index !== indexToRemove));
-    // Update form value if needed (e.g., if react-hook-form needs the FileList)
+    if (photoPreviewUrls[indexToRemove]) {
+        URL.revokeObjectURL(photoPreviewUrls[indexToRemove]); 
+    }
     const updatedFiles = photoFiles.filter((_, index) => index !== indexToRemove);
-    form.setValue('photos', updatedFiles.length > 0 ? updatedFiles : undefined);
+    const updatedPreviewUrls = photoPreviewUrls.filter((_, index) => index !== indexToRemove);
+    
+    setPhotoFiles(updatedFiles);
+    setPhotoPreviewUrls(updatedPreviewUrls);
+    form.setValue('photos', updatedFiles.length > 0 ? updatedFiles : undefined, { shouldValidate: true });
   };
 
 
@@ -315,7 +331,7 @@ export default function EpisPage() {
     setIsLoadingForm(true);
     await new Promise(resolve => setTimeout(resolve, 1000)); 
     
-    // Simulate image upload and getting URLs
+    // Simulate photo upload - in a real app, upload files and get URLs
     const uploadedPhotoUrls = photoFiles.map(file => `https://placehold.co/100x100.png?text=${encodeURIComponent(file.name.substring(0,10))}`);
     
     const newOrUpdatedEpi: Epi = {
@@ -328,7 +344,7 @@ export default function EpisPage() {
       category: data.category,
       minimumStock: data.minimumStock || 0, 
       responsible: data.responsible,
-      photoUrls: uploadedPhotoUrls.length > 0 ? uploadedPhotoUrls : (editingEpi?.photoUrls || []), 
+      photoUrls: uploadedPhotoUrls.length > 0 ? uploadedPhotoUrls : (editingEpi?.photoUrls || []), // Keep existing photos if no new ones are added during edit
     };
 
     if (editingEpi) {
@@ -371,12 +387,14 @@ export default function EpisPage() {
               <PlusCircle className="mr-2 h-4 w-4" />
               Adicionar Item
             </Button>
-            <Link href="/epis/distribuicao" passHref>
-                <Button variant="outline">
-                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                    Registrar Distribuição
-                </Button>
-            </Link>
+            <Button asChild variant="outline">
+              <Link href="/epis/distribuicao">
+                <span className="flex items-center gap-2">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Registrar Distribuição
+                </span>
+              </Link>
+            </Button>
           </div>
         }
       />
@@ -497,7 +515,7 @@ export default function EpisPage() {
                               <DropdownMenuItem onClick={() => handleViewDetails(item.id)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 <span>Ver Detalhes</span>
-                              DropdownMenuItem>
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleOpenModal(item)}>
                                 <Edit2 className="mr-2 h-4 w-4" />
                                 <span>Editar</span>
@@ -509,7 +527,7 @@ export default function EpisPage() {
                                 </DropdownMenuItem>
                               )}
                                <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleDeleteEpi(item)} className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive-foreground">
+                              <DropdownMenuItem onClick={() => handleDeleteEpi(item)} className="text-destructive focus:text-destructive-foreground focus:bg-destructive/90 hover:text-destructive-foreground hover:!bg-destructive/90" >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 <span>Excluir</span>
                               </DropdownMenuItem>
@@ -539,7 +557,7 @@ export default function EpisPage() {
         </Button>
       </div>
 
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+      <Dialog open={isAddModalOpen} onOpenChange={(isOpen) => { if (!isOpen) resetAndCloseModal(); else setIsAddModalOpen(true); }}>
         <DialogContent className="w-full max-w-md p-4 sm:p-6 sm:max-w-lg">
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(onFormSubmit)}>
@@ -697,7 +715,7 @@ export default function EpisPage() {
                 <FormField
                   control={form.control}
                   name="photos"
-                  render={({ field }) => ( 
+                  render={({ field }) => ( // field é fornecido por Controller, mas não usado diretamente aqui para o input file
                     <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start gap-x-4 gap-y-2 sm:gap-y-4">
                       <FormLabel className="sm:text-right sm:col-span-1 pt-2">
                         <CloudUpload className="inline h-4 w-4 mr-1.5" /> Fotos
@@ -708,7 +726,7 @@ export default function EpisPage() {
                             type="file" 
                             multiple 
                             accept="image/*"
-                            onChange={handlePhotoChange}
+                            onChange={handlePhotoChange} // Usando o handler customizado
                             className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                           />
                         </FormControl>
@@ -787,4 +805,3 @@ export default function EpisPage() {
   );
 }
 
-    
