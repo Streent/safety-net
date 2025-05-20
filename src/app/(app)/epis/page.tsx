@@ -19,10 +19,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { PlusCircle, Archive, AlertCircle, CalendarClock, Edit2, MoreHorizontal, Eye, Loader2, Check, Calendar as CalendarIconLucide, CloudUpload, ImageIcon, Filter as FilterIcon, Search } from 'lucide-react';
+import { PlusCircle, Archive, AlertCircle, CalendarClock, Edit2, MoreHorizontal, Eye, Loader2, Check, Calendar as CalendarIconLucide, CloudUpload, ImageIcon, Filter as FilterIcon, Search, Trash2, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, addMonths, differenceInDays, isValid, startOfDay } from 'date-fns';
+import { format, addMonths, differenceInDays, isValid, startOfDay, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Dialog,
@@ -33,8 +34,9 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label'; // Added import
+import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -43,10 +45,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as UiFormDescription } from "@/components/ui/form";
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from '@/components/ui/card';
+import Link from 'next/link';
 
 
-interface Epi {
+export interface Epi {
   id: string;
   name: string;
   quantity: number;
@@ -61,26 +64,30 @@ interface Epi {
 
 type EpiStatus = 'OK' | 'Baixo Estoque' | 'Próximo Validade' | 'Validade Crítica' | 'Expirado';
 
-const mockEpis: Epi[] = [
-  { id: 'EPI001', name: 'Máscara N95 (PFF2)', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345', category: 'protecao_respiratoria', minimumStock: 10 },
-  { id: 'EPI002', name: 'Capacete de Segurança Amarelo', quantity: 5, validity: addMonths(new Date(), 12), location: 'Estante B1', category: 'protecao_cabeca', minimumStock: 3 },
-  { id: 'EPI003', name: 'Luvas de Proteção (par) Tamanho M', quantity: 20, validity: addMonths(new Date(), -1), location: 'Almoxarifado A', category: 'protecao_maos', minimumStock: 10 },
-  { id: 'EPI004', name: 'Protetor Auricular Plug Silicone', quantity: 30, validity: addMonths(new Date(), 0.5), location: 'Estante C3', caNumber: '67890', category: 'protecao_auditiva', minimumStock: 20 }, // 0.5 months = ~15 days
-  { id: 'EPI005', name: 'Óculos de Segurança Incolor', quantity: 15, validity: addMonths(new Date(), 6), location: 'Almoxarifado B', category: 'protecao_visual', minimumStock: 5 },
-  { id: 'EPI006', name: 'Extintor ABC (2kg) - Corredor', quantity: 2, validity: addMonths(new Date(), 0), location: 'Corredor Principal', category: 'combate_incendio', minimumStock: 1 }, // 0 months = hoje
-  { id: 'EPI007', name: 'Cinto de Segurança para Altura Completo', quantity: 8, validity: addMonths(new Date(), 24), location: 'Sala de Equipamentos', caNumber: '11223', category: 'trabalho_altura', minimumStock: 2 },
-  { id: 'EPI008', name: 'Botina de Segurança com Bico de Aço Tam 42', quantity: 3, validity: addMonths(new Date(), 1), location: 'Vestiário Obra X', category: 'protecao_pes', minimumStock: 5 }, // 1 month
+export const mockEpis: Epi[] = [
+  { id: 'EPI001', name: 'Máscara N95 (PFF2)', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345', category: 'protecao_respiratoria', minimumStock: 10, responsible: 'Carlos Silva' },
+  { id: 'EPI002', name: 'Capacete de Segurança Amarelo', quantity: 5, validity: addMonths(new Date(), 12), location: 'Estante B1', category: 'protecao_cabeca', minimumStock: 3, responsible: 'Ana Lima' },
+  { id: 'EPI003', name: 'Luvas de Proteção (par) Tamanho M', quantity: 20, validity: addMonths(new Date(), -1), location: 'Almoxarifado A', category: 'protecao_maos', minimumStock: 10, responsible: 'Carlos Silva' }, // Expirado
+  { id: 'EPI004', name: 'Protetor Auricular Plug Silicone', quantity: 30, validity: addMonths(new Date(), 0.5), location: 'Estante C3', caNumber: '67890', category: 'protecao_auditiva', minimumStock: 25, responsible: 'João Souza' }, // Validade Crítica (aprox. 15 dias)
+  { id: 'EPI005', name: 'Óculos de Segurança Incolor', quantity: 15, validity: addMonths(new Date(), 6), location: 'Almoxarifado B', category: 'protecao_visual', minimumStock: 5, responsible: 'Maria Oliveira' },
+  { id: 'EPI006', name: 'Extintor ABC (2kg) - Corredor', quantity: 2, validity: startOfDay(new Date()), location: 'Corredor Principal', category: 'combate_incendio', minimumStock: 1, responsible: 'Equipe de Segurança' }, // Validade Crítica (hoje)
+  { id: 'EPI007', name: 'Cinto de Segurança para Altura Completo', quantity: 8, validity: addMonths(new Date(), 24), location: 'Sala de Equipamentos', caNumber: '11223', category: 'trabalho_altura', minimumStock: 2, responsible: 'José Santos' },
+  { id: 'EPI008', name: 'Botina de Segurança com Bico de Aço Tam 42', quantity: 3, validity: addMonths(new Date(), 1), location: 'Vestiário Obra X', category: 'protecao_pes', minimumStock: 5, responsible: 'Pedro Costa' }, // Próximo Validade (1 mês)
 ];
 
 const epiFormSchema = z.object({
   name: z.string().min(3, { message: 'O nome do item deve ter pelo menos 3 caracteres.' }),
-  quantity: z.coerce.number().min(0, { message: 'A quantidade deve ser 0 ou mais.' }), // Permitir 0 para registrar item sem estoque inicial
-  validity: z.date({ required_error: 'A data de validade é obrigatória.' }),
+  quantity: z.coerce.number().min(0, { message: 'A quantidade deve ser 0 ou mais.' }),
+  validity: z.date({
+    required_error: 'A data de validade é obrigatória.',
+  }).refine(date => !isBefore(startOfDay(date), startOfDay(new Date())), {
+    message: "A data de validade não pode ser uma data passada."
+  }),
   location: z.string().min(1, { message: 'A localização é obrigatória.' }),
   caNumber: z.string().optional(),
   category: z.string().optional(),
   photos: z.any().optional().describe('Arquivos de fotos do EPI'),
-  minimumStock: z.coerce.number().min(0, { message: 'O estoque mínimo deve ser 0 ou mais.' }).optional(),
+  minimumStock: z.coerce.number().min(0, { message: 'O estoque mínimo deve ser 0 ou mais.' }).optional().default(0),
   responsible: z.string().optional(),
 });
 
@@ -92,6 +99,10 @@ export default function EpisPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoadingForm, setIsLoadingForm] = useState(false);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [editingEpi, setEditingEpi] = useState<Epi | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [epiToDelete, setEpiToDelete] = useState<Epi | null>(null);
+
 
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -127,14 +138,21 @@ export default function EpisPage() {
         responsible: '',
       });
       setPhotoFiles([]);
+      setEditingEpi(null);
+    } else if (editingEpi) {
+      form.reset({
+        ...editingEpi,
+        validity: new Date(editingEpi.validity), // Garante que é um objeto Date
+        photos: undefined, // Fotos não são pré-preenchidas no input file
+      });
     }
-  }, [isAddModalOpen, form]);
+  }, [isAddModalOpen, editingEpi, form]);
 
 
-  const getValidityStatus = (validityDate: Date, quantity: number, minimumStock?: number): { status: EpiStatus; daysRemaining: number | null; isLowStock: boolean } => {
+  const getValidityStatus = (validityDateInput: Date | string, quantity: number, minimumStock?: number): { status: EpiStatus; daysRemaining: number | null; isLowStock: boolean } => {
     const today = startOfDay(new Date());
-    const validDate = startOfDay(new Date(validityDate));
-    const daysRemaining = differenceInDays(validDate, today);
+    const validityDate = startOfDay(new Date(validityDateInput)); // Garante que é Date object e normalizado
+    const daysRemaining = differenceInDays(validityDate, today);
     const minStock = minimumStock || 0;
     const isLowStock = quantity <= minStock;
 
@@ -142,26 +160,17 @@ export default function EpisPage() {
 
     if (daysRemaining < 0) {
       status = 'Expirado';
-    } else if (daysRemaining < 15) { // 0-14 dias
+    } else if (daysRemaining < 15) {
       status = 'Validade Crítica';
-    } else if (daysRemaining <= 30) { // 15-30 dias
+    } else if (daysRemaining <= 30) {
       status = 'Próximo Validade';
-    } else if (isLowStock) { // Apenas se não for crítico por validade
-      status = 'Baixo Estoque';
-    } else {
-      status = 'OK';
+    } else { // Se a validade está OK, então verificamos o estoque
+      status = isLowStock ? 'Baixo Estoque' : 'OK';
     }
     
-    // Se está Expirado ou em Validade Crítica, esse status tem precedência sobre Baixo Estoque na determinação primária.
-    // A flag isLowStock pode ser usada para exibir um alerta adicional se necessário.
-    if ((status === 'Expirado' || status === 'Validade Crítica' || status === 'Próximo Validade') && isLowStock) {
-        // O status primário continua sendo o de validade, mas sabemos que também está baixo.
-        // Para fins de cor do badge, a validade é mais crítica.
-    } else if (isLowStock && status === 'OK') { // Se está OK na validade, mas baixo estoque
-        status = 'Baixo Estoque';
-    }
-
-
+    // Precedência de status para cor do badge: Expirado > Validade Crítica > Próximo Validade > Baixo Estoque > OK
+    // A flag isLowStock é separada e pode ser usada para alertas adicionais.
+    
     return { status, daysRemaining, isLowStock };
   };
 
@@ -169,7 +178,8 @@ export default function EpisPage() {
   
   const lowStockItemsCount = epis.filter(item => {
     const { isLowStock, status } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
-    return isLowStock && status !== 'Expirado'; // Conta como baixo estoque se não estiver expirado
+    // Conta como baixo estoque apenas se estiver em baixo estoque E não estiver com validade mais crítica
+    return isLowStock && status !== 'Expirado' && status !== 'Validade Crítica' && status !== 'Próximo Validade';
   }).length;
 
   const criticalValidityItemsCount = epis.filter(item => {
@@ -184,10 +194,10 @@ export default function EpisPage() {
         return 'bg-green-500/20 text-green-700 border-green-500/30';
       case 'Baixo Estoque':
         return 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30';
-      case 'Próximo Validade': // 15-30 dias
-        return 'bg-amber-500/20 text-amber-700 border-amber-500/30'; // Amarelo mais forte
-      case 'Validade Crítica': // 0-14 dias
-        return 'bg-orange-500/20 text-orange-700 border-orange-500/30'; // Laranja
+      case 'Próximo Validade': 
+        return 'bg-amber-500/20 text-amber-700 border-amber-500/30'; 
+      case 'Validade Crítica': 
+        return 'bg-orange-500/20 text-orange-700 border-orange-500/30'; 
       case 'Expirado':
         return 'bg-red-500/20 text-red-700 border-red-500/30';
       default:
@@ -197,15 +207,14 @@ export default function EpisPage() {
   
   const getStatusText = (status: EpiStatus) => {
      switch (status) {
-      case 'Próximo Validade': return 'Próx. Validade';
+      case 'Próximo Validade': return 'Próx. Val.';
       case 'Validade Crítica': return 'Val. Crítica';
       default: return status;
     }
   }
 
-  const handleAddItem = () => {
-    form.reset(); 
-    setPhotoFiles([]);
+  const handleOpenModal = (epiToEdit: Epi | null = null) => {
+    setEditingEpi(epiToEdit);
     setIsAddModalOpen(true);
   };
 
@@ -215,40 +224,57 @@ export default function EpisPage() {
       description: `Funcionalidade para ver detalhes do EPI ${epiId} (com abas: Visão Geral, Histórico de Uso, Anexos) será implementada aqui.`,
     });
   };
+  
+  const handleDeleteEpi = (epi: Epi) => {
+    setEpiToDelete(epi);
+    setShowDeleteConfirm(true);
+  };
 
-  const handleEditItem = (epiId: string) => {
-    toast({
-      title: 'Editar EPI',
-      description: `Funcionalidade para editar o EPI ${epiId} será implementada (provavelmente usando um modal similar ao de adicionar).`,
-    });
+  const confirmDelete = () => {
+    if (epiToDelete) {
+      setEpis(prevEpis => prevEpis.filter(e => e.id !== epiToDelete.id));
+      toast({
+        title: 'EPI Excluído!',
+        description: `O item "${epiToDelete.name}" foi excluído do inventário.`,
+        variant: 'destructive',
+      });
+    }
+    setShowDeleteConfirm(false);
+    setEpiToDelete(null);
   };
   
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       setPhotoFiles(Array.from(event.target.files));
+      form.setValue('photos', event.target.files); // Atualiza react-hook-form
     }
   };
 
   async function onFormSubmit(data: EpiFormValues) {
     setIsLoadingForm(true);
-    // Simula chamada de API
     await new Promise(resolve => setTimeout(resolve, 1000)); 
-    console.log("Dados do EPI:", data);
-    console.log("Arquivos de fotos selecionados:", photoFiles.map(f => f.name));
-
-
-    const newItem: Epi = {
-      id: `EPI${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`,
+    
+    const newOrUpdatedEpi: Epi = {
+      id: editingEpi ? editingEpi.id : `EPI${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`,
       ...data,
-      minimumStock: data.minimumStock || 0, // Garantir que seja um número
-      photoUrls: photoFiles.map(file => URL.createObjectURL(file)), // Para demonstração, não persistente
+      minimumStock: data.minimumStock || 0, 
+      photoUrls: photoFiles.length > 0 ? photoFiles.map(file => URL.createObjectURL(file)) : (editingEpi?.photoUrls || []), 
     };
-    setEpis(prevEpis => [newItem, ...prevEpis]);
 
-    toast({
-      title: 'EPI Adicionado com Sucesso!',
-      description: `O item "${data.name}" foi adicionado ao inventário.`,
-    });
+    if (editingEpi) {
+      setEpis(prevEpis => prevEpis.map(e => e.id === editingEpi.id ? newOrUpdatedEpi : e));
+      toast({
+        title: 'EPI Atualizado!',
+        description: `O item "${data.name}" foi atualizado com sucesso.`,
+      });
+    } else {
+      setEpis(prevEpis => [newOrUpdatedEpi, ...prevEpis]);
+      toast({
+        title: 'EPI Adicionado com Sucesso!',
+        description: `O item "${data.name}" foi adicionado ao inventário.`,
+      });
+    }
+    
     setIsLoadingForm(false);
     setIsAddModalOpen(false);
   }
@@ -270,10 +296,18 @@ export default function EpisPage() {
         title="Gerenciamento de EPIs"
         description="Monitore o inventário, validades e uso de Equipamentos de Proteção Individual."
         actions={
-          <Button onClick={handleAddItem}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Adicionar Item
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => handleOpenModal(null)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Adicionar Item
+            </Button>
+            <Link href="/epis/distribuicao" passHref>
+                <Button variant="outline">
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Registrar Distribuição
+                </Button>
+            </Link>
+          </div>
         }
       />
 
@@ -287,7 +321,7 @@ export default function EpisPage() {
         <CardHeader>
             <div className="flex items-center">
                 <FilterIcon className="h-5 w-5 mr-2 text-primary"/>
-                <h3 className="text-lg font-semibold">Filtros do Inventário</h3>
+                <UiCardTitle className="text-lg">Filtros do Inventário</UiCardTitle>
             </div>
         </CardHeader>
         <CardContent className="space-y-4 md:space-y-0 md:grid md:grid-cols-3 md:gap-4">
@@ -335,89 +369,97 @@ export default function EpisPage() {
         </CardContent>
       </Card>
       
-      <div className="rounded-lg border shadow-sm bg-card">
-        <div className="overflow-x-auto">
-          <Table className="min-w-[700px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[200px]">Nome do Item</TableHead>
-                <TableHead className="text-center min-w-[100px]">Quantidade</TableHead>
-                <TableHead className="min-w-[150px]">Validade</TableHead>
-                <TableHead className="min-w-[150px]">Localização</TableHead>
-                <TableHead className="text-center min-w-[120px]">Status</TableHead>
-                <TableHead className="text-right min-w-[100px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredEpis.length > 0 ? filteredEpis.map((item) => {
-                const { status, daysRemaining } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
-                let validityText = format(item.validity, 'dd/MM/yyyy', { locale: ptBR });
-                if (status === 'Próximo Validade' && daysRemaining !== null) {
-                  validityText += ` (${daysRemaining}d)`;
-                } else if (status === 'Validade Crítica' && daysRemaining !== null) {
-                   validityText += ` (${daysRemaining}d)`;
-                } else if (status === 'Expirado') {
-                  validityText = `Expirado em ${format(item.validity, 'dd/MM/yyyy', { locale: ptBR })}`;
-                }
-
-                return (
-                  <TableRow key={item.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell className="text-center">{item.quantity}</TableCell>
-                    <TableCell
-                      className={cn(
-                        status === 'Expirado' && 'text-red-600 font-semibold',
-                        (status === 'Validade Crítica') && 'text-orange-600 font-medium',
-                        (status === 'Próximo Validade') && 'text-amber-600 font-medium'
-                      )}
-                    >
-                      {validityText}
-                    </TableCell>
-                    <TableCell>{item.location}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className={`text-xs ${getStatusBadgeClass(status)}`}>
-                        {getStatusText(status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Ações para {item.name}</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewDetails(item.id)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            <span>Ver Detalhes</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditItem(item.id)}>
-                            <Edit2 className="mr-2 h-4 w-4" />
-                            <span>Editar</span>
-                          </DropdownMenuItem>
-                          {item.name.toLowerCase().includes("extintor") && (
-                            <DropdownMenuItem onClick={() => toast({title: "Registrar Uso de Extintor", description:"Funcionalidade para registrar uso e disparar manutenção."})}>
-                                <AlertCircle className="mr-2 h-4 w-4 text-destructive" />
-                                <span className="text-destructive">Registrar Uso</span>
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+      <Card className="shadow-sm">
+        <CardHeader>
+             <UiCardTitle>Lista de EPIs Cadastrados</UiCardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+            <div className="overflow-x-auto w-full">
+              <Table className="min-w-[700px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[200px]">Nome do Item</TableHead>
+                    <TableHead className="text-center min-w-[100px]">Quantidade</TableHead>
+                    <TableHead className="min-w-[150px]">Validade</TableHead>
+                    <TableHead className="min-w-[150px]">Localização</TableHead>
+                    <TableHead className="text-center min-w-[120px]">Status</TableHead>
+                    <TableHead className="text-right min-w-[100px]">Ações</TableHead>
                   </TableRow>
-                );
-              }) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    Nenhum EPI encontrado com os filtros atuais.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredEpis.length > 0 ? filteredEpis.map((item) => {
+                    const { status, daysRemaining } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
+                    let validityText = format(new Date(item.validity), 'dd/MM/yyyy', { locale: ptBR });
+                    if ((status === 'Próximo Validade' || status === 'Validade Crítica') && daysRemaining !== null && daysRemaining >= 0) {
+                      validityText += ` (${daysRemaining}d)`;
+                    } else if (status === 'Expirado') {
+                      validityText = `Expirou em ${format(new Date(item.validity), 'dd/MM/yyyy', { locale: ptBR })}`;
+                    }
+
+                    return (
+                      <TableRow key={item.id} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell className="text-center">{item.quantity}</TableCell>
+                        <TableCell
+                          className={cn(
+                            status === 'Expirado' && 'text-red-600 font-semibold',
+                            (status === 'Validade Crítica') && 'text-orange-600 font-medium',
+                            (status === 'Próximo Validade') && 'text-amber-600 font-medium'
+                          )}
+                        >
+                          {validityText}
+                        </TableCell>
+                        <TableCell>{item.location}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className={`text-xs ${getStatusBadgeClass(status)}`}>
+                            {getStatusText(status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Ações para {item.name}</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewDetails(item.id)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                <span>Ver Detalhes</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenModal(item)}>
+                                <Edit2 className="mr-2 h-4 w-4" />
+                                <span>Editar</span>
+                              </DropdownMenuItem>
+                              {item.name.toLowerCase().includes("extintor") && (
+                                <DropdownMenuItem onClick={() => toast({title: "Registrar Uso de Extintor", description:"Funcionalidade para registrar uso e disparar manutenção."})}>
+                                    <AlertCircle className="mr-2 h-4 w-4 text-destructive" />
+                                    <span className="text-destructive">Registrar Uso</span>
+                                </DropdownMenuItem>
+                              )}
+                               <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDeleteEpi(item)} className="text-destructive hover:!bg-destructive/10">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                <span>Excluir</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        Nenhum EPI encontrado com os filtros atuais.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+        </CardContent>
+      </Card>
       <div className="flex items-center justify-end space-x-2 py-4">
         <Button variant="outline" size="sm" disabled={filteredEpis.length === 0}>
           Anterior
@@ -432,12 +474,12 @@ export default function EpisPage() {
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(onFormSubmit)}>
               <DialogHeader>
-                <DialogTitle>Adicionar Novo Item de EPI</DialogTitle>
+                <DialogTitle>{editingEpi ? 'Editar Item de EPI' : 'Adicionar Novo Item de EPI'}</DialogTitle>
                 <DialogDescription>
-                  Preencha os detalhes do novo Equipamento de Proteção Individual.
+                  {editingEpi ? 'Atualize os detalhes do Equipamento de Proteção Individual.' : 'Preencha os detalhes do novo Equipamento de Proteção Individual.'}
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
                 <FormField
                   control={form.control}
                   name="name"
@@ -471,7 +513,7 @@ export default function EpisPage() {
                     <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-x-4 gap-y-2 sm:gap-y-4">
                       <FormLabel className="sm:text-right sm:col-span-1">Estoque Mínimo</FormLabel>
                       <FormControl className="sm:col-span-3">
-                        <Input type="number" {...field} placeholder="Opcional" className={cn(form.formState.errors.minimumStock && "border-destructive")} />
+                        <Input type="number" {...field} placeholder="0" className={cn(form.formState.errors.minimumStock && "border-destructive")} />
                       </FormControl>
                       <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
@@ -495,7 +537,7 @@ export default function EpisPage() {
                               )}
                             >
                               <CalendarIconLucide className="mr-2 h-4 w-4" />
-                              {field.value ? format(field.value, "dd/MM/yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
+                              {field.value ? format(new Date(field.value), "dd/MM/yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
@@ -506,7 +548,7 @@ export default function EpisPage() {
                             onSelect={field.onChange}
                             initialFocus
                             locale={ptBR}
-                            disabled={(date) => date < startOfDay(new Date()) } // Não permitir datas passadas
+                            disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
                           />
                         </PopoverContent>
                       </Popover>
@@ -559,7 +601,7 @@ export default function EpisPage() {
                   render={({ field }) => (
                     <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-x-4 gap-y-2 sm:gap-y-4">
                       <FormLabel className="sm:text-right sm:col-span-1">Categoria</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
                         <FormControl className="sm:col-span-3">
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione (Opcional)" />
@@ -585,7 +627,7 @@ export default function EpisPage() {
                 <FormField
                   control={form.control}
                   name="photos"
-                  render={({ field }) => ( // field.onChange é importante aqui para react-hook-form
+                  render={({ field }) => ( 
                     <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start gap-x-4 gap-y-2 sm:gap-y-4">
                       <FormLabel className="sm:text-right sm:col-span-1 pt-2">
                         <CloudUpload className="inline h-4 w-4 mr-1.5" /> Fotos
@@ -597,8 +639,7 @@ export default function EpisPage() {
                             multiple 
                             accept="image/*"
                             onChange={(e) => {
-                              field.onChange(e.target.files); // Atualiza o valor do react-hook-form
-                              handlePhotoChange(e); // Atualiza o estado local para preview
+                              handlePhotoChange(e); 
                             }}
                             className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                           />
@@ -627,14 +668,14 @@ export default function EpisPage() {
                     Cancelar
                   </Button>
                 </DialogClose>
-                <Button type="submit" disabled={isLoadingForm}>
+                <Button type="submit" disabled={isLoadingForm || !form.formState.isValid}>
                   {isLoadingForm ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Salvando...
                     </>
                   ) : (
-                    'Salvar EPI'
+                    editingEpi ? 'Salvar Alterações' : 'Salvar EPI'
                   )}
                 </Button>
               </DialogFooter>
@@ -642,9 +683,21 @@ export default function EpisPage() {
           </FormProvider>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o item "{epiToDelete?.name}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setEpiToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className={buttonVariants({ variant: "destructive" })}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
-
-
-    

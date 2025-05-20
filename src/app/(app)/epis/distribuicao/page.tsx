@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, User, Briefcase, Package, Edit3, Check, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from '@/components/ui/card'; // Renomeado CardDescription para UiCardDescription
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import {
   Table,
   TableBody,
@@ -41,7 +41,7 @@ const distributionFormSchema = z.object({
 const refinedDistributionFormSchema = (availableQuantity: number | undefined) =>
   distributionFormSchema.refine(
     (data) => {
-      if (availableQuantity === undefined) return true;
+      if (availableQuantity === undefined || availableQuantity < 0) return true; // Allow if EPI not selected or no quantity (e.g. error case)
       return data.quantidadeEntregue <= availableQuantity;
     },
     {
@@ -67,8 +67,6 @@ export default function DistribuicaoEpisPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEpi, setSelectedEpi] = useState<Epi | null>(null);
   const [currentMockEpis, setCurrentMockEpis] = useState<Epi[]>(() => 
-    // Create a deep copy of mockEpis to avoid modifying the original imported array directly
-    // This allows local state changes within this page
     JSON.parse(JSON.stringify(mockEpis))
   );
   const [distributionHistory, setDistributionHistory] = useState<DistributionRecord[]>([]);
@@ -95,8 +93,12 @@ export default function DistribuicaoEpisPage() {
   }, [form.watch('epiId'), currentMockEpis]);
 
   useEffect(() => {
-    form.trigger('quantidadeEntregue');
+    // Re-validate 'quantidadeEntregue' when 'selectedEpi' changes its quantity
+    if (selectedEpi) {
+        form.trigger('quantidadeEntregue');
+    }
   }, [selectedEpi, form]);
+
 
   async function onSubmit(data: DistributionFormValues) {
     if (!selectedEpi) {
@@ -107,13 +109,26 @@ export default function DistribuicaoEpisPage() {
       });
       return;
     }
+     // Ensure refinement is re-evaluated with current selectedEpi quantity
+    const currentResolver = zodResolver(refinedDistributionFormSchema(selectedEpi?.quantity));
+    const validationResult = await currentResolver(data, form.control.formState.context, {});
+    if (Object.keys(validationResult.errors).length > 0) {
+        // Manually set errors if refine fails, as useForm might not pick it up immediately on submit
+        if (validationResult.errors.quantidadeEntregue) {
+            form.setError('quantidadeEntregue', { 
+                type: 'manual', 
+                message: validationResult.errors.quantidadeEntregue.message 
+            });
+        }
+        setIsLoading(false); // Stop loading if validation fails
+        return;
+    }
+
 
     setIsLoading(true);
     
-    // Simula um delay de API
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Atualizar a quantidade do EPI no estado local 'currentMockEpis'
     setCurrentMockEpis(prevEpis =>
       prevEpis.map(epi =>
         epi.id === selectedEpi.id
@@ -122,7 +137,6 @@ export default function DistribuicaoEpisPage() {
       )
     );
 
-    // Adicionar ao histórico de distribuição local
     const newDistributionRecord: DistributionRecord = {
       id: `dist-${Date.now()}`,
       colaboradorNome: data.colaboradorNome,
@@ -136,7 +150,7 @@ export default function DistribuicaoEpisPage() {
 
     toast({
       title: 'Entrega Registrada!',
-      description: `${data.quantidadeEntregue} unidade(s) de "${selectedEpi?.name}" entregue(s) para ${data.colaboradorNome}.`,
+      description: `${data.quantidadeEntregue} unidade(s) de "${selectedEpi?.name}" entregue(s) para ${data.colaboradorNome}. Recibo digital será implementado futuramente.`,
       action: <Button variant="outline" size="sm"><Check className="mr-2 h-4 w-4" />OK</Button>,
     });
     
@@ -144,11 +158,11 @@ export default function DistribuicaoEpisPage() {
     form.reset({ 
       colaboradorNome: '',
       colaboradorCargo: '',
-      epiId: '', // Resetar o EPI selecionado para forçar o usuário a re-selecionar
+      epiId: '', 
       quantidadeEntregue: 1,
       dataEntrega: new Date(),
     });
-    setSelectedEpi(null); // Limpar EPI selecionado visualmente
+    setSelectedEpi(null); 
   }
 
   return (
@@ -160,9 +174,9 @@ export default function DistribuicaoEpisPage() {
       <Card className="w-full max-w-2xl mx-auto shadow-xl">
         <CardHeader>
           <CardTitle>Formulário de Entrega de EPI</CardTitle>
-          <CardDescription>
+          <UiCardDescription>
             Certifique-se de que todos os dados estão corretos antes de registrar.
-          </CardDescription>
+          </UiCardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -231,11 +245,11 @@ export default function DistribuicaoEpisPage() {
 
               {selectedEpi && (
                 <Card className="p-4 bg-muted/50 border-dashed">
-                  <CardDescription className="text-sm space-y-1">
+                  <UiCardDescription className="text-sm space-y-1">
                     <p><strong>Item Selecionado:</strong> {selectedEpi.name}</p>
                     <p><strong>Quantidade Disponível:</strong> {selectedEpi.quantity}</p>
                     <p><strong>Validade do Lote:</strong> {format(new Date(selectedEpi.validity), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                  </CardDescription>
+                  </UiCardDescription>
                 </Card>
               )}
 
@@ -315,9 +329,9 @@ export default function DistribuicaoEpisPage() {
                   </div>
                 </FormControl>
                 <FormMessage />
-                 <CardDescription className="text-xs mt-1">
+                 <FormDescription className="text-xs mt-1">
                     Emissão de recibo digital com assinatura e histórico de entregas serão funcionalidades futuras.
-                 </CardDescription>
+                 </FormDescription>
               </FormItem>
 
               <div className="flex justify-end pt-4">
@@ -342,9 +356,9 @@ export default function DistribuicaoEpisPage() {
       <Card className="w-full max-w-4xl mx-auto shadow-lg">
         <CardHeader>
           <CardTitle>Histórico de Entregas de EPIs (Sessão Atual)</CardTitle>
-          <CardDescription>
+          <UiCardDescription>
             Lista das entregas de EPIs registradas nesta sessão.
-          </CardDescription>
+          </UiCardDescription>
         </CardHeader>
         <CardContent>
           {distributionHistory.length > 0 ? (
@@ -380,6 +394,3 @@ export default function DistribuicaoEpisPage() {
     </>
   );
 }
-
-
-    
