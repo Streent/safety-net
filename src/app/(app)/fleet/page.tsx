@@ -12,20 +12,22 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { VehicleDetailModal } from '@/components/fleet/vehicle-detail-modal'; // Import the modal
 
-interface Vehicle {
+// Exporting types to be used by VehicleDetailModal
+export interface Vehicle {
   id: string;
   imageUrl: string;
   model: string;
   plate: string;
   status: VehicleStatus;
   type: VehicleType;
-  location: string; // Added location
+  location: string;
   dataAiHint: string;
 }
 
-type VehicleStatus = 'Disponível' | 'Em Manutenção' | 'Em Uso';
-type VehicleType = 'Utilitário Leve' | 'Caminhonete' | 'Carro de Passeio' | 'Van' | 'Motocicleta' | 'Caminhão Pesado' | 'Todos os Tipos';
+export type VehicleStatus = 'Disponível' | 'Em Manutenção' | 'Em Uso';
+export type VehicleType = 'Utilitário Leve' | 'Caminhonete' | 'Carro de Passeio' | 'Van' | 'Motocicleta' | 'Caminhão Pesado'; // Removed 'Todos os Tipos' as it's for filtering
 
 const mockVehicles: Vehicle[] = [
   { id: '1', imageUrl: 'https://placehold.co/600x400.png', model: 'Fiat Strada', plate: 'BRA2E19', status: 'Disponível', type: 'Utilitário Leve', location: 'Garagem Sede', dataAiHint: 'pickup truck' },
@@ -36,8 +38,8 @@ const mockVehicles: Vehicle[] = [
   { id: '6', imageUrl: 'https://placehold.co/600x400.png', model: 'Scania R450', plate: 'TRC7K0R', status: 'Em Uso', type: 'Caminhão Pesado', location: 'Rodovia BR-116', dataAiHint: 'semi truck' },
 ];
 
-const vehicleTypes: VehicleType[] = ['Todos os Tipos', 'Utilitário Leve', 'Caminhonete', 'Carro de Passeio', 'Van', 'Motocicleta', 'Caminhão Pesado'];
-const vehicleStatuses: (VehicleStatus | 'Todos os Status')[] = ['Todos os Status', 'Disponível', 'Em Manutenção', 'Em Uso'];
+const vehicleTypeOptions: VehicleType[] = ['Utilitário Leve', 'Caminhonete', 'Carro de Passeio', 'Van', 'Motocicleta', 'Caminhão Pesado'];
+const vehicleStatusOptions: VehicleStatus[] = ['Disponível', 'Em Manutenção', 'Em Uso'];
 
 
 const statusColors: Record<VehicleStatus, string> = {
@@ -58,8 +60,8 @@ function VehicleCard({ vehicle, animationDelay, isMounted, onViewDetails }: Vehi
     <Card 
       className={cn(
         "overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-[1.02]",
-        "opacity-0", // Start transparent for fade-in
-        isMounted && "opacity-100" // Fade in when mounted
+        "opacity-0", 
+        isMounted && "opacity-100" 
       )}
       style={{ transitionDelay: isMounted ? animationDelay : '0ms', transitionProperty: 'opacity, transform, box-shadow' }}
     >
@@ -68,20 +70,20 @@ function VehicleCard({ vehicle, animationDelay, isMounted, onViewDetails }: Vehi
           src={vehicle.imageUrl}
           alt={`Imagem do ${vehicle.model}`}
           width={600}
-          height={400}
-          className="object-cover w-full h-40 md:h-48"
+          height={300} // Adjusted height for mobile
+          className="object-cover w-full h-32 md:h-40" // Shorter image on mobile
           data-ai-hint={vehicle.dataAiHint}
-          priority={parseInt(vehicle.id) <= 3} // Prioritize loading for first few images
+          priority={parseInt(vehicle.id) <= 3} 
         />
       </CardHeader>
       <CardContent className="p-4">
-        <CardTitle className="text-xl mb-1">{vehicle.model}</CardTitle>
-        <CardDescription className="text-sm text-muted-foreground mb-1">
+        <CardTitle className="text-lg md:text-xl mb-1">{vehicle.model}</CardTitle>
+        <CardDescription className="text-xs md:text-sm text-muted-foreground mb-1">
           Placa: {vehicle.plate} <span className="mx-1">|</span> Tipo: {vehicle.type}
         </CardDescription>
-        <div className="flex items-center text-xs text-muted-foreground mb-3">
+        <div className="flex items-center text-xs md:text-sm text-muted-foreground mb-3">
           <MapPin className="mr-1.5 h-3.5 w-3.5" />
-          Última Localização: {vehicle.location}
+          {vehicle.location}
         </div>
         <div className="flex justify-between items-center">
           <Badge variant="outline" className={`text-xs ${statusColors[vehicle.status as VehicleStatus]}`}>
@@ -100,8 +102,10 @@ export default function FleetPage() {
   const [statusFilter, setStatusFilter] = useState<VehicleStatus | 'Todos os Status'>('Todos os Status');
   const [isMounted, setIsMounted] = useState(false);
 
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+
   useEffect(() => {
-    // Mount after a short delay to allow CSS to apply initial opacity-0
     const timer = setTimeout(() => setIsMounted(true), 50);
     return () => clearTimeout(timer);
   }, []);
@@ -114,11 +118,17 @@ export default function FleetPage() {
   };
 
   const handleViewDetails = (vehicleId: string) => {
-    toast({
-      title: 'Ver Detalhes do Veículo',
-      description: `Modal com detalhes do veículo ${vehicleId} será implementado aqui.`,
-    });
-    // Later: Open VehicleDetailModal with vehicleId
+    const vehicle = mockVehicles.find(v => v.id === vehicleId);
+    if (vehicle) {
+      setSelectedVehicle(vehicle);
+      setIsDetailModalOpen(true);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Veículo não encontrado.",
+      });
+    }
   };
 
   const filteredVehicles = useMemo(() => {
@@ -140,22 +150,24 @@ export default function FleetPage() {
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as VehicleType)}>
+              <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as VehicleType | 'Todos os Tipos')}>
                 <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filtrar por tipo">
-                  <SelectValue />
+                  <SelectValue placeholder="Todos os Tipos" />
                 </SelectTrigger>
                 <SelectContent>
-                  {vehicleTypes.map(type => (
+                  <SelectItem value="Todos os Tipos">Todos os Tipos</SelectItem>
+                  {vehicleTypeOptions.map(type => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as VehicleStatus)}>
+              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as VehicleStatus | 'Todos os Status')}>
                 <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filtrar por status">
-                  <SelectValue />
+                  <SelectValue placeholder="Todos os Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {vehicleStatuses.map(status => (
+                  <SelectItem value="Todos os Status">Todos os Status</SelectItem>
+                  {vehicleStatusOptions.map(status => (
                     <SelectItem key={status} value={status}>{status}</SelectItem>
                   ))}
                 </SelectContent>
@@ -251,7 +263,12 @@ export default function FleetPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <VehicleDetailModal 
+        vehicle={selectedVehicle} 
+        isOpen={isDetailModalOpen}
+        onOpenChange={setIsDetailModalOpen}
+      />
     </>
   );
 }
-
