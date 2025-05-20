@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PlusCircle, Archive, AlertCircle, CalendarClock, Edit2, MoreHorizontal, Eye, Loader2, Check, Calendar as CalendarIconLucide } from 'lucide-react';
+import { PlusCircle, Archive, AlertCircle, CalendarClock, Edit2, MoreHorizontal, Eye, Loader2, Check, Calendar as CalendarIconLucide, CloudUpload, ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, addMonths, differenceInDays, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -38,10 +38,12 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { cn } from '@/lib/utils';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as UiFormDescription } from "@/components/ui/form";
+
 
 interface Epi {
   id: string;
@@ -49,20 +51,21 @@ interface Epi {
   quantity: number;
   validity: Date;
   location: string;
-  category?: string; // Ex: Proteção Respiratória, Proteção Auditiva
-  caNumber?: string; // Certificado de Aprovação
+  category?: string;
+  caNumber?: string;
+  photoUrls?: string[]; // Para armazenar URLs das fotos futuramente
 }
 
 type EpiStatus = 'OK' | 'Baixo Estoque' | 'Próximo Validade' | 'Expirado' | 'Crítico';
 
 const mockEpis: Epi[] = [
   { id: 'EPI001', name: 'Máscara N95', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345' },
-  { id: 'EPI002', name: 'Capacete de Segurança', quantity: 5, validity: addMonths(new Date(), 12), location: 'Estante B1', category: 'Proteção da Cabeça' },
+  { id: 'EPI002', name: 'Capacete de Segurança', quantity: 5, validity: addMonths(new Date(), 12), location: 'Estante B1', category: 'protecao_cabeca' },
   { id: 'EPI003', name: 'Luvas de Proteção (par)', quantity: 20, validity: addMonths(new Date(), -1), location: 'Almoxarifado A' },
-  { id: 'EPI004', name: 'Protetor Auricular', quantity: 30, validity: addMonths(new Date(), 1), location: 'Estante C3', caNumber: '67890' },
+  { id: 'EPI004', name: 'Protetor Auricular', quantity: 30, validity: addMonths(new Date(), 1), location: 'Estante C3', caNumber: '67890', category: 'protecao_auditiva' },
   { id: 'EPI005', name: 'Óculos de Segurança', quantity: 15, validity: addMonths(new Date(), 6), location: 'Almoxarifado B' },
-  { id: 'EPI006', name: 'Extintor ABC (2kg)', quantity: 2, validity: addMonths(new Date(), 0), location: 'Corredor Principal', category: 'Combate a Incêndio' },
-  { id: 'EPI007', name: 'Cinto de Segurança para Altura', quantity: 8, validity: addMonths(new Date(), 24), location: 'Sala de Equipamentos', caNumber: '11223' },
+  { id: 'EPI006', name: 'Extintor ABC (2kg)', quantity: 2, validity: addMonths(new Date(), 0), location: 'Corredor Principal', category: 'combate_incendio' },
+  { id: 'EPI007', name: 'Cinto de Segurança para Altura', quantity: 8, validity: addMonths(new Date(), 24), location: 'Sala de Equipamentos', caNumber: '11223', category: 'trabalho_altura' },
 ];
 
 const epiFormSchema = z.object({
@@ -72,6 +75,7 @@ const epiFormSchema = z.object({
   location: z.string().min(1, { message: 'A localização é obrigatória.' }),
   caNumber: z.string().optional(),
   category: z.string().optional(),
+  photos: z.any().optional().describe('Arquivos de fotos do EPI'),
 });
 
 type EpiFormValues = z.infer<typeof epiFormSchema>;
@@ -81,6 +85,8 @@ export default function EpisPage() {
   const [epis, setEpis] = useState<Epi[]>(mockEpis);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoadingForm, setIsLoadingForm] = useState(false);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+
 
   const form = useForm<EpiFormValues>({
     resolver: zodResolver(epiFormSchema),
@@ -90,6 +96,7 @@ export default function EpisPage() {
       location: '',
       caNumber: '',
       category: '',
+      photos: undefined,
     },
   });
 
@@ -98,27 +105,29 @@ export default function EpisPage() {
       form.reset({
         name: '',
         quantity: 1,
-        validity: undefined, // Reset date properly
+        validity: undefined,
         location: '',
         caNumber: '',
         category: '',
+        photos: undefined,
       });
+      setPhotoFiles([]); // Limpar arquivos de fotos ao fechar o modal
     }
   }, [isAddModalOpen, form]);
 
 
   const getValidityStatus = (validityDate: Date, quantity: number): { status: EpiStatus; daysRemaining: number | null } => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize today to start of day
+    today.setHours(0, 0, 0, 0); 
     
     const validDate = new Date(validityDate);
-    validDate.setHours(0,0,0,0); // Normalize validityDate to start of day
+    validDate.setHours(0,0,0,0);
 
     const daysRemaining = differenceInDays(validDate, today);
 
     if (daysRemaining < 0) return { status: 'Expirado', daysRemaining };
-    if (daysRemaining <= 30) return { status: 'Próximo Validade', daysRemaining }; // 30 days or less
-    if (quantity <= 5) return { status: 'Baixo Estoque', daysRemaining }; // Example low stock threshold
+    if (daysRemaining <= 30) return { status: 'Próximo Validade', daysRemaining };
+    if (quantity <= 5) return { status: 'Baixo Estoque', daysRemaining }; 
     return { status: 'OK', daysRemaining };
   };
 
@@ -154,7 +163,8 @@ export default function EpisPage() {
   }
 
   const handleAddItem = () => {
-    form.reset(); // Reset form fields when opening
+    form.reset(); 
+    setPhotoFiles([]);
     setIsAddModalOpen(true);
   };
 
@@ -171,14 +181,26 @@ export default function EpisPage() {
       description: `Funcionalidade para editar o EPI ${epiId} será implementada (provavelmente usando um modal similar ao de adicionar).`,
     });
   };
+  
+  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      setPhotoFiles(Array.from(event.target.files));
+    }
+  };
 
   async function onFormSubmit(data: EpiFormValues) {
     setIsLoadingForm(true);
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+    // Simular chamada de API
+    await new Promise(resolve => setTimeout(resolve, 1000)); 
+    console.log("Dados do EPI:", data);
+    console.log("Arquivos de fotos selecionados:", photoFiles.map(f => f.name));
+
 
     const newItem: Epi = {
-      id: `EPI${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`, // simple unique id
+      id: `EPI${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`,
       ...data,
+      // Futuramente, photoUrls seriam os URLs após o upload para o Firebase Storage
+      photoUrls: photoFiles.map(file => URL.createObjectURL(file)), // Placeholder para visualização local
     };
     setEpis(prevEpis => [newItem, ...prevEpis]);
 
@@ -305,124 +327,188 @@ export default function EpisPage() {
       {/* Modal para Adicionar Novo Item de EPI */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Adicionar Novo Item de EPI</DialogTitle>
-            <DialogDescription>
-              Preencha os detalhes do novo Equipamento de Proteção Individual.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={form.handleSubmit(onFormSubmit)}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right col-span-1">
-                  Nome
-                </Label>
-                <div className="col-span-3">
-                  <Input id="name" {...form.register('name')} className={cn(form.formState.errors.name && "border-destructive")} />
-                  {form.formState.errors.name && <p className="text-xs text-destructive mt-1">{form.formState.errors.name.message}</p>}
-                </div>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="quantity" className="text-right col-span-1">
-                  Quantidade
-                </Label>
-                <div className="col-span-3">
-                  <Input id="quantity" type="number" {...form.register('quantity')} className={cn(form.formState.errors.quantity && "border-destructive")} />
-                  {form.formState.errors.quantity && <p className="text-xs text-destructive mt-1">{form.formState.errors.quantity.message}</p>}
-                </div>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="validity" className="text-right col-span-1">
-                  Validade
-                </Label>
-                <div className="col-span-3">
-                   <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !form.watch('validity') && "text-muted-foreground",
-                           form.formState.errors.validity && "border-destructive"
+          <FormProvider {...form}>
+            <form onSubmit={form.handleSubmit(onFormSubmit)}>
+              <DialogHeader>
+                <DialogTitle>Adicionar Novo Item de EPI</DialogTitle>
+                <DialogDescription>
+                  Preencha os detalhes do novo Equipamento de Proteção Individual.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="grid grid-cols-4 items-center gap-4">
+                      <FormLabel className="text-right col-span-1">Nome</FormLabel>
+                      <FormControl className="col-span-3">
+                        <Input {...field} className={cn(form.formState.errors.name && "border-destructive")} />
+                      </FormControl>
+                      <FormMessage className="col-start-2 col-span-3 text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem className="grid grid-cols-4 items-center gap-4">
+                      <FormLabel className="text-right col-span-1">Quantidade</FormLabel>
+                      <FormControl className="col-span-3">
+                        <Input type="number" {...field} className={cn(form.formState.errors.quantity && "border-destructive")} />
+                      </FormControl>
+                      <FormMessage className="col-start-2 col-span-3 text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="validity"
+                  render={({ field }) => (
+                    <FormItem className="grid grid-cols-4 items-center gap-4">
+                      <FormLabel className="text-right col-span-1">Validade</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild className="col-span-3">
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !field.value && "text-muted-foreground",
+                                form.formState.errors.validity && "border-destructive"
+                              )}
+                            >
+                              <CalendarIconLucide className="mr-2 h-4 w-4" />
+                              {field.value ? format(field.value, "dd/MM/yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            locale={ptBR}
+                            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) } // Não permite datas passadas
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage className="col-start-2 col-span-3 text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem className="grid grid-cols-4 items-center gap-4">
+                      <FormLabel className="text-right col-span-1">Localização</FormLabel>
+                      <FormControl className="col-span-3">
+                        <Input {...field} className={cn(form.formState.errors.location && "border-destructive")} />
+                      </FormControl>
+                      <FormMessage className="col-start-2 col-span-3 text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="caNumber"
+                  render={({ field }) => (
+                    <FormItem className="grid grid-cols-4 items-center gap-4">
+                      <FormLabel className="text-right col-span-1">Nº do C.A.</FormLabel>
+                      <FormControl className="col-span-3">
+                        <Input {...field} placeholder="Opcional" />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem className="grid grid-cols-4 items-center gap-4">
+                      <FormLabel className="text-right col-span-1">Categoria</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl className="col-span-3">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione (Opcional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="protecao_cabeca">Proteção da Cabeça</SelectItem>
+                          <SelectItem value="protecao_respiratoria">Proteção Respiratória</SelectItem>
+                          <SelectItem value="protecao_auditiva">Proteção Auditiva</SelectItem>
+                          <SelectItem value="protecao_visual">Proteção Visual</SelectItem>
+                          <SelectItem value="protecao_maos">Proteção das Mãos</SelectItem>
+                          <SelectItem value="protecao_pes">Proteção dos Pés</SelectItem>
+                          <SelectItem value="protecao_corpo">Proteção do Corpo</SelectItem>
+                          <SelectItem value="combate_incendio">Combate a Incêndio</SelectItem>
+                          <SelectItem value="trabalho_altura">Trabalho em Altura</SelectItem>
+                          <SelectItem value="outros">Outros</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="photos"
+                  render={({ field }) => (
+                    <FormItem className="grid grid-cols-4 items-start gap-4">
+                      <FormLabel className="text-right col-span-1 pt-2">
+                        <CloudUpload className="inline h-4 w-4 mr-1.5" /> Fotos
+                      </FormLabel>
+                      <div className="col-span-3">
+                        <FormControl>
+                          <Input 
+                            type="file" 
+                            multiple 
+                            accept="image/*"
+                            onChange={(e) => {
+                              field.onChange(e.target.files); // Para react-hook-form
+                              handlePhotoChange(e); // Para nosso estado local de arquivos
+                            }}
+                            className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                          />
+                        </FormControl>
+                        {photoFiles.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            <p className="text-xs text-muted-foreground">Arquivos Selecionados ({photoFiles.length}):</p>
+                            <ul className="list-disc list-inside text-xs text-muted-foreground max-h-20 overflow-y-auto">
+                              {photoFiles.map(file => <li key={file.name}>{file.name} ({(file.size / 1024).toFixed(1)} KB)</li>)}
+                            </ul>
+                          </div>
                         )}
-                      >
-                        <CalendarIconLucide className="mr-2 h-4 w-4" />
-                        {form.watch('validity') ? format(form.watch('validity')!, "dd/MM/yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={form.watch('validity')}
-                        onSelect={(date) => form.setValue('validity', date as Date, {shouldValidate: true})}
-                        initialFocus
-                        locale={ptBR}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  {form.formState.errors.validity && <p className="text-xs text-destructive mt-1">{form.formState.errors.validity.message}</p>}
-                </div>
+                         <UiFormDescription className="text-xs mt-1 flex items-center">
+                           <ImageIcon className="h-3 w-3 mr-1.5"/>
+                           Anexe uma ou mais fotos do EPI (opcional).
+                         </UiFormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="location" className="text-right col-span-1">
-                  Localização
-                </Label>
-                 <div className="col-span-3">
-                  <Input id="location" {...form.register('location')} className={cn(form.formState.errors.location && "border-destructive")} />
-                  {form.formState.errors.location && <p className="text-xs text-destructive mt-1">{form.formState.errors.location.message}</p>}
-                </div>
-              </div>
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="caNumber" className="text-right col-span-1">
-                  Nº do C.A.
-                </Label>
-                <div className="col-span-3">
-                  <Input id="caNumber" {...form.register('caNumber')} placeholder="Opcional" />
-                </div>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category" className="text-right col-span-1">
-                  Categoria
-                </Label>
-                <div className="col-span-3">
-                   <Select onValueChange={(value) => form.setValue('category', value)} defaultValue={form.watch('category')}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma categoria (Opcional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="protecao_cabeca">Proteção da Cabeça</SelectItem>
-                      <SelectItem value="protecao_respiratoria">Proteção Respiratória</SelectItem>
-                      <SelectItem value="protecao_auditiva">Proteção Auditiva</SelectItem>
-                      <SelectItem value="protecao_visual">Proteção Visual</SelectItem>
-                      <SelectItem value="protecao_maos">Proteção das Mãos</SelectItem>
-                      <SelectItem value="protecao_pes">Proteção dos Pés</SelectItem>
-                      <SelectItem value="protecao_corpo">Proteção do Corpo</SelectItem>
-                      <SelectItem value="combate_incendio">Combate a Incêndio</SelectItem>
-                      <SelectItem value="trabalho_altura">Trabalho em Altura</SelectItem>
-                      <SelectItem value="outros">Outros</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline" disabled={isLoadingForm}>
-                  Cancelar
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" disabled={isLoadingForm}>
+                    Cancelar
+                  </Button>
+                </DialogClose>
+                <Button type="submit" disabled={isLoadingForm}>
+                  {isLoadingForm ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    'Salvar EPI'
+                  )}
                 </Button>
-              </DialogClose>
-              <Button type="submit" disabled={isLoadingForm}>
-                {isLoadingForm ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  'Salvar EPI'
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
+              </DialogFooter>
+            </form>
+          </FormProvider>
         </DialogContent>
       </Dialog>
     </>
