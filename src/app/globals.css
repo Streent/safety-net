@@ -69,13 +69,13 @@ html, body {
     --sidebar-ring: 165 37% 55%; /* Muted Teal */
 
     /* Custom BottomNav Animation Colors from example */
-    --bottom-nav-primary-color: hsl(var(--primary)); /* #0D6FFA in example, using app primary */
-    --bottom-nav-accent-color: hsl(var(--accent));   /* #49CE95 in example, using app accent */
+    --bottom-nav-primary-color: hsl(var(--primary)); 
+    --bottom-nav-accent-color: hsl(var(--accent));   
     --bottom-nav-danger-color:#EC3582; 
-    --bottom-nav-fore-color:hsl(var(--muted-foreground)); /* rgba(0,0,0,0.65) in example, using app muted-foreground */
+    --bottom-nav-fore-color:hsl(var(--muted-foreground)); 
     --bottom-nav-main-cast-shadow: 0px 3px 12px rgba(0, 0, 0, 0.08), 0px 3px 6px rgba(0, 0, 0, 0.12);
-    --bottom-nav-background-color: hsl(var(--background)); /* #ffffff in example, using app background */
-    --bottom-nav-indicator-color: hsl(var(--primary)); /* #000000 in example, using app primary */
+    --bottom-nav-background-color: hsl(var(--background)); 
+    --bottom-nav-indicator-color: hsl(var(--primary)); 
   }
 
   .dark {
@@ -126,9 +126,9 @@ html, body {
     --sidebar-ring: 45 90% 50%;
 
     /* Custom BottomNav Animation Colors for Dark Mode */
-    --bottom-nav-fore-color: hsl(var(--muted-foreground)); /* rgba(255,255,255,0.75) in example */
-    --bottom-nav-background-color: hsl(var(--background)); /* #1F2937 in example, using app dark background */
-    --bottom-nav-indicator-color: hsl(var(--primary)); /* Use app's primary color for indicator in dark mode */
+    --bottom-nav-fore-color: hsl(var(--muted-foreground)); 
+    --bottom-nav-background-color: hsl(var(--background)); 
+    --bottom-nav-indicator-color: hsl(var(--primary)); 
     --bottom-nav-main-cast-shadow: 0px 3px 12px rgba(0, 0, 0, 0.25), 0px 3px 6px rgba(0, 0, 0, 0.3);
   }
 }
@@ -172,28 +172,25 @@ html, body {
 
 /* Custom BottomNav Animation Styles from User Example */
 .app-bottom-nav.sc-bottom-bar {
-  /* Tailwind's fixed, inset-x-0, bottom-0, z-50, h-16 are primary for positioning */
-  /* These are now handled by Tailwind classes on the <nav> element */
   display: flex; 
-  justify-content: space-around; /* Distributes items evenly */
-  align-items: flex-end; /* Aligns items to the bottom of the container, useful for the 'lift' effect */
-  padding: 0 16px 8px 16px; /* Padding: top 0, horizontal 16px, bottom 8px */
+  justify-content: space-around; 
+  align-items: flex-end; 
+  padding: 0 16px 8px 16px; 
+  height: 64px; /* Consistent with h-16 */
   
-  /* background-image is set dynamically via style prop in BottomNav.tsx for the "dip" effect */
-  background-color: var(--bottom-nav-background-color); /* Fallback, or main background */
+  background-image: radial-gradient(circle at 36px 6px, transparent 36px, hsl(var(--bottom-nav-background-color)) 37px);
   filter: drop-shadow(0px -1px 6px rgba(0, 0, 0, 0.08)) drop-shadow(0px -2px 12px rgba(0, 0, 0, 0.12));
   border-top-left-radius: 20px; 
   border-top-right-radius: 20px;
-  transition: background-position cubic-bezier(0.57, 0.23, 0.08, 0.96) .45s, transform 0.3s ease-in-out; /* Added transform for auto-hide */
-  /* overflow: visible !important; /* Ensure indicator can protrude. Tailwind class 'overflow-visible' can also be used */
+  transition: background-position cubic-bezier(0.57, 0.23, 0.08, 0.96) .45s, transform 0.3s ease-in-out; 
+  overflow: visible !important; 
 }
 
 .app-bottom-nav .sc-nav-indicator {
   position: absolute;
   width: 56px;
   height: 56px;
-  /* The indicator's bottom edge should align with where the items rest before being 'lifted' */
-  bottom: 8px; /* Matches padding-bottom of .sc-bottom-bar */
+  bottom: 8px; 
   background-color: var(--bottom-nav-indicator-color);
   box-shadow: var(--bottom-nav-main-cast-shadow);
   border-radius: 50%;
@@ -208,17 +205,17 @@ html, body {
   color: var(--bottom-nav-fore-color);
   transition: color ease-in-out .5s, transform 0.3s cubic-bezier(0.45, 0.73, 0, 0.59);
   cursor: pointer;
-  z-index: 3; /* Higher than indicator when not current */
-  width: 56px; /* Consistent touch target */
-  height: 56px; /* Consistent touch target */
-  position: relative; /* For z-index stacking context */
-  border-radius: 50%; /* If you want rounded touch targets */
+  z-index: 3; 
+  width: 56px; 
+  height: 56px; 
+  position: relative; 
+  border-radius: 50%; 
 }
 
 .app-bottom-nav .sc-menu-item.sc-current {
-  color: var(--bottom-nav-background-color); /* Text color when active (to contrast with indicator) */
-  transform: translateY(-20px); /* Lifts the icon up */
-  z-index: 4; /* Above the indicator when active */
+  color: var(--bottom-nav-background-color); 
+  /* transform: translateY(-20px); */ /* Removed to keep icon on the same level */
+  z-index: 4; 
 }
 
 /* Hide text labels from original BottomNav for this specific animation style */
