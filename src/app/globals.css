@@ -5,7 +5,20 @@
 
 body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  overflow-x: hidden; /* Prevent horizontal scroll on body */
 }
+
+html, body {
+  width: 100%;
+  /* overflow-x: hidden; Already on body, html should be fine */
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 
 @layer base {
   :root {
@@ -54,6 +67,15 @@ body {
     --sidebar-accent-foreground: 0 0% 100%; /* White */
     --sidebar-border: 210 15% 25%; /* Slightly lighter than sidebar bg */
     --sidebar-ring: 165 37% 55%; /* Muted Teal */
+
+    /* Custom BottomNav Animation Colors from example */
+    --bottom-nav-primary-color:#0D6FFA;
+    --bottom-nav-accent-color:#49CE95; /* Not used in example, but defined */
+    --bottom-nav-danger-color:#EC3582; /* Not used in example, but defined */
+    --bottom-nav-fore-color:rgba(0,0,0,0.65);
+    --bottom-nav-main-cast-shadow: 0px 3px 12px rgba(0, 0, 0, 0.08), 0px 3px 6px rgba(0, 0, 0, 0.12);
+    --bottom-nav-background-color: #ffffff;
+    --bottom-nav-indicator-color: #000000; /* Example used black, primary-color might be better */
   }
 
   .dark {
@@ -102,6 +124,12 @@ body {
     --sidebar-accent-foreground: 0 0% 10%;
     --sidebar-border: 210 15% 20%;
     --sidebar-ring: 45 90% 50%;
+
+    /* Custom BottomNav Animation Colors for Dark Mode */
+    --bottom-nav-fore-color: rgba(255,255,255,0.75);
+    --bottom-nav-background-color: #1F2937; /* Dark Gray */
+    --bottom-nav-indicator-color: hsl(var(--primary)); /* Use app's primary color for indicator in dark mode */
+    --bottom-nav-main-cast-shadow: 0px 3px 12px rgba(0, 0, 0, 0.25), 0px 3px 6px rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -141,3 +169,68 @@ body {
     }
   }
 }
+
+/* Custom BottomNav Animation Styles */
+.app-bottom-nav.sc-bottom-bar {
+  /* Tailwind's fixed, inset-x-0, bottom-0, z-50, h-16 are primary for positioning */
+  display: flex; 
+  justify-content: space-around; 
+  align-items: flex-end; 
+  padding: 0 16px 8px 16px; 
+  height: 64px; /* Matches h-16 */
+  
+  /* background-image is set dynamically via style prop in BottomNav.tsx */
+  background-color: var(--bottom-nav-background-color); /* Fallback */
+  filter: drop-shadow(0px -1px 6px rgba(0, 0, 0, 0.08)) drop-shadow(0px -2px 12px rgba(0, 0, 0, 0.12));
+  border-top-left-radius: 20px; 
+  border-top-right-radius: 20px;
+  transition: background-position cubic-bezier(0.57, 0.23, 0.08, 0.96) .45s;
+  /* overflow: visible !important; Ensure indicator can protrude. Tailwind class 'overflow-visible' can also be used */
+}
+
+.app-bottom-nav .sc-nav-indicator {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  /* The indicator's bottom edge should be 28px from the bar's bottom (example logic) */
+  /* Bar height is 64px. So, bottom: 28px means its top is 64 - 28 - 56 = -20px (protrudes 20px from top of bar) */
+  /* Let's try to make it visually similar: indicator is 56px high. Bar is 64px.
+     If items are ~24px high (h-6 w-6) and centered in a 56px touch target, their center is at 28px from bottom of touch target.
+     Touch targets are aligned flex-end, so their bottom is at ~8px (padding-bottom of bar).
+     So icon center is at ~8+28 = 36px from bottom of bar.
+     Indicator center should be same. Indicator is 56px high. Indicator bottom: 36px - 28px = 8px from bar bottom.
+  */
+  bottom: 8px; /* Align bottom of indicator with bottom of item's effective area */
+  background-color: var(--bottom-nav-indicator-color);
+  box-shadow: var(--bottom-nav-main-cast-shadow);
+  border-radius: 50%;
+  transition: left cubic-bezier(0.45, 0.73, 0, 0.59) .3s, background-color 0.3s;
+  z-index: 2; 
+}
+
+.app-bottom-nav .sc-menu-item {
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  color: var(--bottom-nav-fore-color);
+  transition: color ease-in-out .5s, transform 0.3s cubic-bezier(0.45, 0.73, 0, 0.59);
+  cursor: pointer;
+  z-index: 3;
+  width: 56px; 
+  height: 56px; 
+  position: relative; 
+  border-radius: 50%; 
+}
+
+.app-bottom-nav .sc-menu-item.sc-current {
+  color: var(--bottom-nav-background-color); 
+  transform: translateY(-20px); 
+  z-index: 4; 
+}
+
+/* Hide text labels from original BottomNav for this specific animation style */
+.app-bottom-nav .sc-menu-item-label {
+  display: none;
+}
+
+    
