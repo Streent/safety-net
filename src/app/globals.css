@@ -74,7 +74,7 @@ html, body {
     --bottom-nav-danger-color:#EC3582; 
     --bottom-nav-fore-color:hsl(var(--muted-foreground)); 
     --bottom-nav-main-cast-shadow: 0px 3px 12px rgba(0, 0, 0, 0.08), 0px 3px 6px rgba(0, 0, 0, 0.12);
-    --bottom-nav-background-color: hsl(var(--background)); 
+    --bottom-nav-background-color: hsl(var(--card)); /* Use card for a slightly more distinct background if needed */
     --bottom-nav-indicator-color: hsl(var(--primary)); 
   }
 
@@ -127,7 +127,7 @@ html, body {
 
     /* Custom BottomNav Animation Colors for Dark Mode */
     --bottom-nav-fore-color: hsl(var(--muted-foreground)); 
-    --bottom-nav-background-color: hsl(var(--background)); 
+    --bottom-nav-background-color: hsl(var(--card)); /* Use card for a slightly more distinct background */
     --bottom-nav-indicator-color: hsl(var(--primary)); 
     --bottom-nav-main-cast-shadow: 0px 3px 12px rgba(0, 0, 0, 0.25), 0px 3px 6px rgba(0, 0, 0, 0.3);
   }
@@ -174,23 +174,25 @@ html, body {
 .app-bottom-nav.sc-bottom-bar {
   display: flex; 
   justify-content: space-around; 
-  align-items: flex-end; 
-  padding: 0 16px 8px 16px; 
+  align-items: flex-end; /* Aligns items (icons) to the bottom of the flex container */
+  padding: 0 16px 8px 16px; /* No top padding, 8px bottom padding to lift icons slightly */
   height: 64px; /* Consistent with h-16 */
   
-  background-image: radial-gradient(circle at 36px 6px, transparent 36px, hsl(var(--bottom-nav-background-color)) 37px);
+  /* The background-image creates the "dip" effect. The indicator sits on top. */
+  background-image: radial-gradient(circle at 36px 6px, transparent 36px, var(--bottom-nav-background-color) 37px);
   filter: drop-shadow(0px -1px 6px rgba(0, 0, 0, 0.08)) drop-shadow(0px -2px 12px rgba(0, 0, 0, 0.12));
   border-top-left-radius: 20px; 
   border-top-right-radius: 20px;
   transition: background-position cubic-bezier(0.57, 0.23, 0.08, 0.96) .45s, transform 0.3s ease-in-out; 
-  overflow: visible !important; 
+  overflow: visible !important; /* Allows indicator to "protrude" */
 }
 
 .app-bottom-nav .sc-nav-indicator {
   position: absolute;
   width: 56px;
   height: 56px;
-  bottom: 8px; 
+  bottom: 8px; /* Positions the indicator relative to the bottom of sc-bottom-bar */
+  /* left will be set by JS */
   background-color: var(--bottom-nav-indicator-color);
   box-shadow: var(--bottom-nav-main-cast-shadow);
   border-radius: 50%;
@@ -201,24 +203,25 @@ html, body {
 .app-bottom-nav .sc-menu-item {
   display: flex; 
   justify-content: center; 
-  align-items: center; 
-  color: var(--bottom-nav-fore-color);
+  align-items: center; /* Vertically centers the icon within the item */
+  color: var(--bottom-nav-fore-color); /* Color for inactive icons */
   transition: color ease-in-out .5s, transform 0.3s cubic-bezier(0.45, 0.73, 0, 0.59);
   cursor: pointer;
-  z-index: 3; 
-  width: 56px; 
-  height: 56px; 
-  position: relative; 
-  border-radius: 50%; 
+  z-index: 3; /* Ensures icons are above the dip but below a potentially transformed current item */
+  width: 56px; /* Touch target size */
+  height: 56px; /* Touch target size */
+  position: relative; /* Needed for z-index and potential future absolute positioning of elements within */
+  border-radius: 50%; /* If we want a background on hover/active for the item itself */
 }
 
 .app-bottom-nav .sc-menu-item.sc-current {
-  color: var(--bottom-nav-background-color); 
-  /* transform: translateY(-20px); */ /* Removed to keep icon on the same level */
-  z-index: 4; 
+  position:relative; /* Keep relative positioning */
+  color: var(--primary-foreground); /* Contrast color for active icon (e.g., white on teal, black on yellow) */
+  z-index: 4; /* Ensures current icon is above the indicator */
 }
 
 /* Hide text labels from original BottomNav for this specific animation style */
 .app-bottom-nav .sc-menu-item-label {
   display: none;
 }
+
