@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet" // Added SheetHeader, SheetTitle, SheetDescription
+import { Sheet, SheetContent } from "@/components/ui/sheet" 
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -199,7 +199,7 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className={cn("w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground flex flex-col", className, "[&>button]:hidden")}
+            className={cn("w-[--sidebar-width] bg-sidebar text-sidebar-foreground flex flex-col p-0", className)}
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -207,14 +207,13 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            <SheetHeader className="p-4 border-b border-sidebar-border">
-              <SheetTitle>Menu Principal</SheetTitle>
-              <SheetDescription>
-                Navegue pelas seções do SafetyNet.
-              </SheetDescription>
-            </SheetHeader>
-            {/* Ensure children are rendered within a scrollable container */}
-            <div className="flex-1 flex flex-col overflow-y-auto">
+            {/* Simple visual header for context */}
+            <div className="p-4 border-b border-sidebar-border sticky top-0 bg-sidebar z-10">
+              <h2 className="text-lg font-semibold text-center text-sidebar-foreground">Menu Principal</h2>
+              {/* The SheetClose 'X' button is part of SheetContent and should be visible by default */}
+            </div>
+            {/* Scrollable area for the actual sidebar content (menu items) */}
+            <div className="flex-1 overflow-y-auto">
               {children}
             </div>
           </SheetContent>
@@ -771,7 +770,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    
-
-    
