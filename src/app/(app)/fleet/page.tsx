@@ -13,8 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { VehicleDetailModal } from '@/components/fleet/vehicle-detail-modal';
-import Link from 'next/link'; // Importar Link
-import { useRouter } from 'next/navigation'; // Importar useRouter
+import Link from 'next/link'; 
+import { useRouter } from 'next/navigation'; 
 
 
 export interface Vehicle {
@@ -53,7 +53,7 @@ interface VehicleCardProps {
   vehicle: Vehicle;
   animationDelay: string;
   isMounted: boolean;
-  onViewDetails: (vehicle: Vehicle) => void; // Passa o objeto Vehicle completo
+  onViewDetails: (vehicle: Vehicle) => void;
 }
 
 function VehicleCard({ vehicle, animationDelay, isMounted, onViewDetails }: VehicleCardProps) {
@@ -96,7 +96,7 @@ function VehicleCard({ vehicle, animationDelay, isMounted, onViewDetails }: Vehi
 }
 
 export default function FleetPage() {
-  const router = useRouter(); // Inicializar useRouter
+  const router = useRouter();
   const [typeFilter, setTypeFilter] = useState<VehicleType | 'Todos os Tipos'>('Todos os Tipos');
   const [statusFilter, setStatusFilter] = useState<VehicleStatus | 'Todos os Status'>('Todos os Status');
   const [isMounted, setIsMounted] = useState(false);
@@ -105,11 +105,11 @@ export default function FleetPage() {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 50); // Pequeno delay para animação inicial
+    const timer = setTimeout(() => setIsMounted(true), 50);
     return () => clearTimeout(timer);
   }, []);
 
-  const handleViewDetails = (vehicle: Vehicle) => { // Recebe o objeto Vehicle
+  const handleViewDetails = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
     setIsDetailModalOpen(true);
   };
@@ -173,7 +173,7 @@ export default function FleetPage() {
       </Card>
       
       <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-foreground">Veículos Disponíveis ({filteredVehicles.length})</h2>
+        <h2 className="text-xl font-semibold mb-4 text-foreground">Veículos ({filteredVehicles.length})</h2>
         {filteredVehicles.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredVehicles.map((vehicle, index) => (
@@ -243,13 +243,19 @@ export default function FleetPage() {
         <TabsContent value="fuel_logs">
           <Card>
             <CardHeader>
-              <CardTitle>Meus Registros de Combustível</CardTitle>
+              <CardTitle>Registros de Combustível</CardTitle>
               <CardDescription>
-                Gerencie os registros de abastecimento. Formulário para selecionar solicitação, registrar litros, tipo de combustível e foto do recibo a ser implementado aqui. Aba de histórico com linha do tempo de solicitações, checklists e registros de combustível também será implementada.
+                Gerencie os registros de abastecimento.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Lista de registros e formulário serão implementados aqui.</p>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">Uma lista/tabela com os registros de abastecimento será implementada aqui.</p>
+              <Link href="/fleet/fuel" passHref>
+                <Button variant="outline">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Adicionar Novo Registro
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </TabsContent>

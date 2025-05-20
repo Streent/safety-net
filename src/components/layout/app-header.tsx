@@ -47,6 +47,9 @@ function generateBreadcrumbs(pathname: string) {
         if (pathSegments.includes('checklist') && segment === 'checklist') {
             label = "Checklist";
         }
+        if (pathSegments.includes('fuel') && segment === 'fuel') {
+            label = "Registrar Abastecimento";
+        }
     }
     if (label === "Epis") {
         label = "EPIs";
@@ -58,7 +61,7 @@ function generateBreadcrumbs(pathname: string) {
         label = "Empresas";
          // Verifica se o segmento anterior foi "Empresas" e o atual parece um ID
         if (breadcrumbs.length > 0 && breadcrumbs[breadcrumbs.length -1].label === "Empresas" && segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)\d*/i)) {
-            label = `Detalhes ${segment}`; // Ou um texto mais genérico como "Detalhes da Empresa"
+            label = `Detalhes ${segment}`; 
         }
     }
     if (label === "Campanhas") label = "Campanhas";
@@ -74,11 +77,11 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Esocial") label = "eSocial"; 
     if (label === "Settings") label = "Configurações";
 
-    // Ajuste para IDs de outras entidades, se necessário
+    
     if (segment.match(/^(V|RPT|EPI|TRN|CAMP|PROG)\d+/i) && breadcrumbs.length > 1 && breadcrumbs[breadcrumbs.length-1].label !== "Empresas") {
       const prevLabel = breadcrumbs[breadcrumbs.length - 1].label;
       let singularPrevLabel = prevLabel;
-      if (prevLabel.endsWith('s') && prevLabel !== "Riscos" && prevLabel !== "EPIs" && prevLabel !== "eSocial") { // Evitar "Risco", "EPI", "eSocia"
+      if (prevLabel.endsWith('s') && prevLabel !== "Riscos" && prevLabel !== "EPIs" && prevLabel !== "eSocial") { 
         singularPrevLabel = prevLabel.slice(0, -1);
       }
        label = `Detalhes ${singularPrevLabel}`;
@@ -99,7 +102,18 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
   const { isMobile, toggleSidebar, open } = useSidebar(); 
 
   const currentRawTitle = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length -1].label : "Painel";
-  const displayTitle = isMobile ? (currentRawTitle.startsWith("Detalhes ") ? currentRawTitle.replace("Detalhes ", "") : currentRawTitle) : (pageTitle || currentRawTitle);
+  
+  let displayTitle = currentRawTitle;
+  if (isMobile) {
+    if (currentRawTitle.startsWith("Detalhes ") || currentRawTitle.startsWith("Registrar ")) {
+        displayTitle = currentRawTitle.split(" ").slice(1).join(" "); 
+        if(displayTitle.startsWith("Empresa") || displayTitle.startsWith("Veículo")) displayTitle = "Detalhes";
+    } else if (currentRawTitle === "Análise Preditiva") {
+        displayTitle = "Análise Pred.";
+    }
+  } else {
+    displayTitle = pageTitle || currentRawTitle;
+  }
 
 
   return (
@@ -149,7 +163,7 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
               </span>
             ))}
           </div>
-          {/* Título visível apenas no mobile */}
+          
           <h1 className="text-lg font-semibold md:hidden truncate max-w-[150px] xs:max-w-[200px]">{displayTitle}</h1>
         </div>
 
