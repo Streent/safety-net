@@ -1,7 +1,7 @@
 // src/app/(app)/fleet/checklist/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -99,6 +99,20 @@ export default function VehicleChecklistPage() {
   const [progress, setProgress] = useState(0);
   const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>(initialChecklistData[0]?.id);
 
+  const totalItems = checklistData.reduce((acc, section) => acc + section.items.length, 0);
+
+  const updateProgress = () => {
+    const checkedItemsCount = checklistData.reduce((acc, section) => 
+      acc + section.items.filter(item => item.checked).length, 0
+    );
+    setProgress(totalItems > 0 ? Math.round((checkedItemsCount / totalItems) * 100) : 0);
+  };
+  
+  // Call updateProgress once on mount to set initial progress if any items are pre-checked
+  useEffect(() => {
+    updateProgress();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const handleItemChange = (sectionId: string, itemId: string, field: 'checked' | 'observation', value: string | boolean) => {
     setChecklistData(prevData =>
@@ -113,15 +127,15 @@ export default function VehicleChecklistPage() {
           : section
       )
     );
-    updateProgress();
   };
 
-  const updateProgress = () => {
-    // Simple progress: percentage of sections with at least one item checked
-    const checkedSections = checklistData.filter(section => section.items.some(item => item.checked)).length;
-    setProgress(Math.round((checkedSections / checklistData.length) * 100));
-  };
-  
+  // Update progress whenever checklistData changes
+  useEffect(() => {
+    updateProgress();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checklistData]);
+
+
   const handleAccordionChange = (value: string | string[]) => {
     setActiveAccordionItem(typeof value === 'string' ? value : value[0]);
   };
@@ -148,6 +162,12 @@ export default function VehicleChecklistPage() {
     });
   };
 
+  const goToNextSection = (currentIndex: number) => {
+    if (currentIndex < checklistData.length - 1) {
+      setActiveAccordionItem(checklistData[currentIndex + 1]?.id);
+    }
+  };
+
   return (
     <>
       <PageHeader
@@ -171,7 +191,6 @@ export default function VehicleChecklistPage() {
         type="single" 
         collapsible 
         className="w-full space-y-2" 
-        defaultValue={initialChecklistData[0]?.id}
         value={activeAccordionItem}
         onValueChange={handleAccordionChange}
       >
@@ -219,12 +238,11 @@ export default function VehicleChecklistPage() {
                     )}
                   </div>
                 ))}
-                 {/* Botão para ir para próxima seção (se não for a última) */}
                 {sectionIndex < checklistData.length - 1 && (
                   <div className="flex justify-end mt-4">
                     <Button 
                       variant="secondary" 
-                      onClick={() => setActiveAccordionItem(checklistData[sectionIndex + 1]?.id)}
+                      onClick={() => goToNextSection(sectionIndex)}
                     >
                       Próxima Seção &rarr;
                     </Button>
@@ -252,5 +270,3 @@ export default function VehicleChecklistPage() {
     </>
   );
 }
-
-    
