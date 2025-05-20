@@ -12,13 +12,21 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, User, Briefcase, Package, Edit3, Check, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/common/page-header';
-import { mockEpis, type Epi } from '../page'; // Importando mockEpis e o tipo Epi
+import { mockEpis, type Epi } from '../page'; 
 import { Separator } from '@/components/ui/separator';
 
 // Schema de validação para o formulário de distribuição
@@ -28,28 +36,42 @@ const distributionFormSchema = z.object({
   epiId: z.string().min(1, { message: 'Por favor, selecione um EPI.' }),
   quantidadeEntregue: z.coerce.number().min(1, { message: 'A quantidade deve ser pelo menos 1.' }),
   dataEntrega: z.date({ required_error: 'A data da entrega é obrigatória.' }),
-  // assinaturaComprovante: z.any().optional(), // Para upload de foto ou dados da assinatura
 });
 
-// Adicionando refine para validação da quantidade com base no EPI selecionado
 const refinedDistributionFormSchema = (availableQuantity: number | undefined) =>
   distributionFormSchema.refine(
     (data) => {
-      if (availableQuantity === undefined) return true; // Se não há EPI selecionado, não validar ainda
+      if (availableQuantity === undefined) return true;
       return data.quantidadeEntregue <= availableQuantity;
     },
     {
-      message: 'A quantidade entregue não pode ser maior que a disponível.',
+      message: 'A quantidade entregue não pode ser maior que a disponível no estoque.',
       path: ['quantidadeEntregue'],
     }
   );
 
 type DistributionFormValues = z.infer<typeof distributionFormSchema>;
 
+interface DistributionRecord {
+  id: string;
+  colaboradorNome: string;
+  colaboradorCargo: string;
+  epiName: string;
+  epiId: string;
+  quantidadeEntregue: number;
+  dataEntrega: Date;
+}
+
 export default function DistribuicaoEpisPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEpi, setSelectedEpi] = useState<Epi | null>(null);
+  const [currentMockEpis, setCurrentMockEpis] = useState<Epi[]>(() => 
+    // Create a deep copy of mockEpis to avoid modifying the original imported array directly
+    // This allows local state changes within this page
+    JSON.parse(JSON.stringify(mockEpis))
+  );
+  const [distributionHistory, setDistributionHistory] = useState<DistributionRecord[]>([]);
 
   const form = useForm<DistributionFormValues>({
     resolver: zodResolver(refinedDistributionFormSchema(selectedEpi?.quantity)),
@@ -65,42 +87,68 @@ export default function DistribuicaoEpisPage() {
   useEffect(() => {
     const epiId = form.watch('epiId');
     if (epiId) {
-      const epiDetails = mockEpis.find(e => e.id === epiId);
+      const epiDetails = currentMockEpis.find(e => e.id === epiId);
       setSelectedEpi(epiDetails || null);
     } else {
       setSelectedEpi(null);
     }
-  }, [form.watch('epiId')]);
+  }, [form.watch('epiId'), currentMockEpis]);
 
   useEffect(() => {
-    // Revalida o formulário quando selectedEpi muda para atualizar a validação da quantidade
     form.trigger('quantidadeEntregue');
   }, [selectedEpi, form]);
 
-
   async function onSubmit(data: DistributionFormValues) {
-    setIsLoading(true);
-    console.log('Dados da Distribuição de EPI:', data);
-    // Aqui você simularia a chamada para o backend/Firestore
-    // e também a lógica para atualizar o estoque do EPI no inventário principal.
+    if (!selectedEpi) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Nenhum EPI selecionado.',
+      });
+      return;
+    }
 
+    setIsLoading(true);
+    
     // Simula um delay de API
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Atualizar a quantidade do EPI no estado local 'currentMockEpis'
+    setCurrentMockEpis(prevEpis =>
+      prevEpis.map(epi =>
+        epi.id === selectedEpi.id
+          ? { ...epi, quantity: epi.quantity - data.quantidadeEntregue }
+          : epi
+      )
+    );
+
+    // Adicionar ao histórico de distribuição local
+    const newDistributionRecord: DistributionRecord = {
+      id: `dist-${Date.now()}`,
+      colaboradorNome: data.colaboradorNome,
+      colaboradorCargo: data.colaboradorCargo,
+      epiName: selectedEpi.name,
+      epiId: selectedEpi.id,
+      quantidadeEntregue: data.quantidadeEntregue,
+      dataEntrega: data.dataEntrega,
+    };
+    setDistributionHistory(prevHistory => [newDistributionRecord, ...prevHistory]);
 
     toast({
       title: 'Entrega Registrada!',
-      description: `EPI "${selectedEpi?.name}" entregue para ${data.colaboradorNome}.`,
+      description: `${data.quantidadeEntregue} unidade(s) de "${selectedEpi?.name}" entregue(s) para ${data.colaboradorNome}.`,
       action: <Button variant="outline" size="sm"><Check className="mr-2 h-4 w-4" />OK</Button>,
     });
+    
     setIsLoading(false);
-    form.reset({ // Resetar para os valores padrão
+    form.reset({ 
       colaboradorNome: '',
       colaboradorCargo: '',
-      epiId: '',
+      epiId: '', // Resetar o EPI selecionado para forçar o usuário a re-selecionar
       quantidadeEntregue: 1,
       dataEntrega: new Date(),
     });
-    setSelectedEpi(null); // Limpar EPI selecionado
+    setSelectedEpi(null); // Limpar EPI selecionado visualmente
   }
 
   return (
@@ -162,14 +210,14 @@ export default function DistribuicaoEpisPage() {
                         <Package className="h-4 w-4 mr-2 text-muted-foreground"/>
                         EPI Entregue
                     </FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o EPI do inventário" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {mockEpis.map(epi => (
+                        {currentMockEpis.map(epi => (
                           <SelectItem key={epi.id} value={epi.id} disabled={epi.quantity <= 0}>
                             {epi.name} (Disponível: {epi.quantity})
                           </SelectItem>
@@ -273,7 +321,7 @@ export default function DistribuicaoEpisPage() {
               </FormItem>
 
               <div className="flex justify-end pt-4">
-                <Button type="submit" disabled={isLoading || !form.formState.isValid}>
+                <Button type="submit" disabled={isLoading || !form.formState.isValid || !selectedEpi}>
                   {isLoading ? (
                     <>
                       <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
@@ -293,17 +341,45 @@ export default function DistribuicaoEpisPage() {
 
       <Card className="w-full max-w-4xl mx-auto shadow-lg">
         <CardHeader>
-          <CardTitle>Histórico de Entregas de EPIs</CardTitle>
+          <CardTitle>Histórico de Entregas de EPIs (Sessão Atual)</CardTitle>
           <CardDescription>
-            Lista de todas as entregas de EPIs registradas. (Funcionalidade a ser implementada)
+            Lista das entregas de EPIs registradas nesta sessão.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="p-6 border rounded-lg bg-muted/30 text-center text-muted-foreground">
-            <p>O histórico de entregas, com filtros por colaborador, EPI ou período, e opções de exportação (Excel/PDF) será exibido aqui.</p>
-          </div>
+          {distributionHistory.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Colaborador</TableHead>
+                  <TableHead>Cargo</TableHead>
+                  <TableHead>EPI</TableHead>
+                  <TableHead className="text-center">Quantidade</TableHead>
+                  <TableHead>Data Entrega</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {distributionHistory.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell>{record.colaboradorNome}</TableCell>
+                    <TableCell>{record.colaboradorCargo}</TableCell>
+                    <TableCell>{record.epiName}</TableCell>
+                    <TableCell className="text-center">{record.quantidadeEntregue}</TableCell>
+                    <TableCell>{format(record.dataEntrega, 'dd/MM/yyyy HH:mm', { locale: ptBR })}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="p-6 border rounded-lg bg-muted/30 text-center text-muted-foreground">
+              <p>Nenhuma entrega registrada nesta sessão ainda.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </>
   );
 }
+
+
+    
