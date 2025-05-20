@@ -15,9 +15,9 @@ const navItems = [
 ];
 
 const NAVBAR_HEIGHT_PX = 64; // Corresponds to h-16 (4rem)
-const SCROLL_THRESHOLD = 20; 
-const INDICATOR_WIDTH = 56; // px, from .sc-nav-indicator CSS
-const GRADIENT_CIRCLE_RADIUS = 30; // px, effective radius of the "dip"
+const SCROLL_THRESHOLD = 20;
+const INDICATOR_WIDTH_PX = 56;
+const GRADIENT_CIRCLE_RADIUS_PX = 30;
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -27,104 +27,107 @@ export function BottomNav() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({ left: '0px', opacity: 0 });
   const [barBgStyle, setBarBgStyle] = useState<React.CSSProperties>({});
-  
+
   const bottomBarRef = useRef<HTMLElement>(null);
   const itemRefs = useRef<Array<HTMLAnchorElement | null>>([]);
 
   useEffect(() => {
-    // Initialize refs array size based on navItems length
     itemRefs.current = Array(navItems.length).fill(null);
-  }, []); // Runs once on mount
+  }, []);
 
   const updatePositions = useCallback(() => {
-    if (typeof window === 'undefined' || window.innerWidth >= 768) return; // Only run on mobile
+    if (typeof window === 'undefined' || !bottomBarRef.current) return;
+    // Only apply fancy animation on mobile where BottomNav is visible
+    if (window.innerWidth >= 768) { // md breakpoint
+      setIndicatorStyle({ opacity: 0 }); // Hide indicator
+      setBarBgStyle({ backgroundImage: 'none' }); // Remove dip effect
+      return;
+    }
 
     const currentItem = itemRefs.current[activeIndex];
-    if (currentItem && bottomBarRef.current) {
+    if (currentItem) {
       const itemOffsetLeft = currentItem.offsetLeft;
       const itemWidth = currentItem.offsetWidth;
+      const barWidth = bottomBarRef.current.offsetWidth;
 
       // Center indicator under the active item
-      const indicatorLeft = itemOffsetLeft + (itemWidth / 2) - (INDICATOR_WIDTH / 2);
+      let indicatorLeft = itemOffsetLeft + (itemWidth / 2) - (INDICATOR_WIDTH_PX / 2);
+      // Ensure indicator doesn't go out of bounds
+      indicatorLeft = Math.max(0, Math.min(indicatorLeft, barWidth - INDICATOR_WIDTH_PX));
+      
       setIndicatorStyle({ left: `${indicatorLeft}px`, opacity: 1 });
-      
-      // Calculate backgroundPosition for the radial gradient dip effect
+
       const itemCenterPointX = itemOffsetLeft + (itemWidth / 2);
-      const backgroundPositionX = itemCenterPointX - GRADIENT_CIRCLE_RADIUS;
-      
-      setBarBgStyle({ 
-        backgroundPosition: `${backgroundPositionX}px 0px`,
-        backgroundImage: `radial-gradient(circle at ${GRADIENT_CIRCLE_RADIUS}px ${GRADIENT_CIRCLE_RADIUS}px, transparent ${GRADIENT_CIRCLE_RADIUS -1}px, var(--bottom-nav-background-color) ${GRADIENT_CIRCLE_RADIUS}px)`
-      });
-    } else if (bottomBarRef.current) {
-      // Default bar style if no item is active or refs not ready (e.g., hide dip)
+      const backgroundPositionX = itemCenterPointX - GRADIENT_CIRCLE_RADIUS_PX;
+
       setBarBgStyle({
-        backgroundImage: 'none', // Or a plain background color
-        backgroundPosition: '0px 0px', 
+        backgroundPosition: `${backgroundPositionX}px 0px`,
+        backgroundImage: `radial-gradient(circle at ${GRADIENT_CIRCLE_RADIUS_PX}px ${GRADIENT_CIRCLE_RADIUS_PX}px, transparent ${GRADIENT_CIRCLE_RADIUS_PX - 1}px, var(--bottom-nav-background-color) ${GRADIENT_CIRCLE_RADIUS_PX}px)`
       });
-       setIndicatorStyle({opacity:0}); // Hide indicator
+    } else {
+      setIndicatorStyle({ opacity: 0 });
+      setBarBgStyle({ backgroundImage: 'none' });
     }
   }, [activeIndex]);
 
   useEffect(() => {
     const currentPath = pathname;
     let newActiveIndex = navItems.findIndex(navItem =>
-        currentPath === navItem.href || (navItem.href !== '/dashboard' && navItem.href !== '/' && currentPath.startsWith(navItem.href))
+      currentPath === navItem.href || (navItem.href !== '/dashboard' && navItem.href !== '/' && currentPath.startsWith(navItem.href))
     );
 
     if (newActiveIndex === -1 && (currentPath.startsWith('/dashboard') || currentPath === '/')) {
-        newActiveIndex = navItems.findIndex(navItem => navItem.href === '/dashboard');
+      newActiveIndex = navItems.findIndex(navItem => navItem.href === '/dashboard');
     }
-
+    
     if (newActiveIndex !== -1 && newActiveIndex !== activeIndex) {
       setActiveIndex(newActiveIndex);
     } else if (newActiveIndex === -1) {
-      // No active item found, perhaps set a default or handle this case
-      // For now, if no active item, positions might not update correctly for the "dip"
-      // We could set activeIndex to a value that causes the dip to hide, or a default.
+       setActiveIndex(-1); // No active item
     }
-  }, [pathname, activeIndex]); // Include activeIndex to re-evaluate if it externally changes
+  }, [pathname, activeIndex]);
 
   useEffect(() => {
-    // Initial position update and on activeIndex change
-    const timer = setTimeout(updatePositions, 50); // Delay to ensure DOM elements are measured
+    const timer = setTimeout(updatePositions, 50);
     return () => clearTimeout(timer);
   }, [activeIndex, updatePositions]);
-  
-  // Update positions on window resize
+
   useEffect(() => {
-    if (typeof window === 'undefined' || window.innerWidth >= 768) return () => {};
+    if (typeof window === 'undefined') return () => {};
 
     const handleResize = () => {
       updatePositions();
     };
     window.addEventListener('resize', handleResize);
+    // Initial call on mount for mobile
+    if (window.innerWidth < 768) {
+        updatePositions();
+    }
     return () => window.removeEventListener('resize', handleResize);
   }, [updatePositions]);
 
-
-  // Auto-hide on scroll logic
   useEffect(() => {
     const handleScroll = () => {
       if (typeof window === 'undefined') return;
-      if (window.innerWidth >= 768) { 
-        setIsVisible(true);
+      // Only apply scroll logic on mobile
+      if (window.innerWidth >= 768) { // md breakpoint
+        setIsVisible(true); // Keep it "logically" visible for desktop, md:hidden handles display
         return;
       }
 
       const currentScrollY = window.scrollY;
       const scrollDifference = currentScrollY - lastScrollY.current;
 
-      if (currentScrollY <= NAVBAR_HEIGHT_PX) {
+      if (currentScrollY <= NAVBAR_HEIGHT_PX / 2) { // Show if near top
         setIsVisible(true);
       } else if (scrollDifference > SCROLL_THRESHOLD) {
         setIsVisible(false);
-      } else if (scrollDifference < -SCROLL_THRESHOLD) {
+      } else if (scrollDifference < -SCROLL_THRESHOLD / 2) { // More sensitive to scroll up
         setIsVisible(true);
       }
-      
-      if (Math.abs(scrollDifference) > SCROLL_THRESHOLD || currentScrollY <= NAVBAR_HEIGHT_PX) {
-         lastScrollY.current = currentScrollY;
+
+      if (Math.abs(scrollDifference) > SCROLL_THRESHOLD / 2 || currentScrollY <= NAVBAR_HEIGHT_PX / 2) {
+        lastScrollY.current = currentScrollY;
       }
     };
 
@@ -140,16 +143,12 @@ export function BottomNav() {
     };
   }, []);
 
-  const handleItemClick = (index: number) => {
-    // setActiveIndex(index); // Pathname change will trigger activeIndex update via useEffect
-  };
-
   return (
     <nav
       ref={bottomBarRef}
       className={cn(
-        'app-bottom-nav sc-bottom-bar', 
-        'fixed inset-x-0 bottom-0 z-50 md:hidden overflow-visible', // Added overflow-visible
+        'app-bottom-nav sc-bottom-bar',
+        'fixed inset-x-0 bottom-0 z-50 md:hidden overflow-visible', // A classe md:hidden garante que só aparece no mobile
         'transition-transform duration-300 ease-in-out',
         isVisible ? 'translate-y-0' : 'translate-y-full'
       )}
@@ -162,22 +161,18 @@ export function BottomNav() {
           href={item.href}
           ref={(el) => itemRefs.current[index] = el}
           className={cn(
-            'sc-menu-item',
-            // 'active:scale-95', // This might interfere with the transform:translateY
+            'sc-menu-item active:scale-95 transition-transform duration-150 ease-in-out',
             activeIndex === index ? 'sc-current' : ''
           )}
-          onClick={() => handleItemClick(index)} // Click just sets active index for animation sync
           aria-current={activeIndex === index ? 'page' : undefined}
           tabIndex={isVisible ? 0 : -1}
           data-ai-hint={item.dataAiHint}
         >
-          <item.icon className="h-6 w-6" /> 
-          <span className="sc-menu-item-label">{item.label}</span>
+          <item.icon className="h-6 w-6" />
+          <span className="sc-menu-item-label sr-only">{item.label}</span>
         </Link>
       ))}
       <div className="sc-nav-indicator" style={indicatorStyle}></div>
     </nav>
   );
 }
-
-    
