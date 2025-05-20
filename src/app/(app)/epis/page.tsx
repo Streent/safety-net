@@ -33,7 +33,6 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -53,17 +52,17 @@ interface Epi {
   location: string;
   category?: string;
   caNumber?: string;
-  photoUrls?: string[]; // Para armazenar URLs das fotos futuramente
+  photoUrls?: string[];
 }
 
 type EpiStatus = 'OK' | 'Baixo Estoque' | 'Próximo Validade' | 'Expirado' | 'Crítico';
 
 const mockEpis: Epi[] = [
-  { id: 'EPI001', name: 'Máscara N95', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345' },
+  { id: 'EPI001', name: 'Máscara N95', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345', category: 'protecao_respiratoria' },
   { id: 'EPI002', name: 'Capacete de Segurança', quantity: 5, validity: addMonths(new Date(), 12), location: 'Estante B1', category: 'protecao_cabeca' },
-  { id: 'EPI003', name: 'Luvas de Proteção (par)', quantity: 20, validity: addMonths(new Date(), -1), location: 'Almoxarifado A' },
+  { id: 'EPI003', name: 'Luvas de Proteção (par)', quantity: 20, validity: addMonths(new Date(), -1), location: 'Almoxarifado A', category: 'protecao_maos' },
   { id: 'EPI004', name: 'Protetor Auricular', quantity: 30, validity: addMonths(new Date(), 1), location: 'Estante C3', caNumber: '67890', category: 'protecao_auditiva' },
-  { id: 'EPI005', name: 'Óculos de Segurança', quantity: 15, validity: addMonths(new Date(), 6), location: 'Almoxarifado B' },
+  { id: 'EPI005', name: 'Óculos de Segurança', quantity: 15, validity: addMonths(new Date(), 6), location: 'Almoxarifado B', category: 'protecao_visual' },
   { id: 'EPI006', name: 'Extintor ABC (2kg)', quantity: 2, validity: addMonths(new Date(), 0), location: 'Corredor Principal', category: 'combate_incendio' },
   { id: 'EPI007', name: 'Cinto de Segurança para Altura', quantity: 8, validity: addMonths(new Date(), 24), location: 'Sala de Equipamentos', caNumber: '11223', category: 'trabalho_altura' },
 ];
@@ -111,7 +110,7 @@ export default function EpisPage() {
         category: '',
         photos: undefined,
       });
-      setPhotoFiles([]); // Limpar arquivos de fotos ao fechar o modal
+      setPhotoFiles([]);
     }
   }, [isAddModalOpen, form]);
 
@@ -190,7 +189,6 @@ export default function EpisPage() {
 
   async function onFormSubmit(data: EpiFormValues) {
     setIsLoadingForm(true);
-    // Simular chamada de API
     await new Promise(resolve => setTimeout(resolve, 1000)); 
     console.log("Dados do EPI:", data);
     console.log("Arquivos de fotos selecionados:", photoFiles.map(f => f.name));
@@ -199,8 +197,7 @@ export default function EpisPage() {
     const newItem: Epi = {
       id: `EPI${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`,
       ...data,
-      // Futuramente, photoUrls seriam os URLs após o upload para o Firebase Storage
-      photoUrls: photoFiles.map(file => URL.createObjectURL(file)), // Placeholder para visualização local
+      photoUrls: photoFiles.map(file => URL.createObjectURL(file)), 
     };
     setEpis(prevEpis => [newItem, ...prevEpis]);
 
@@ -237,7 +234,7 @@ export default function EpisPage() {
       
       <div className="rounded-lg border shadow-sm bg-card">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[200px]">Nome do Item</TableHead>
@@ -324,9 +321,8 @@ export default function EpisPage() {
         </Button>
       </div>
 
-      {/* Modal para Adicionar Novo Item de EPI */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="w-full max-w-md p-4 sm:p-6 sm:max-w-lg">
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(onFormSubmit)}>
               <DialogHeader>
@@ -340,12 +336,12 @@ export default function EpisPage() {
                   control={form.control}
                   name="name"
                   render={({ field }) => (
-                    <FormItem className="grid grid-cols-4 items-center gap-4">
-                      <FormLabel className="text-right col-span-1">Nome</FormLabel>
-                      <FormControl className="col-span-3">
+                    <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-x-4 gap-y-2 sm:gap-y-4">
+                      <FormLabel className="sm:text-right sm:col-span-1">Nome</FormLabel>
+                      <FormControl className="sm:col-span-3">
                         <Input {...field} className={cn(form.formState.errors.name && "border-destructive")} />
                       </FormControl>
-                      <FormMessage className="col-start-2 col-span-3 text-xs" />
+                      <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -353,12 +349,12 @@ export default function EpisPage() {
                   control={form.control}
                   name="quantity"
                   render={({ field }) => (
-                    <FormItem className="grid grid-cols-4 items-center gap-4">
-                      <FormLabel className="text-right col-span-1">Quantidade</FormLabel>
-                      <FormControl className="col-span-3">
+                    <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-x-4 gap-y-2 sm:gap-y-4">
+                      <FormLabel className="sm:text-right sm:col-span-1">Quantidade</FormLabel>
+                      <FormControl className="sm:col-span-3">
                         <Input type="number" {...field} className={cn(form.formState.errors.quantity && "border-destructive")} />
                       </FormControl>
-                      <FormMessage className="col-start-2 col-span-3 text-xs" />
+                      <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -366,10 +362,10 @@ export default function EpisPage() {
                   control={form.control}
                   name="validity"
                   render={({ field }) => (
-                    <FormItem className="grid grid-cols-4 items-center gap-4">
-                      <FormLabel className="text-right col-span-1">Validade</FormLabel>
+                    <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-x-4 gap-y-2 sm:gap-y-4">
+                      <FormLabel className="sm:text-right sm:col-span-1">Validade</FormLabel>
                       <Popover>
-                        <PopoverTrigger asChild className="col-span-3">
+                        <PopoverTrigger asChild className="sm:col-span-3">
                           <FormControl>
                             <Button
                               variant={"outline"}
@@ -391,11 +387,11 @@ export default function EpisPage() {
                             onSelect={field.onChange}
                             initialFocus
                             locale={ptBR}
-                            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) } // Não permite datas passadas
+                            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) } 
                           />
                         </PopoverContent>
                       </Popover>
-                      <FormMessage className="col-start-2 col-span-3 text-xs" />
+                      <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -403,12 +399,12 @@ export default function EpisPage() {
                   control={form.control}
                   name="location"
                   render={({ field }) => (
-                    <FormItem className="grid grid-cols-4 items-center gap-4">
-                      <FormLabel className="text-right col-span-1">Localização</FormLabel>
-                      <FormControl className="col-span-3">
+                    <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-x-4 gap-y-2 sm:gap-y-4">
+                      <FormLabel className="sm:text-right sm:col-span-1">Localização</FormLabel>
+                      <FormControl className="sm:col-span-3">
                         <Input {...field} className={cn(form.formState.errors.location && "border-destructive")} />
                       </FormControl>
-                      <FormMessage className="col-start-2 col-span-3 text-xs" />
+                      <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -416,11 +412,12 @@ export default function EpisPage() {
                   control={form.control}
                   name="caNumber"
                   render={({ field }) => (
-                    <FormItem className="grid grid-cols-4 items-center gap-4">
-                      <FormLabel className="text-right col-span-1">Nº do C.A.</FormLabel>
-                      <FormControl className="col-span-3">
+                    <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-x-4 gap-y-2 sm:gap-y-4">
+                      <FormLabel className="sm:text-right sm:col-span-1">Nº do C.A.</FormLabel>
+                      <FormControl className="sm:col-span-3">
                         <Input {...field} placeholder="Opcional" />
                       </FormControl>
+                       <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -428,10 +425,10 @@ export default function EpisPage() {
                   control={form.control}
                   name="category"
                   render={({ field }) => (
-                    <FormItem className="grid grid-cols-4 items-center gap-4">
-                      <FormLabel className="text-right col-span-1">Categoria</FormLabel>
+                    <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-x-4 gap-y-2 sm:gap-y-4">
+                      <FormLabel className="sm:text-right sm:col-span-1">Categoria</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl className="col-span-3">
+                        <FormControl className="sm:col-span-3">
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione (Opcional)" />
                           </SelectTrigger>
@@ -449,6 +446,7 @@ export default function EpisPage() {
                           <SelectItem value="outros">Outros</SelectItem>
                         </SelectContent>
                       </Select>
+                       <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -456,19 +454,19 @@ export default function EpisPage() {
                   control={form.control}
                   name="photos"
                   render={({ field }) => (
-                    <FormItem className="grid grid-cols-4 items-start gap-4">
-                      <FormLabel className="text-right col-span-1 pt-2">
+                    <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start gap-x-4 gap-y-2 sm:gap-y-4">
+                      <FormLabel className="sm:text-right sm:col-span-1 pt-2">
                         <CloudUpload className="inline h-4 w-4 mr-1.5" /> Fotos
                       </FormLabel>
-                      <div className="col-span-3">
+                      <div className="sm:col-span-3">
                         <FormControl>
                           <Input 
                             type="file" 
                             multiple 
                             accept="image/*"
                             onChange={(e) => {
-                              field.onChange(e.target.files); // Para react-hook-form
-                              handlePhotoChange(e); // Para nosso estado local de arquivos
+                              field.onChange(e.target.files); 
+                              handlePhotoChange(e); 
                             }}
                             className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                           />
@@ -485,6 +483,7 @@ export default function EpisPage() {
                            <ImageIcon className="h-3 w-3 mr-1.5"/>
                            Anexe uma ou mais fotos do EPI (opcional).
                          </UiFormDescription>
+                         <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                       </div>
                     </FormItem>
                   )}
@@ -515,3 +514,4 @@ export default function EpisPage() {
   );
 }
 
+    
