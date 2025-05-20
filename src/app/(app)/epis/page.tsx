@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { Button } from '@/components/ui/button';
@@ -20,9 +20,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PlusCircle, Archive, AlertCircle, CalendarClock, Edit2, MoreHorizontal, Eye, Loader2, Check, Calendar as CalendarIconLucide, CloudUpload, ImageIcon } from 'lucide-react';
+import { PlusCircle, Archive, AlertCircle, CalendarClock, Edit2, MoreHorizontal, Eye, Loader2, Check, Calendar as CalendarIconLucide, CloudUpload, ImageIcon, Filter as FilterIcon, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, addMonths, differenceInDays, isValid } from 'date-fns';
+import { format, addMonths, differenceInDays, isValid, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Dialog,
@@ -42,6 +42,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as UiFormDescription } from "@/components/ui/form";
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 
 interface Epi {
@@ -53,28 +54,33 @@ interface Epi {
   category?: string;
   caNumber?: string;
   photoUrls?: string[];
+  minimumStock?: number;
+  responsible?: string;
 }
 
-type EpiStatus = 'OK' | 'Baixo Estoque' | 'Próximo Validade' | 'Expirado' | 'Crítico';
+type EpiStatus = 'OK' | 'Baixo Estoque' | 'Próximo Validade' | 'Validade Crítica' | 'Expirado';
 
 const mockEpis: Epi[] = [
-  { id: 'EPI001', name: 'Máscara N95', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345', category: 'protecao_respiratoria' },
-  { id: 'EPI002', name: 'Capacete de Segurança', quantity: 5, validity: addMonths(new Date(), 12), location: 'Estante B1', category: 'protecao_cabeca' },
-  { id: 'EPI003', name: 'Luvas de Proteção (par)', quantity: 20, validity: addMonths(new Date(), -1), location: 'Almoxarifado A', category: 'protecao_maos' },
-  { id: 'EPI004', name: 'Protetor Auricular', quantity: 30, validity: addMonths(new Date(), 1), location: 'Estante C3', caNumber: '67890', category: 'protecao_auditiva' },
-  { id: 'EPI005', name: 'Óculos de Segurança', quantity: 15, validity: addMonths(new Date(), 6), location: 'Almoxarifado B', category: 'protecao_visual' },
-  { id: 'EPI006', name: 'Extintor ABC (2kg)', quantity: 2, validity: addMonths(new Date(), 0), location: 'Corredor Principal', category: 'combate_incendio' },
-  { id: 'EPI007', name: 'Cinto de Segurança para Altura', quantity: 8, validity: addMonths(new Date(), 24), location: 'Sala de Equipamentos', caNumber: '11223', category: 'trabalho_altura' },
+  { id: 'EPI001', name: 'Máscara N95 (PFF2)', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345', category: 'protecao_respiratoria', minimumStock: 10 },
+  { id: 'EPI002', name: 'Capacete de Segurança Amarelo', quantity: 5, validity: addMonths(new Date(), 12), location: 'Estante B1', category: 'protecao_cabeca', minimumStock: 3 },
+  { id: 'EPI003', name: 'Luvas de Proteção (par) Tamanho M', quantity: 20, validity: addMonths(new Date(), -1), location: 'Almoxarifado A', category: 'protecao_maos', minimumStock: 10 },
+  { id: 'EPI004', name: 'Protetor Auricular Plug Silicone', quantity: 30, validity: addMonths(new Date(), 0.5), location: 'Estante C3', caNumber: '67890', category: 'protecao_auditiva', minimumStock: 20 }, // 0.5 months = ~15 days
+  { id: 'EPI005', name: 'Óculos de Segurança Incolor', quantity: 15, validity: addMonths(new Date(), 6), location: 'Almoxarifado B', category: 'protecao_visual', minimumStock: 5 },
+  { id: 'EPI006', name: 'Extintor ABC (2kg) - Corredor', quantity: 2, validity: addMonths(new Date(), 0), location: 'Corredor Principal', category: 'combate_incendio', minimumStock: 1 }, // 0 months = hoje
+  { id: 'EPI007', name: 'Cinto de Segurança para Altura Completo', quantity: 8, validity: addMonths(new Date(), 24), location: 'Sala de Equipamentos', caNumber: '11223', category: 'trabalho_altura', minimumStock: 2 },
+  { id: 'EPI008', name: 'Botina de Segurança com Bico de Aço Tam 42', quantity: 3, validity: addMonths(new Date(), 1), location: 'Vestiário Obra X', category: 'protecao_pes', minimumStock: 5 }, // 1 month
 ];
 
 const epiFormSchema = z.object({
   name: z.string().min(3, { message: 'O nome do item deve ter pelo menos 3 caracteres.' }),
-  quantity: z.coerce.number().min(1, { message: 'A quantidade deve ser pelo menos 1.' }),
+  quantity: z.coerce.number().min(0, { message: 'A quantidade deve ser 0 ou mais.' }), // Permitir 0 para registrar item sem estoque inicial
   validity: z.date({ required_error: 'A data de validade é obrigatória.' }),
   location: z.string().min(1, { message: 'A localização é obrigatória.' }),
   caNumber: z.string().optional(),
   category: z.string().optional(),
   photos: z.any().optional().describe('Arquivos de fotos do EPI'),
+  minimumStock: z.coerce.number().min(0, { message: 'O estoque mínimo deve ser 0 ou mais.' }).optional(),
+  responsible: z.string().optional(),
 });
 
 type EpiFormValues = z.infer<typeof epiFormSchema>;
@@ -86,6 +92,11 @@ export default function EpisPage() {
   const [isLoadingForm, setIsLoadingForm] = useState(false);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
 
+  // Estados para filtros
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Todos');
+  const [locationFilter, setLocationFilter] = useState('');
+
 
   const form = useForm<EpiFormValues>({
     resolver: zodResolver(epiFormSchema),
@@ -96,6 +107,8 @@ export default function EpisPage() {
       caNumber: '',
       category: '',
       photos: undefined,
+      minimumStock: 0,
+      responsible: '',
     },
   });
 
@@ -109,33 +122,60 @@ export default function EpisPage() {
         caNumber: '',
         category: '',
         photos: undefined,
+        minimumStock: 0,
+        responsible: '',
       });
       setPhotoFiles([]);
     }
   }, [isAddModalOpen, form]);
 
 
-  const getValidityStatus = (validityDate: Date, quantity: number): { status: EpiStatus; daysRemaining: number | null } => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); 
-    
-    const validDate = new Date(validityDate);
-    validDate.setHours(0,0,0,0);
-
+  const getValidityStatus = (validityDate: Date, quantity: number, minimumStock?: number): { status: EpiStatus; daysRemaining: number | null; isLowStock: boolean } => {
+    const today = startOfDay(new Date());
+    const validDate = startOfDay(new Date(validityDate));
     const daysRemaining = differenceInDays(validDate, today);
+    const minStock = minimumStock || 0;
+    const isLowStock = quantity <= minStock;
 
-    if (daysRemaining < 0) return { status: 'Expirado', daysRemaining };
-    if (daysRemaining <= 30) return { status: 'Próximo Validade', daysRemaining };
-    if (quantity <= 5) return { status: 'Baixo Estoque', daysRemaining }; 
-    return { status: 'OK', daysRemaining };
+    let status: EpiStatus;
+
+    if (daysRemaining < 0) {
+      status = 'Expirado';
+    } else if (daysRemaining < 15) { // 0-14 dias
+      status = 'Validade Crítica';
+    } else if (daysRemaining <= 30) { // 15-30 dias
+      status = 'Próximo Validade';
+    } else if (isLowStock) { // Apenas se não for crítico por validade
+      status = 'Baixo Estoque';
+    } else {
+      status = 'OK';
+    }
+    
+    // Se está Expirado ou em Validade Crítica, esse status tem precedência sobre Baixo Estoque na determinação primária.
+    // A flag isLowStock pode ser usada para exibir um alerta adicional se necessário.
+    if ((status === 'Expirado' || status === 'Validade Crítica' || status === 'Próximo Validade') && isLowStock) {
+        // O status primário continua sendo o de validade, mas sabemos que também está baixo.
+        // Para fins de cor do badge, a validade é mais crítica.
+    } else if (isLowStock && status === 'OK') { // Se está OK na validade, mas baixo estoque
+        status = 'Baixo Estoque';
+    }
+
+
+    return { status, daysRemaining, isLowStock };
   };
 
   const totalItems = epis.reduce((sum, item) => sum + item.quantity, 0);
-  const lowStockItems = epis.filter(item => item.quantity <= 5).length;
-  const expiringSoonItems = epis.filter(item => {
-    const { status } = getValidityStatus(item.validity, item.quantity);
-    return status === 'Próximo Validade' || status === 'Expirado';
+  
+  const lowStockItemsCount = epis.filter(item => {
+    const { isLowStock, status } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
+    return isLowStock && status !== 'Expirado'; // Conta como baixo estoque se não estiver expirado
   }).length;
+
+  const criticalValidityItemsCount = epis.filter(item => {
+    const { status } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
+    return status === 'Próximo Validade' || status === 'Validade Crítica' || status === 'Expirado';
+  }).length;
+
 
   const getStatusBadgeClass = (status: EpiStatus) => {
     switch (status) {
@@ -143,12 +183,12 @@ export default function EpisPage() {
         return 'bg-green-500/20 text-green-700 border-green-500/30';
       case 'Baixo Estoque':
         return 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30';
-      case 'Próximo Validade':
-        return 'bg-orange-500/20 text-orange-700 border-orange-500/30';
+      case 'Próximo Validade': // 15-30 dias
+        return 'bg-amber-500/20 text-amber-700 border-amber-500/30'; // Amarelo mais forte
+      case 'Validade Crítica': // 0-14 dias
+        return 'bg-orange-500/20 text-orange-700 border-orange-500/30'; // Laranja
       case 'Expirado':
         return 'bg-red-500/20 text-red-700 border-red-500/30';
-      case 'Crítico':
-        return 'bg-red-700 text-white border-red-900';
       default:
         return 'bg-gray-500/20 text-gray-700 border-gray-500/30';
     }
@@ -157,6 +197,7 @@ export default function EpisPage() {
   const getStatusText = (status: EpiStatus) => {
      switch (status) {
       case 'Próximo Validade': return 'Próx. Validade';
+      case 'Validade Crítica': return 'Val. Crítica';
       default: return status;
     }
   }
@@ -189,6 +230,7 @@ export default function EpisPage() {
 
   async function onFormSubmit(data: EpiFormValues) {
     setIsLoadingForm(true);
+    // Simula chamada de API
     await new Promise(resolve => setTimeout(resolve, 1000)); 
     console.log("Dados do EPI:", data);
     console.log("Arquivos de fotos selecionados:", photoFiles.map(f => f.name));
@@ -197,7 +239,8 @@ export default function EpisPage() {
     const newItem: Epi = {
       id: `EPI${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`,
       ...data,
-      photoUrls: photoFiles.map(file => URL.createObjectURL(file)), 
+      minimumStock: data.minimumStock || 0, // Garantir que seja um número
+      photoUrls: photoFiles.map(file => URL.createObjectURL(file)), // Para demonstração, não persistente
     };
     setEpis(prevEpis => [newItem, ...prevEpis]);
 
@@ -208,6 +251,17 @@ export default function EpisPage() {
     setIsLoadingForm(false);
     setIsAddModalOpen(false);
   }
+
+  const filteredEpis = useMemo(() => {
+    return epis.filter(item => {
+      const { status } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
+      const nameMatch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const statusMatch = statusFilter === 'Todos' || status === statusFilter;
+      const locationMatch = item.location.toLowerCase().includes(locationFilter.toLowerCase());
+      return nameMatch && statusMatch && locationMatch;
+    });
+  }, [epis, searchTerm, statusFilter, locationFilter]);
+
 
   return (
     <>
@@ -224,13 +278,61 @@ export default function EpisPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
         <StatCard title="Total de Itens em Estoque" value={totalItems} iconName="Archive" iconColor="text-blue-500" />
-        <StatCard title="Itens com Baixo Estoque" value={lowStockItems} iconName="AlertCircle" iconColor="text-yellow-500" subtitle={`${lowStockItems} tipo(s) abaixo do mínimo`} />
-        <StatCard title="Validade Crítica (Próx./Expirados)" value={expiringSoonItems} iconName="CalendarClock" iconColor="text-red-500" subtitle={`${expiringSoonItems} tipo(s) requerem atenção`} />
+        <StatCard title="Itens com Baixo Estoque" value={lowStockItemsCount} iconName="AlertCircle" iconColor="text-yellow-500" subtitle={`${lowStockItemsCount} item(ns) abaixo do mínimo`} />
+        <StatCard title="Validade Preocupante" value={criticalValidityItemsCount} iconName="CalendarClock" iconColor="text-red-500" subtitle={`${criticalValidityItemsCount} item(ns) requerem atenção`} />
       </div>
 
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-foreground">Lista de EPIs</h2>
-      </div>
+      <Card className="mb-6 shadow">
+        <CardHeader>
+            <div className="flex items-center">
+                <FilterIcon className="h-5 w-5 mr-2 text-primary"/>
+                <h3 className="text-lg font-semibold">Filtros do Inventário</h3>
+            </div>
+        </CardHeader>
+        <CardContent className="space-y-4 md:space-y-0 md:grid md:grid-cols-3 md:gap-4">
+            <div>
+                <Label htmlFor="searchTerm" className="text-sm font-medium">Buscar por Nome</Label>
+                <div className="relative mt-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        id="searchTerm"
+                        placeholder="Digite o nome do EPI..."
+                        className="pl-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        data-ai-hint="nome do EPI"
+                    />
+                </div>
+            </div>
+            <div>
+                <Label htmlFor="statusFilter" className="text-sm font-medium">Filtrar por Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger id="statusFilter" className="mt-1">
+                        <SelectValue placeholder="Selecione um status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="Todos">Todos os Status</SelectItem>
+                        <SelectItem value="OK">OK</SelectItem>
+                        <SelectItem value="Baixo Estoque">Baixo Estoque</SelectItem>
+                        <SelectItem value="Próximo Validade">Próximo Validade</SelectItem>
+                        <SelectItem value="Validade Crítica">Validade Crítica</SelectItem>
+                        <SelectItem value="Expirado">Expirado</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <div>
+                <Label htmlFor="locationFilter" className="text-sm font-medium">Filtrar por Localização</Label>
+                 <Input 
+                    id="locationFilter"
+                    placeholder="Digite a localização..."
+                    className="mt-1"
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                    data-ai-hint="localização do EPI"
+                />
+            </div>
+        </CardContent>
+      </Card>
       
       <div className="rounded-lg border shadow-sm bg-card">
         <div className="overflow-x-auto">
@@ -239,20 +341,22 @@ export default function EpisPage() {
               <TableRow>
                 <TableHead className="min-w-[200px]">Nome do Item</TableHead>
                 <TableHead className="text-center min-w-[100px]">Quantidade</TableHead>
-                <TableHead className="min-w-[120px]">Validade</TableHead>
+                <TableHead className="min-w-[150px]">Validade</TableHead>
                 <TableHead className="min-w-[150px]">Localização</TableHead>
                 <TableHead className="text-center min-w-[120px]">Status</TableHead>
                 <TableHead className="text-right min-w-[100px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {epis.length > 0 ? epis.map((item) => {
-                const { status, daysRemaining } = getValidityStatus(item.validity, item.quantity);
+              {filteredEpis.length > 0 ? filteredEpis.map((item) => {
+                const { status, daysRemaining } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
                 let validityText = format(item.validity, 'dd/MM/yyyy', { locale: ptBR });
                 if (status === 'Próximo Validade' && daysRemaining !== null) {
                   validityText += ` (${daysRemaining}d)`;
+                } else if (status === 'Validade Crítica' && daysRemaining !== null) {
+                   validityText += ` (${daysRemaining}d)`;
                 } else if (status === 'Expirado') {
-                  validityText = `Expirado`;
+                  validityText = `Expirado em ${format(item.validity, 'dd/MM/yyyy', { locale: ptBR })}`;
                 }
 
                 return (
@@ -262,7 +366,8 @@ export default function EpisPage() {
                     <TableCell
                       className={cn(
                         status === 'Expirado' && 'text-red-600 font-semibold',
-                        status === 'Próximo Validade' && 'text-orange-600 font-medium'
+                        (status === 'Validade Crítica') && 'text-orange-600 font-medium',
+                        (status === 'Próximo Validade') && 'text-amber-600 font-medium'
                       )}
                     >
                       {validityText}
@@ -304,7 +409,7 @@ export default function EpisPage() {
               }) : (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    Nenhum EPI cadastrado. Comece adicionando um novo item.
+                    Nenhum EPI encontrado com os filtros atuais.
                   </TableCell>
                 </TableRow>
               )}
@@ -313,10 +418,10 @@ export default function EpisPage() {
         </div>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
-        <Button variant="outline" size="sm" disabled={epis.length === 0}>
+        <Button variant="outline" size="sm" disabled={filteredEpis.length === 0}>
           Anterior
         </Button>
-        <Button variant="outline" size="sm" disabled={epis.length === 0}>
+        <Button variant="outline" size="sm" disabled={filteredEpis.length === 0}>
           Próximo
         </Button>
       </div>
@@ -358,6 +463,19 @@ export default function EpisPage() {
                     </FormItem>
                   )}
                 />
+                 <FormField
+                  control={form.control}
+                  name="minimumStock"
+                  render={({ field }) => (
+                    <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-x-4 gap-y-2 sm:gap-y-4">
+                      <FormLabel className="sm:text-right sm:col-span-1">Estoque Mínimo</FormLabel>
+                      <FormControl className="sm:col-span-3">
+                        <Input type="number" {...field} placeholder="Opcional" className={cn(form.formState.errors.minimumStock && "border-destructive")} />
+                      </FormControl>
+                      <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="validity"
@@ -387,7 +505,7 @@ export default function EpisPage() {
                             onSelect={field.onChange}
                             initialFocus
                             locale={ptBR}
-                            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) } 
+                            disabled={(date) => date < startOfDay(new Date()) } // Não permitir datas passadas
                           />
                         </PopoverContent>
                       </Popover>
@@ -405,6 +523,19 @@ export default function EpisPage() {
                         <Input {...field} className={cn(form.formState.errors.location && "border-destructive")} />
                       </FormControl>
                       <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="responsible"
+                  render={({ field }) => (
+                    <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-x-4 gap-y-2 sm:gap-y-4">
+                      <FormLabel className="sm:text-right sm:col-span-1">Responsável</FormLabel>
+                      <FormControl className="sm:col-span-3">
+                        <Input {...field} placeholder="Opcional" />
+                      </FormControl>
+                       <FormMessage className="text-xs sm:col-start-2 sm:col-span-3" />
                     </FormItem>
                   )}
                 />
@@ -453,7 +584,7 @@ export default function EpisPage() {
                 <FormField
                   control={form.control}
                   name="photos"
-                  render={({ field }) => (
+                  render={({ field }) => ( // field.onChange é importante aqui para react-hook-form
                     <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start gap-x-4 gap-y-2 sm:gap-y-4">
                       <FormLabel className="sm:text-right sm:col-span-1 pt-2">
                         <CloudUpload className="inline h-4 w-4 mr-1.5" /> Fotos
@@ -465,8 +596,8 @@ export default function EpisPage() {
                             multiple 
                             accept="image/*"
                             onChange={(e) => {
-                              field.onChange(e.target.files); 
-                              handlePhotoChange(e); 
+                              field.onChange(e.target.files); // Atualiza o valor do react-hook-form
+                              handlePhotoChange(e); // Atualiza o estado local para preview
                             }}
                             className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                           />
@@ -513,5 +644,3 @@ export default function EpisPage() {
     </>
   );
 }
-
-    
