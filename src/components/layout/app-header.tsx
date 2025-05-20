@@ -1,3 +1,4 @@
+
 // src/components/layout/app-header.tsx
 'use client';
 import Link from 'next/link';
@@ -28,40 +29,35 @@ interface AppHeaderProps {
 
 function generateBreadcrumbs(pathname: string) {
   const pathSegments = pathname.split('/').filter(segment => segment);
-  const breadcrumbs = [{ href: '/', label: 'Início' }]; 
+  const breadcrumbs = [{ href: '/dashboard', label: 'Início' }]; // Always start with Dashboard as "Início"
 
   let currentPath = '';
   pathSegments.forEach(segment => {
     currentPath += `/${segment}`;
     let label = segment.charAt(0).toUpperCase() + segment.slice(1);
-    // Traduções e ajustes de rótulo
-    if (label === "Dashboard") label = "Painel";
+    
+    // Specific translations and adjustments
+    if (label === "Dashboard" && breadcrumbs.length === 1) { // If it's the actual dashboard page
+        breadcrumbs[0].label = "Painel"; // Change "Início" to "Painel"
+        return; // Don't add "Dashboard" as a separate breadcrumb if it's the root
+    }
     if (label === "Predictive-analysis") label = "Análise Preditiva";
-    if (label === "Reports") label = "Relatórios";
+    if (label === "Reports") label = "Relatórios"; // No longer a page, but keep for potential future
     if (label === "Trainings") label = "Treinamentos";
     if (label === "Fleet") {
         label = "Frota";
-        if (pathSegments.includes('request') && segment === 'request') {
-            label = "Solicitar Veículo";
-        }
-        if (pathSegments.includes('checklist') && segment === 'checklist') {
-            label = "Checklist";
-        }
-        if (pathSegments.includes('fuel') && segment === 'fuel') {
-            label = "Registrar Abastecimento";
-        }
+        if (pathSegments.includes('request') && segment === 'request') label = "Solicitar Veículo";
+        if (pathSegments.includes('checklist') && segment === 'checklist') label = "Checklist";
+        if (pathSegments.includes('fuel') && segment === 'fuel') label = "Registrar Abastecimento";
     }
     if (label === "Epis") {
         label = "EPIs";
-        if (pathSegments.includes('distribuicao') && segment === 'distribuicao') {
-            label = "Distribuição";
-        }
+        if (pathSegments.includes('distribuicao') && segment === 'distribuicao') label = "Distribuição";
     }
     if (label === "Empresas") {
         label = "Empresas";
-         // Verifica se o segmento anterior foi "Empresas" e o atual parece um ID
-        if (breadcrumbs.length > 0 && breadcrumbs[breadcrumbs.length -1].label === "Empresas" && segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)\d*/i)) {
-            label = `Detalhes ${segment}`; 
+        if (breadcrumbs.length > 0 && breadcrumbs[breadcrumbs.length -1].label === "Empresas" && segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)\d*/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/))) { // Generic ID check
+            label = `Detalhes`; 
         }
     }
     if (label === "Campanhas") label = "Campanhas";
@@ -76,17 +72,14 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Iot") label = "IOT"; 
     if (label === "Esocial") label = "eSocial"; 
     if (label === "Settings") label = "Configurações";
-
     
+    // Avoid adding generic ID segments if previous segment was specific enough
     if (segment.match(/^(V|RPT|EPI|TRN|CAMP|PROG)\d+/i) && breadcrumbs.length > 1 && breadcrumbs[breadcrumbs.length-1].label !== "Empresas") {
-      const prevLabel = breadcrumbs[breadcrumbs.length - 1].label;
-      let singularPrevLabel = prevLabel;
-      if (prevLabel.endsWith('s') && prevLabel !== "Riscos" && prevLabel !== "EPIs" && prevLabel !== "eSocial") { 
-        singularPrevLabel = prevLabel.slice(0, -1);
-      }
-       label = `Detalhes ${singularPrevLabel}`;
+        // If it's an ID after a known module, we probably don't need a separate breadcrumb for the ID itself
+        // The detail page title will handle specificity.
+        return; 
     }
-    if (segment === "new") label = "Novo";
+    if (segment === "new") label = "Novo"; // This might be obsolete if forms are modals
 
 
     breadcrumbs.push({ href: currentPath, label });
@@ -101,18 +94,20 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
   const breadcrumbs = generateBreadcrumbs(pathname);
   const { isMobile, toggleSidebar, open } = useSidebar(); 
 
-  const currentRawTitle = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length -1].label : "Painel";
-  
-  let displayTitle = currentRawTitle;
-  if (isMobile) {
-    if (currentRawTitle.startsWith("Detalhes ") || currentRawTitle.startsWith("Registrar ")) {
-        displayTitle = currentRawTitle.split(" ").slice(1).join(" "); 
-        if(displayTitle.startsWith("Empresa") || displayTitle.startsWith("Veículo")) displayTitle = "Detalhes";
-    } else if (currentRawTitle === "Análise Preditiva") {
-        displayTitle = "Análise Pred.";
+  // Determine the title for mobile view
+  let mobileDisplayTitle = "Painel"; // Default
+  if (breadcrumbs.length > 1) {
+    const lastCrumb = breadcrumbs[breadcrumbs.length - 1];
+    mobileDisplayTitle = lastCrumb.label;
+    if (lastCrumb.label.startsWith("Detalhes") && breadcrumbs.length > 2) {
+        mobileDisplayTitle = breadcrumbs[breadcrumbs.length - 2].label; // Show parent page name
+    } else if (lastCrumb.label === "Solicitar Veículo" || lastCrumb.label === "Registrar Abastecimento" || lastCrumb.label === "Distribuição") {
+        mobileDisplayTitle = lastCrumb.label.split(" ")[0]; // e.g. "Solicitar"
+    } else if (mobileDisplayTitle === "Análise Preditiva") {
+        mobileDisplayTitle = "Análise Pred.";
     }
-  } else {
-    displayTitle = pageTitle || currentRawTitle;
+  } else if (pathname === "/dashboard") {
+    mobileDisplayTitle = "Painel";
   }
 
 
@@ -144,12 +139,13 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
               <span key={crumb.href} className="flex items-center">
                 {index > 0 && <ChevronLeft className="h-4 w-4 rotate-180 mx-1 text-muted-foreground/70" />}
                 
-                {index === 0 && index < breadcrumbs.length -1 && pathname !== '/dashboard' && (
+                {index === 0 && (pathname === '/dashboard' || breadcrumbs.length === 1) ? (
+                   <Home className="h-4 w-4 text-foreground"/>
+                ) : index === 0 ? (
                    <Link href={'/dashboard'} className="hover:text-foreground transition-colors" aria-label="Início">
                      <Home className="h-4 w-4" />
                    </Link>
-                )}
-                {index === 0 && (pathname === '/dashboard' || breadcrumbs.length === 1) && <Home className="h-4 w-4 text-foreground"/>}
+                ) : null}
 
                 {index > 0 && (
                   <Link 
@@ -164,7 +160,7 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
             ))}
           </div>
           
-          <h1 className="text-lg font-semibold md:hidden truncate max-w-[150px] xs:max-w-[200px]">{displayTitle}</h1>
+          <h1 className="text-lg font-semibold md:hidden truncate max-w-[150px] xs:max-w-[200px]">{mobileDisplayTitle}</h1>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
@@ -224,5 +220,3 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
     </header>
   );
 }
-
-    
