@@ -114,7 +114,7 @@ export function OverviewCharts() {
         </Popover>
         <Select>
           <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Filtrar por..." /> {/* i18n: charts.filterPlaceholder */}
+            <SelectValue placeholder="Filtrar por Técnico" /> {/* i18n: charts.filterPlaceholder */}
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os Técnicos</SelectItem> {/* i18n: charts.filterAllTechnicians */}
@@ -137,7 +137,7 @@ export function OverviewCharts() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={barChartConfig} className="h-[300px] w-full">
-              <RechartsBarChartComponent data={barChartData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+              <RechartsBarChartComponent data={barChartData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }} animationDuration={500}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
                 <YAxis tickLine={false} tickMargin={10} axisLine={false} />
@@ -146,8 +146,8 @@ export function OverviewCharts() {
                   content={<ChartTooltipContent />} 
                 />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="tecnicoA" fill="var(--color-tecnicoA)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="tecnicoB" fill="var(--color-tecnicoB)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="tecnicoA" fill="var(--color-tecnicoA)" radius={[4, 4, 0, 0]} animationDuration={500} />
+                <Bar dataKey="tecnicoB" fill="var(--color-tecnicoB)" radius={[4, 4, 0, 0]} animationDuration={500} />
               </RechartsBarChartComponent>
             </ChartContainer>
           </CardContent>
@@ -165,12 +165,12 @@ export function OverviewCharts() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={pieChartConfig} className="h-[300px] w-full aspect-square">
-               <RechartsPieChartComponent>
+               <RechartsPieChartComponent animationDuration={500}>
                 <ChartTooltip 
                   cursor={{fill: 'hsl(var(--muted))'}} 
                   content={<ChartTooltipContent hideLabel nameKey="name"/>} 
                 />
-                <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label >
+                <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label animationDuration={500} >
                    {pieChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
