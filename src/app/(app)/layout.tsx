@@ -9,9 +9,9 @@ import { BottomNav } from '@/components/layout/bottom-nav';
 import { useAuth } from '@/hooks/use-auth';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
-import { FloatingChatButton } from '@/components/chat/floating-chat-button';
+// import { FloatingChatButton } from '@/components/chat/floating-chat-button'; // Removido
 import { ChatWindow } from '@/components/chat/chat-window';
-import { QuickActionsFAB } from '@/components/common/QuickActionsFAB'; // Import the new FAB
+import { QuickActionsFAB } from '@/components/common/QuickActionsFAB'; 
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -47,7 +47,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <SidebarProvider defaultOpen={true}> 
       <div className="flex min-h-screen flex-col">
         <AppHeader />
-        <div className="flex flex-1 pt-16">
+        <div className="flex flex-1 pt-16"> {/* pt-16 para compensar o header fixo */}
           <AppSidebar />
           <SidebarInset className="flex-1 min-w-0"> 
             <main
@@ -61,9 +61,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <BottomNav />
       </div>
       <Toaster />
-      <FloatingChatButton onClick={toggleChat} isChatOpen={isChatOpen} />
+      {/* FloatingChatButton removido daqui */}
       <ChatWindow isOpen={isChatOpen} onClose={closeChat} />
-      <QuickActionsFAB /> {/* Add the new FAB here */}
+      <QuickActionsFAB onToggleChat={toggleChat} /> {/* Passando toggleChat */}
     </SidebarProvider>
   );
 }

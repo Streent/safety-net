@@ -3,34 +3,54 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, X, FilePlus, ShieldPlus, Car } from 'lucide-react';
+import { Plus, X, FilePlus, ShieldPlus, Car, Bot } from 'lucide-react'; // Adicionado Bot
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-// TODO: Define profile-specific actions
-const actions = [
-  { id: 'new-report', label: 'Novo Relatório', icon: FilePlus, action: () => console.log('Novo Relatório') },
-  { id: 'add-epi', label: 'Adicionar EPI', icon: ShieldPlus, action: () => console.log('Adicionar EPI') },
-  { id: 'request-vehicle', label: 'Solicitar Veículo', icon: Car, action: () => console.log('Solicitar Veículo') },
-];
+interface QuickAction {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  action: () => void;
+}
 
-export function QuickActionsFAB() {
+interface QuickActionsFABProps {
+  onToggleChat?: () => void; // Prop para controlar o chat
+}
+
+export function QuickActionsFAB({ onToggleChat }: QuickActionsFABProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
+
+  const commonActions: QuickAction[] = [
+    { id: 'new-report', label: 'Novo Relatório', icon: FilePlus, action: () => console.log('Novo Relatório') },
+    { id: 'add-epi', label: 'Adicionar EPI', icon: ShieldPlus, action: () => console.log('Adicionar EPI') },
+    { id: 'request-vehicle', label: 'Solicitar Veículo', icon: Car, action: () => console.log('Solicitar Veículo') },
+  ];
+
+  const chatAction: QuickAction | null = onToggleChat 
+    ? { id: 'toggle-chat', label: 'Falar com Assistente', icon: Bot, action: onToggleChat }
+    : null;
+
+  const actions = chatAction ? [...commonActions, chatAction] : commonActions;
+
 
   const toggleOpen = () => setIsOpen(!isOpen);
 
   const handleActionClick = (label: string, actionFunc: () => void) => {
     actionFunc(); // Placeholder for actual navigation or function call
-    toast({
-      title: 'Ação Rápida (Placeholder)',
-      description: `${label} acionado. Funcionalidade a ser implementada.`,
-    });
+    // Não mostrar toast para toggleChat, pois ele já abre uma janela
+    if (label !== 'Falar com Assistente') {
+        toast({
+        title: 'Ação Rápida (Placeholder)',
+        description: `${label} acionado. Funcionalidade a ser implementada.`,
+        });
+    }
     setIsOpen(false); // Close FAB after action
   };
 
   return (
-    <div className="fixed bottom-[calc(4rem+1.5rem+4.5rem)] right-4 z-50 md:hidden"> {/* Position above chat button */}
+    <div className="fixed bottom-[calc(4rem+1.5rem)] right-4 z-50 md:hidden"> {/* Ajustado posicionamento para único FAB */}
       <div className="relative flex flex-col items-center">
         {/* Sub-action buttons - revealed when isOpen is true */}
         {isOpen && (
