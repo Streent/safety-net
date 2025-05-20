@@ -19,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { ScrollArea } from "@/components/ui/scroll-area" // Importar ScrollArea
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -199,7 +200,10 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className={cn("w-[--sidebar-width] bg-sidebar text-sidebar-foreground flex flex-col p-0", className)}
+            className={cn(
+              "w-[--sidebar-width] bg-sidebar text-sidebar-foreground flex flex-col p-0", 
+              className
+            )}
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -211,9 +215,9 @@ const Sidebar = React.forwardRef<
               <SheetTitle className="text-lg font-semibold text-center text-sidebar-foreground">Menu Principal</SheetTitle>
               {/* <SheetDescription className="text-xs text-center text-sidebar-foreground/70">Navegue pelas seções.</SheetDescription> */}
             </SheetHeader>
-            <div className="flex-1 overflow-y-auto">
+            <ScrollArea className="flex-1"> {/* px-1 py-4 podem ser adicionados se necessário mais padding interno */}
               {children}
-            </div>
+            </ScrollArea>
           </SheetContent>
         </Sheet>
       )
