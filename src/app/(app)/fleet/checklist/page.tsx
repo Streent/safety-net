@@ -1,7 +1,7 @@
 // src/app/(app)/fleet/checklist/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,9 +15,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { Camera, Save, Send, FileText, Construction, Droplets, CircleEllipsis, AlertTriangle } from 'lucide-react';
+import { Camera, Save, Send, FileText, Construction, Droplets, CircleEllipsis, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface ChecklistItem {
   id: string;
@@ -48,7 +49,7 @@ const initialChecklistData: ChecklistSection[] = [
   {
     id: 'tires',
     title: 'Pneus e Rodas',
-    icon: CircleEllipsis, // Placeholder for a tire icon
+    icon: CircleEllipsis, 
     items: [
       { id: 'tire1', label: 'Calibragem dos pneus (conforme manual)', checked: false, observation: '' },
       { id: 'tire2', label: 'Estado de conservação dos pneus (sem cortes/bolhas)', checked: false, observation: '', requiresPhoto: true },
@@ -70,7 +71,7 @@ const initialChecklistData: ChecklistSection[] = [
   {
     id: 'lights',
     title: 'Luzes e Sinalização',
-    icon: AlertTriangle, // Placeholder for lights icon
+    icon: AlertTriangle, 
     items: [
       { id: 'light1', label: 'Faróis (baixo e alto)', checked: false, observation: '' },
       { id: 'light2', label: 'Lanternas dianteiras e traseiras', checked: false, observation: '' },
@@ -83,7 +84,7 @@ const initialChecklistData: ChecklistSection[] = [
   {
     id: 'safety_items',
     title: 'Itens de Segurança Obrigatórios',
-    icon: Construction, // Placeholder for safety vest or similar
+    icon: Construction, 
     items: [
       { id: 'safety1', label: 'Triângulo de sinalização', checked: false, observation: '' },
       { id: 'safety2', label: 'Macaco e chave de roda', checked: false, observation: '' },
@@ -101,18 +102,16 @@ export default function VehicleChecklistPage() {
 
   const totalItems = checklistData.reduce((acc, section) => acc + section.items.length, 0);
 
-  const updateProgress = () => {
+  const updateProgress = useCallback(() => {
     const checkedItemsCount = checklistData.reduce((acc, section) => 
       acc + section.items.filter(item => item.checked).length, 0
     );
     setProgress(totalItems > 0 ? Math.round((checkedItemsCount / totalItems) * 100) : 0);
-  };
+  }, [checklistData, totalItems]);
   
-  // Call updateProgress once on mount to set initial progress if any items are pre-checked
   useEffect(() => {
     updateProgress();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [updateProgress]); 
 
   const handleItemChange = (sectionId: string, itemId: string, field: 'checked' | 'observation', value: string | boolean) => {
     setChecklistData(prevData =>
@@ -129,36 +128,35 @@ export default function VehicleChecklistPage() {
     );
   };
 
-  // Update progress whenever checklistData changes
-  useEffect(() => {
-    updateProgress();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checklistData]);
-
-
   const handleAccordionChange = (value: string | string[]) => {
     setActiveAccordionItem(typeof value === 'string' ? value : value[0]);
   };
 
-
   const handleSaveDraft = () => {
     toast({
-      title: 'Rascunho Salvo (Placeholder)',
-      description: 'Seu checklist foi salvo como rascunho. (Funcionalidade de persistência a ser implementada)',
+      title: 'Rascunho Salvo!',
+      description: 'Seu progresso no checklist foi salvo como rascunho. (Funcionalidade de persistência a ser implementada).',
+      variant: 'default',
     });
   };
 
   const handleSubmitChecklist = () => {
+    // TODO: Implementar lógica de envio real
+    // Por agora, apenas simular e limpar o checklist
     toast({
-      title: 'Checklist Enviado (Placeholder)',
-      description: 'Checklist enviado com sucesso. (Funcionalidade de envio e processamento a ser implementada)',
+      title: 'Checklist Enviado com Sucesso!',
+      description: 'O checklist do veículo foi enviado e registrado. (Funcionalidade de processamento a ser implementada).',
+      variant: 'default',
     });
+    // Opcional: Resetar o checklist após envio
+    // setChecklistData(initialChecklistData.map(section => ({ ...section, items: section.items.map(item => ({...item, checked: false, observation: ''})) })));
+    // setActiveAccordionItem(initialChecklistData[0]?.id);
   };
 
   const handleAttachPhoto = (sectionTitle: string, itemLabel: string) => {
      toast({
       title: 'Anexar Foto (Placeholder)',
-      description: `Funcionalidade para anexar foto para o item "${itemLabel}" da seção "${sectionTitle}" será implementada.`,
+      description: `Funcionalidade para anexar foto para o item "${itemLabel}" da seção "${sectionTitle}" será implementada aqui.`,
     });
   };
 
@@ -166,6 +164,10 @@ export default function VehicleChecklistPage() {
     if (currentIndex < checklistData.length - 1) {
       setActiveAccordionItem(checklistData[currentIndex + 1]?.id);
     }
+  };
+
+  const isSectionCompleted = (section: ChecklistSection): boolean => {
+    return section.items.every(item => item.checked);
   };
 
   return (
@@ -194,64 +196,68 @@ export default function VehicleChecklistPage() {
         value={activeAccordionItem}
         onValueChange={handleAccordionChange}
       >
-        {checklistData.map((section, sectionIndex) => (
-          <AccordionItem key={section.id} value={section.id} className="border rounded-lg bg-card shadow-sm">
-            <AccordionTrigger className="px-4 py-3 hover:bg-muted/50 rounded-t-lg text-base sm:text-lg">
-              <div className="flex items-center">
-                <section.icon className="mr-3 h-5 w-5 text-primary" />
-                {section.title}
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-4 pt-2 pb-4 border-t">
-              <div className="space-y-4">
-                {section.items.map(item => (
-                  <div key={item.id} className="p-3 border rounded-md bg-background space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor={`${section.id}-${item.id}-check`} className="text-sm font-medium flex-1">
-                        {item.label}
-                      </Label>
-                      <Checkbox
-                        id={`${section.id}-${item.id}-check`}
-                        checked={item.checked}
-                        onCheckedChange={checked => handleItemChange(section.id, item.id, 'checked', !!checked)}
-                        className="ml-4"
+        {checklistData.map((section, sectionIndex) => {
+          const completed = isSectionCompleted(section);
+          return (
+            <AccordionItem key={section.id} value={section.id} className="border rounded-lg bg-card shadow-sm">
+              <AccordionTrigger className="px-4 py-3 hover:bg-muted/50 rounded-t-lg text-base sm:text-lg">
+                <div className="flex items-center flex-1">
+                  <section.icon className={cn("mr-3 h-5 w-5 text-primary", completed && "text-green-500")} />
+                  <span className={cn(completed && "line-through text-muted-foreground")}>{section.title}</span>
+                  {completed && <CheckCircle className="ml-2 h-5 w-5 text-green-500" />}
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pt-2 pb-4 border-t">
+                <div className="space-y-4">
+                  {section.items.map(item => (
+                    <div key={item.id} className="p-3 border rounded-md bg-background space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor={`${section.id}-${item.id}-check`} className="text-sm font-medium flex-1">
+                          {item.label}
+                        </Label>
+                        <Checkbox
+                          id={`${section.id}-${item.id}-check`}
+                          checked={item.checked}
+                          onCheckedChange={checked => handleItemChange(section.id, item.id, 'checked', !!checked)}
+                          className="ml-4"
+                        />
+                      </div>
+                      <Textarea
+                        id={`${section.id}-${item.id}-obs`}
+                        placeholder="Observações (opcional)"
+                        value={item.observation}
+                        onChange={e => handleItemChange(section.id, item.id, 'observation', e.target.value)}
+                        rows={2}
+                        className="text-sm"
                       />
+                      {item.requiresPhoto && (
+                          <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleAttachPhoto(section.title, item.label)}
+                              className="w-full sm:w-auto"
+                          >
+                              <Camera className="mr-2 h-4 w-4" />
+                              Anexar Foto
+                          </Button>
+                      )}
                     </div>
-                    <Textarea
-                      id={`${section.id}-${item.id}-obs`}
-                      placeholder="Observações (opcional)"
-                      value={item.observation}
-                      onChange={e => handleItemChange(section.id, item.id, 'observation', e.target.value)}
-                      rows={2}
-                      className="text-sm"
-                    />
-                    {item.requiresPhoto && (
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleAttachPhoto(section.title, item.label)}
-                            className="w-full sm:w-auto"
-                        >
-                            <Camera className="mr-2 h-4 w-4" />
-                            Anexar Foto
-                        </Button>
-                    )}
-                  </div>
-                ))}
-                {sectionIndex < checklistData.length - 1 && (
-                  <div className="flex justify-end mt-4">
-                    <Button 
-                      variant="secondary" 
-                      onClick={() => goToNextSection(sectionIndex)}
-                    >
-                      Próxima Seção &rarr;
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
+                  ))}
+                  {sectionIndex < checklistData.length - 1 && (
+                    <div className="flex justify-end mt-4">
+                      <Button 
+                        variant="secondary" 
+                        onClick={() => goToNextSection(sectionIndex)}
+                      >
+                        Próxima Seção &rarr;
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
       </Accordion>
 
       <div className="mt-8 flex flex-col sm:flex-row justify-end gap-3">
