@@ -1,9 +1,10 @@
+
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, FileText, Users, ShieldCheck, Gem } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const navItems = [
@@ -18,65 +19,104 @@ export function BottomNav() {
   const pathname = usePathname();
   const isMobile = useIsMobile();
   const [isMounted, setIsMounted] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const navRef = useRef<HTMLElement>(null);
+  const indicatorRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Determine activeIndex for styling the active item
-  const activeIndex = navItems.findIndex(navItem =>
-    pathname === navItem.href || 
-    (navItem.href !== '/dashboard' && navItem.href !== '/' && pathname.startsWith(navItem.href)) ||
-    (pathname.startsWith('/dashboard') && navItem.href === '/dashboard') // Ensure dashboard is active for sub-paths too
-  );
+  const updatePositions = useCallback(() => {
+    if (!isMounted || !isMobile || !navRef.current || !indicatorRef.current) return;
 
-  if (!isMounted) {
-    // console.log("BottomNav: Not rendering because not mounted yet.");
-    return null; // Don't render on server or before client mount
-  }
+    const currentItem = itemRefs.current[activeIndex];
+    if (currentItem) {
+      const menuPosition = currentItem.offsetLeft - navRef.current.offsetLeft; // Position relative to navRef
+      const itemWidth = currentItem.offsetWidth;
+      const indicatorWidth = indicatorRef.current.offsetWidth;
+      
+      // Center indicator under the item: (item's left + half item width) - half indicator width
+      const indicatorLeft = menuPosition + (itemWidth / 2) - (indicatorWidth / 2);
+      
+      // For background dip: center the dip under the item
+      const backgroundDipPosition = menuPosition + (itemWidth / 2) - 36; // 36px is from radial-gradient center
 
-  if (typeof isMobile === 'undefined') {
-    // console.log("BottomNav: Not rendering because isMobile is undefined.");
-    return null; // isMobile not determined yet
+      indicatorRef.current.style.left = `${indicatorLeft}px`;
+      navRef.current.style.backgroundPosition = `${backgroundDipPosition}px`;
+    }
+  }, [activeIndex, isMobile, isMounted]);
+
+  useEffect(() => {
+    if (!isMounted || !isMobile) return;
+
+    const newActiveIndex = navItems.findIndex(navItem =>
+      pathname === navItem.href ||
+      (navItem.href !== '/dashboard' && navItem.href !== '/' && pathname.startsWith(navItem.href)) ||
+      (pathname.startsWith('/dashboard') && navItem.href === '/dashboard')
+    );
+    if (newActiveIndex !== -1 && newActiveIndex !== activeIndex) {
+      setActiveIndex(newActiveIndex);
+    }
+  }, [pathname, isMobile, isMounted, activeIndex]);
+
+  useEffect(() => {
+    if (!isMounted || !isMobile) return;
+    
+    updatePositions(); // Initial position update
+
+    // Optional: Recalculate on resize if needed, though offsetLeft should be stable for fixed items
+    // window.addEventListener('resize', updatePositions);
+    // return () => window.removeEventListener('resize', updatePositions);
+  }, [isMobile, isMounted, updatePositions]);
+
+
+  if (!isMounted || typeof isMobile === 'undefined') {
+    // console.log("BottomNav: Not rendering because not mounted or isMobile is undefined.", { isMobile, isMounted });
+    return null;
   }
 
   if (!isMobile) {
-    console.log("BottomNav: NOT RENDERING because isMobile is false.", { isMobile, isMounted });
-    return null; // Explicitly don't render if not mobile
+    // console.log("BottomNav: NOT RENDERING because isMobile is false.", { isMobile, isMounted });
+    return null; 
   }
   
-  console.log("BottomNav: RENDERING because isMobile is true.", { isMobile, isMounted });
+  // console.log("BottomNav: RENDERING because isMobile is true.", { isMobile, isMounted, activeIndex });
+
 
   return (
     <nav
+      ref={navRef}
       className={cn(
-        'fixed inset-x-0 bottom-0 z-50 h-16 bg-background border-t border-border', // Base styles
-        'flex items-center justify-around px-1', // Flex layout for items
-        'md:hidden' // CRUCIAL: This class should hide it on medium screens (768px) and up
+        'app-bottom-nav sc-bottom-bar', // Includes custom CSS classes for the animation
+        'fixed inset-x-0 bottom-0 z-50 md:hidden', // Tailwind for positioning and mobile-only
+        'h-16', // Standard height
+        'transition-transform duration-300 ease-in-out', // For auto-hide scroll effect (if re-enabled)
+        'overflow-visible' // Ensure indicator can protrude
       )}
+      style={{ backgroundPosition: '0px' }} // Initial background position
       aria-hidden={!isMobile}
     >
       {navItems.map((item, index) => (
         <Link
           key={item.href}
           href={item.href}
+          ref={el => itemRefs.current[index] = el}
           className={cn(
-            'flex flex-col items-center justify-center rounded-md transition-colors duration-150 ease-in-out h-full w-1/5 flex-1 min-w-0 px-1 py-1.5', 
-            'text-muted-foreground hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-            activeIndex === index ? 'text-primary' : ''
+            'sc-menu-item', // Custom CSS class
+            activeIndex === index ? 'sc-current' : ''
           )}
+          onClick={() => setActiveIndex(index)}
           data-ai-hint={item.dataAiHint}
         >
-          <item.icon className={cn("h-5 w-5", activeIndex === index ? "text-primary" : "text-muted-foreground group-hover:text-primary" )} />
-          <span className={cn(
-            "text-[10px] leading-tight truncate mt-0.5",
-             activeIndex === index ? "font-medium text-primary" : "text-muted-foreground group-hover:text-primary"
-            )}
-          >
-            {item.label}
-          </span>
+          <item.icon className="h-6 w-6" /> 
+          {/* Labels are hidden by default with the .sc-menu-item-label { display: none; } in globals.css for this animation style */}
+          <span className="sc-menu-item-label sr-only">{item.label}</span>
         </Link>
       ))}
+      <div ref={indicatorRef} className="sc-nav-indicator"></div>
     </nav>
   );
 }
