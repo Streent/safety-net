@@ -34,6 +34,7 @@ function generateBreadcrumbs(pathname: string) {
   pathSegments.forEach(segment => {
     currentPath += `/${segment}`;
     let label = segment.charAt(0).toUpperCase() + segment.slice(1);
+    // Traduções e ajustes de rótulo
     if (label === "Dashboard") label = "Painel";
     if (label === "Predictive-analysis") label = "Análise Preditiva";
     if (label === "Reports") label = "Relatórios";
@@ -43,6 +44,9 @@ function generateBreadcrumbs(pathname: string) {
         if (pathSegments.includes('request') && segment === 'request') {
             label = "Solicitar Veículo";
         }
+        if (pathSegments.includes('checklist') && segment === 'checklist') {
+            label = "Checklist";
+        }
     }
     if (label === "Epis") {
         label = "EPIs";
@@ -50,7 +54,13 @@ function generateBreadcrumbs(pathname: string) {
             label = "Distribuição";
         }
     }
-    if (label === "Empresas") label = "Empresas";
+    if (label === "Empresas") {
+        label = "Empresas";
+         // Verifica se o segmento anterior foi "Empresas" e o atual parece um ID
+        if (breadcrumbs.length > 0 && breadcrumbs[breadcrumbs.length -1].label === "Empresas" && segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)\d*/i)) {
+            label = `Detalhes ${segment}`; // Ou um texto mais genérico como "Detalhes da Empresa"
+        }
+    }
     if (label === "Campanhas") label = "Campanhas";
     if (label === "Biblioteca") label = "Biblioteca";
     if (label === "Financeiro") label = "Financeiro";
@@ -64,17 +74,16 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Esocial") label = "eSocial"; 
     if (label === "Settings") label = "Configurações";
 
-    if (segment === "new") label = "Novo";
-    // Ajuste para IDs de empresa/relatório/etc.
-    if (segment.match(/^(V|EMP|RPT|EPI|TRN|CAMP|PROG)\d+/i) && breadcrumbs.length > 1) {
-      // Se o segmento anterior for um nome de módulo plural, pegue o singular para "Detalhes"
+    // Ajuste para IDs de outras entidades, se necessário
+    if (segment.match(/^(V|RPT|EPI|TRN|CAMP|PROG)\d+/i) && breadcrumbs.length > 1 && breadcrumbs[breadcrumbs.length-1].label !== "Empresas") {
       const prevLabel = breadcrumbs[breadcrumbs.length - 1].label;
       let singularPrevLabel = prevLabel;
-      if (prevLabel.endsWith('s')) {
+      if (prevLabel.endsWith('s') && prevLabel !== "Riscos" && prevLabel !== "EPIs" && prevLabel !== "eSocial") { // Evitar "Risco", "EPI", "eSocia"
         singularPrevLabel = prevLabel.slice(0, -1);
       }
-       label = `Detalhes ${singularPrevLabel}`; // Ex: Detalhes Empresa, Detalhes Frota
+       label = `Detalhes ${singularPrevLabel}`;
     }
+    if (segment === "new") label = "Novo";
 
 
     breadcrumbs.push({ href: currentPath, label });
@@ -90,8 +99,7 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
   const { isMobile, toggleSidebar, open } = useSidebar(); 
 
   const currentRawTitle = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length -1].label : "Painel";
-  // For mobile, use a simpler title if the breadcrumb path is too long
-  const displayTitle = isMobile && breadcrumbs.length > 2 ? currentRawTitle : (pageTitle || currentRawTitle);
+  const displayTitle = isMobile ? (currentRawTitle.startsWith("Detalhes ") ? currentRawTitle.replace("Detalhes ", "") : currentRawTitle) : (pageTitle || currentRawTitle);
 
 
   return (
@@ -106,7 +114,7 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
             size="icon" 
             onClick={toggleSidebar} 
             className={cn(
-              "mr-1 sm:mr-2", // Slightly reduced margin for compactness
+              "mr-1 sm:mr-2",
             )}
             aria-label="Alternar Sidebar"
           >
@@ -147,11 +155,11 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
 
         <div className="flex items-center gap-1 sm:gap-2">
           <div className="hidden sm:flex items-center text-sm">
-            <Button variant="ghost" size="sm" aria-label="Mudar para Inglês (Placeholder)" className="px-2 text-xs">EN</Button>
+            <Button variant="ghost" size="sm" aria-label="Mudar para Inglês (Placeholder)" className="px-2 text-xs opacity-70">EN</Button>
             <span className="text-muted-foreground mx-0.5">|</span>
             <Button variant="ghost" size="sm" aria-label="Idioma Atual: Português" className="font-semibold text-primary px-2 text-xs">PT</Button>
             <span className="text-muted-foreground mx-0.5">|</span>
-            <Button variant="ghost" size="sm" aria-label="Mudar para Espanhol (Placeholder)" className="px-2 text-xs">ES</Button>
+            <Button variant="ghost" size="sm" aria-label="Mudar para Espanhol (Placeholder)" className="px-2 text-xs opacity-70">ES</Button>
           </div>
           <ThemeToggle />
           <Button variant="ghost" size="icon" aria-label="Notificações">
@@ -202,3 +210,5 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
     </header>
   );
 }
+
+    
