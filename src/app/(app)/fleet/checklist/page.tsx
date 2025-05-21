@@ -13,7 +13,6 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input'; // Keep for observations if still used
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
@@ -53,7 +52,7 @@ const initialChecklistData: ChecklistSection[] = [
   {
     id: 'tires',
     title: 'Pneus e Rodas',
-    icon: CircleEllipsis, 
+    icon: CircleEllipsis, // Usando um ícone genérico para "rodas" ou "pneus"
     items: [
       { id: 'tire1', label: 'Calibragem dos pneus (conforme manual)', checked: false, observation: '', photo: null, photoPreview: null },
       { id: 'tire2', label: 'Estado de conservação dos pneus (sem cortes/bolhas)', checked: false, observation: '', requiresPhoto: true, photo: null, photoPreview: null },
@@ -75,7 +74,7 @@ const initialChecklistData: ChecklistSection[] = [
   {
     id: 'lights',
     title: 'Luzes e Sinalização',
-    icon: AlertTriangle, 
+    icon: AlertTriangle, // Ícone sugestivo para "alertas" ou "luzes"
     items: [
       { id: 'light1', label: 'Faróis (baixo e alto)', checked: false, observation: '', photo: null, photoPreview: null },
       { id: 'light2', label: 'Lanternas dianteiras e traseiras', checked: false, observation: '', photo: null, photoPreview: null },
@@ -88,7 +87,7 @@ const initialChecklistData: ChecklistSection[] = [
   {
     id: 'safety_items',
     title: 'Itens de Segurança Obrigatórios',
-    icon: Construction, 
+    icon: Construction, // Ícone para "construção" ou "ferramentas", adaptável
     items: [
       { id: 'safety1', label: 'Triângulo de sinalização', checked: false, observation: '', photo: null, photoPreview: null },
       { id: 'safety2', label: 'Macaco e chave de roda', checked: false, observation: '', photo: null, photoPreview: null },
@@ -167,6 +166,7 @@ export default function VehicleChecklistPage() {
       title: 'Checklist Enviado com Sucesso!',
       description: 'O checklist do veículo foi enviado e registrado. (Funcionalidade de processamento a ser implementada).',
     });
+    // Aqui você adicionaria a lógica para enviar os dados, fotos, etc.
   };
 
   const triggerPhotoUpload = (sectionId: string, itemId: string) => {
@@ -338,7 +338,7 @@ export default function VehicleChecklistPage() {
                                 className="w-full sm:w-auto"
                             >
                                 <UploadCloud className="mr-2 h-4 w-4" />
-                                Anexar Foto Obrigatória
+                                {item.requiresPhoto ? "Anexar Foto Obrigatória" : "Anexar Foto"}
                             </Button>
                           )}
                           {item.photo && <p className="text-xs text-muted-foreground">Arquivo: {item.photo.name}</p>}
@@ -379,5 +379,7 @@ export default function VehicleChecklistPage() {
     </>
   );
 }
+
+    
 
     
