@@ -97,14 +97,19 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
   if (breadcrumbs.length > 1) {
     const lastCrumb = breadcrumbs[breadcrumbs.length - 1];
     mobileDisplayTitle = lastCrumb.label;
-    if (lastCrumb.label.startsWith("Detalhes") && breadcrumbs.length > 2) {
-        mobileDisplayTitle = breadcrumbs[breadcrumbs.length - 2].label; 
-    } else if (["Solicitar Veículo", "Registrar Abastecimento", "Distribuição de EPIs"].includes(lastCrumb.label)) {
-        mobileDisplayTitle = lastCrumb.label.split(" ")[0]; 
+    // Specific shortenings for mobile title
+    if (["Solicitar Veículo", "Registrar Abastecimento", "Distribuição de EPIs"].includes(lastCrumb.label)) {
+      mobileDisplayTitle = lastCrumb.label.split(" ")[0]; // e.g., "Solicitar"
+    } else if (lastCrumb.label.startsWith("Detalhes Empresa") && breadcrumbs.length > 2) {
+      mobileDisplayTitle = breadcrumbs[breadcrumbs.length - 2].label; // Show parent page name, e.g., "Empresas"
     } else if (mobileDisplayTitle === "Análise Preditiva") {
         mobileDisplayTitle = "Análise Pred.";
     } else if (mobileDisplayTitle === "Gerenciamento de Campanhas") {
         mobileDisplayTitle = "Campanhas";
+    } else if (mobileDisplayTitle === "Configurações") {
+        mobileDisplayTitle = "Ajustes";
+    } else if (mobileDisplayTitle === "Programas de SST") {
+        mobileDisplayTitle = "Programas";
     }
   } else if (pathname === "/dashboard") {
     mobileDisplayTitle = "Painel";
