@@ -1,7 +1,9 @@
+
 // src/app/(app)/fleet/checklist/page.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,11 +13,11 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input'; // Keep for observations if still used
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { Camera, Save, Send, FileText, Construction, Droplets, CircleEllipsis, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Camera, Save, Send, FileText, Construction, Droplets, CircleEllipsis, AlertTriangle, CheckCircle, UploadCloud, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -26,6 +28,8 @@ interface ChecklistItem {
   checked: boolean;
   observation: string;
   requiresPhoto?: boolean;
+  photo?: File | null;
+  photoPreview?: string | null;
 }
 
 interface ChecklistSection {
@@ -41,9 +45,9 @@ const initialChecklistData: ChecklistSection[] = [
     title: 'Documentação do Veículo',
     icon: FileText,
     items: [
-      { id: 'doc1', label: 'CRLV válido e no veículo', checked: false, observation: '' },
-      { id: 'doc2', label: 'Seguro obrigatório (DPVAT) em dia', checked: false, observation: '' },
-      { id: 'doc3', label: 'Manual do proprietário', checked: false, observation: '' },
+      { id: 'doc1', label: 'CRLV válido e no veículo', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'doc2', label: 'Seguro obrigatório (DPVAT) em dia', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'doc3', label: 'Manual do proprietário', checked: false, observation: '', photo: null, photoPreview: null },
     ],
   },
   {
@@ -51,10 +55,10 @@ const initialChecklistData: ChecklistSection[] = [
     title: 'Pneus e Rodas',
     icon: CircleEllipsis, 
     items: [
-      { id: 'tire1', label: 'Calibragem dos pneus (conforme manual)', checked: false, observation: '' },
-      { id: 'tire2', label: 'Estado de conservação dos pneus (sem cortes/bolhas)', checked: false, observation: '', requiresPhoto: true },
-      { id: 'tire3', label: 'Estepe em condições de uso', checked: false, observation: '' },
-      { id: 'tire4', label: 'Apertos das porcas das rodas', checked: false, observation: '' },
+      { id: 'tire1', label: 'Calibragem dos pneus (conforme manual)', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'tire2', label: 'Estado de conservação dos pneus (sem cortes/bolhas)', checked: false, observation: '', requiresPhoto: true, photo: null, photoPreview: null },
+      { id: 'tire3', label: 'Estepe em condições de uso', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'tire4', label: 'Apertos das porcas das rodas', checked: false, observation: '', photo: null, photoPreview: null },
     ],
   },
   {
@@ -62,10 +66,10 @@ const initialChecklistData: ChecklistSection[] = [
     title: 'Níveis de Fluido',
     icon: Droplets,
     items: [
-      { id: 'fluid1', label: 'Nível do óleo do motor', checked: false, observation: '' },
-      { id: 'fluid2', label: 'Nível do fluido de arrefecimento', checked: false, observation: '' },
-      { id: 'fluid3', label: 'Nível do fluido de freio', checked: false, observation: '' },
-      { id: 'fluid4', label: 'Nível do fluido da direção hidráulica (se aplicável)', checked: false, observation: '' },
+      { id: 'fluid1', label: 'Nível do óleo do motor', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'fluid2', label: 'Nível do fluido de arrefecimento', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'fluid3', label: 'Nível do fluido de freio', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'fluid4', label: 'Nível do fluido da direção hidráulica (se aplicável)', checked: false, observation: '', photo: null, photoPreview: null },
     ],
   },
   {
@@ -73,12 +77,12 @@ const initialChecklistData: ChecklistSection[] = [
     title: 'Luzes e Sinalização',
     icon: AlertTriangle, 
     items: [
-      { id: 'light1', label: 'Faróis (baixo e alto)', checked: false, observation: '' },
-      { id: 'light2', label: 'Lanternas dianteiras e traseiras', checked: false, observation: '' },
-      { id: 'light3', label: 'Luzes de freio', checked: false, observation: '' },
-      { id: 'light4', label: 'Setas (dianteiras, traseiras, laterais)', checked: false, observation: '' },
-      { id: 'light5', label: 'Luz de ré', checked: false, observation: '' },
-      { id: 'light6', label: 'Pisca-alerta', checked: false, observation: '' },
+      { id: 'light1', label: 'Faróis (baixo e alto)', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'light2', label: 'Lanternas dianteiras e traseiras', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'light3', label: 'Luzes de freio', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'light4', label: 'Setas (dianteiras, traseiras, laterais)', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'light5', label: 'Luz de ré', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'light6', label: 'Pisca-alerta', checked: false, observation: '', photo: null, photoPreview: null },
     ],
   },
   {
@@ -86,19 +90,24 @@ const initialChecklistData: ChecklistSection[] = [
     title: 'Itens de Segurança Obrigatórios',
     icon: Construction, 
     items: [
-      { id: 'safety1', label: 'Triângulo de sinalização', checked: false, observation: '' },
-      { id: 'safety2', label: 'Macaco e chave de roda', checked: false, observation: '' },
-      { id: 'safety3', label: 'Cintos de segurança (todos os assentos)', checked: false, observation: '' },
-      { id: 'safety4', label: 'Extintor de incêndio (validade e carga)', checked: false, observation: '', requiresPhoto: true },
+      { id: 'safety1', label: 'Triângulo de sinalização', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'safety2', label: 'Macaco e chave de roda', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'safety3', label: 'Cintos de segurança (todos os assentos)', checked: false, observation: '', photo: null, photoPreview: null },
+      { id: 'safety4', label: 'Extintor de incêndio (validade e carga)', checked: false, observation: '', requiresPhoto: true, photo: null, photoPreview: null },
     ],
   },
 ];
 
 export default function VehicleChecklistPage() {
   const { toast } = useToast();
-  const [checklistData, setChecklistData] = useState<ChecklistSection[]>(initialChecklistData);
+  const [checklistData, setChecklistData] = useState<ChecklistSection[]>(() => 
+    JSON.parse(JSON.stringify(initialChecklistData)) // Deep copy for initial state
+  );
   const [progress, setProgress] = useState(0);
   const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>(initialChecklistData[0]?.id);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentTargetPhotoInfo, setCurrentTargetPhotoInfo] = useState<{ sectionId: string; itemId: string } | null>(null);
 
   const totalItems = checklistData.reduce((acc, section) => acc + section.items.length, 0);
 
@@ -112,6 +121,20 @@ export default function VehicleChecklistPage() {
   useEffect(() => {
     updateProgress();
   }, [updateProgress]); 
+
+  // Cleanup Object URLs on component unmount
+  useEffect(() => {
+    return () => {
+      checklistData.forEach(section => {
+        section.items.forEach(item => {
+          if (item.photoPreview) {
+            URL.revokeObjectURL(item.photoPreview);
+          }
+        });
+      });
+    };
+  }, [checklistData]);
+
 
   const handleItemChange = (sectionId: string, itemId: string, field: 'checked' | 'observation', value: string | boolean) => {
     setChecklistData(prevData =>
@@ -136,28 +159,78 @@ export default function VehicleChecklistPage() {
     toast({
       title: 'Rascunho Salvo!',
       description: 'Seu progresso no checklist foi salvo como rascunho. (Funcionalidade de persistência a ser implementada).',
-      variant: 'default',
     });
   };
 
   const handleSubmitChecklist = () => {
-    // TODO: Implementar lógica de envio real
-    // Por agora, apenas simular e limpar o checklist
     toast({
       title: 'Checklist Enviado com Sucesso!',
       description: 'O checklist do veículo foi enviado e registrado. (Funcionalidade de processamento a ser implementada).',
-      variant: 'default',
     });
-    // Opcional: Resetar o checklist após envio
-    // setChecklistData(initialChecklistData.map(section => ({ ...section, items: section.items.map(item => ({...item, checked: false, observation: ''})) })));
-    // setActiveAccordionItem(initialChecklistData[0]?.id);
   };
 
-  const handleAttachPhoto = (sectionTitle: string, itemLabel: string) => {
-     toast({
-      title: 'Anexar Foto (Placeholder)',
-      description: `Funcionalidade para anexar foto para o item "${itemLabel}" da seção "${sectionTitle}" será implementada aqui.`,
-    });
+  const triggerPhotoUpload = (sectionId: string, itemId: string) => {
+    setCurrentTargetPhotoInfo({ sectionId, itemId });
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0 && currentTargetPhotoInfo) {
+      const file = event.target.files[0];
+      const { sectionId, itemId } = currentTargetPhotoInfo;
+
+      setChecklistData(prevData =>
+        prevData.map(section => {
+          if (section.id === sectionId) {
+            return {
+              ...section,
+              items: section.items.map(item => {
+                if (item.id === itemId) {
+                  // Revoke old preview if exists
+                  if (item.photoPreview) {
+                    URL.revokeObjectURL(item.photoPreview);
+                  }
+                  return {
+                    ...item,
+                    photo: file,
+                    photoPreview: URL.createObjectURL(file),
+                  };
+                }
+                return item;
+              }),
+            };
+          }
+          return section;
+        })
+      );
+      setCurrentTargetPhotoInfo(null); // Reset target
+    }
+    // Reset file input value to allow selecting the same file again if needed
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removePhoto = (sectionId: string, itemId: string) => {
+    setChecklistData(prevData =>
+      prevData.map(section => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            items: section.items.map(item => {
+              if (item.id === itemId) {
+                if (item.photoPreview) {
+                  URL.revokeObjectURL(item.photoPreview);
+                }
+                return { ...item, photo: null, photoPreview: null };
+              }
+              return item;
+            }),
+          };
+        }
+        return section;
+      })
+    );
   };
 
   const goToNextSection = (currentIndex: number) => {
@@ -175,7 +248,14 @@ export default function VehicleChecklistPage() {
       <PageHeader
         title="Checklist de Veículo"
         description="Preencha todos os itens do checklist antes de iniciar ou após concluir o uso do veículo."
-        // Placeholder: Adicionar informações do veículo/solicitação aqui
+      />
+      
+      <input 
+        type="file" 
+        accept="image/*" 
+        ref={fileInputRef} 
+        onChange={handlePhotoFileChange} 
+        style={{ display: 'none' }} 
       />
 
       <Card className="mb-6 shadow-md">
@@ -230,16 +310,39 @@ export default function VehicleChecklistPage() {
                         rows={2}
                         className="text-sm"
                       />
-                      {item.requiresPhoto && (
-                          <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => handleAttachPhoto(section.title, item.label)}
-                              className="w-full sm:w-auto"
-                          >
-                              <Camera className="mr-2 h-4 w-4" />
-                              Anexar Foto
-                          </Button>
+                      {(item.requiresPhoto || item.photoPreview) && (
+                        <div className="space-y-2">
+                          {item.photoPreview ? (
+                            <div className="relative group w-32 h-32 border rounded-md overflow-hidden">
+                              <Image 
+                                src={item.photoPreview} 
+                                alt={`Pré-visualização para ${item.label}`} 
+                                layout="fill" 
+                                objectFit="cover" 
+                              />
+                              <Button 
+                                variant="destructive" 
+                                size="icon" 
+                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => removePhoto(section.id, item.id)}
+                              >
+                                <X className="h-4 w-4" />
+                                <span className="sr-only">Remover Foto</span>
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => triggerPhotoUpload(section.id, item.id)}
+                                className="w-full sm:w-auto"
+                            >
+                                <UploadCloud className="mr-2 h-4 w-4" />
+                                Anexar Foto Obrigatória
+                            </Button>
+                          )}
+                          {item.photo && <p className="text-xs text-muted-foreground">Arquivo: {item.photo.name}</p>}
+                        </div>
                       )}
                     </div>
                   ))}
@@ -276,3 +379,5 @@ export default function VehicleChecklistPage() {
     </>
   );
 }
+
+    
