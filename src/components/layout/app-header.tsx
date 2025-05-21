@@ -29,17 +29,17 @@ interface AppHeaderProps {
 
 function generateBreadcrumbs(pathname: string) {
   const pathSegments = pathname.split('/').filter(segment => segment);
-  const breadcrumbs = [{ href: '/dashboard', label: 'Início' }]; // Always start with Dashboard as "Início"
+  const breadcrumbs = [{ href: '/dashboard', label: 'Início' }]; 
 
   let currentPath = '';
-  pathSegments.forEach(segment => {
+  pathSegments.forEach((segment, i) => {
     currentPath += `/${segment}`;
     let label = segment.charAt(0).toUpperCase() + segment.slice(1);
     
     // Specific translations and adjustments
-    if (label === "Dashboard" && breadcrumbs.length === 1) { // If it's the actual dashboard page
-        breadcrumbs[0].label = "Painel"; // Change "Início" to "Painel"
-        return; // Don't add "Dashboard" as a separate breadcrumb if it's the root
+    if (label === "Dashboard" && breadcrumbs.length === 1) { 
+        breadcrumbs[0].label = "Painel"; 
+        return; 
     }
     if (label === "Predictive-analysis") label = "Análise Preditiva";
     if (label === "Reports") label = "Relatórios";
@@ -48,16 +48,17 @@ function generateBreadcrumbs(pathname: string) {
         label = "Frota";
         if (pathSegments.includes('request') && segment === 'request') label = "Solicitar Veículo";
         if (pathSegments.includes('checklist') && segment === 'checklist') label = "Checklist";
-        if (pathSegments.includes('fuel') && segment === 'fuel') label = "Registrar Abastecimento";
+        if (pathSegments.includes('fuel') && segment === 'fuel') label = "Abastecimento";
     }
     if (label === "Epis") {
         label = "EPIs";
-        if (pathSegments.includes('distribuicao') && segment === 'distribuicao') label = "Distribuição de EPIs";
+        if (pathSegments.includes('distribuicao') && segment === 'distribuicao') label = "Distribuição";
     }
     if (label === "Empresas") {
         label = "Empresas";
-        if (breadcrumbs.length > 0 && breadcrumbs[breadcrumbs.length -1].label === "Empresas" && (segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/)))) { 
-            label = `Detalhes Empresa`; 
+        // Verifica se o segmento anterior é "empresas" e se o segmento atual parece um ID
+        if (i > 0 && pathSegments[i-1] === "empresas" && (segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/)))) { 
+            label = `Detalhes`; // ou "Detalhes Empresa" se preferir mais específico
         }
     }
     if (label === "Campanhas") label = "Campanhas";
@@ -65,7 +66,10 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Financeiro") label = "Financeiro";
     if (label === "Suporte") label = "Suporte";
     if (label === "Gamification") label = "Gamificação";
-    if (label === "Programas") label = "Programas";
+    if (label === "Programas") {
+      label = "Programas";
+      if (pathSegments.includes('editor') && segment === 'editor') label = "Editor";
+    }
     if (label === "Auditorias") label = "Auditorias";
     if (label === "Riscos") label = "Riscos";
     if (label === "Cipa") label = "CIPA";
@@ -73,11 +77,13 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Esocial") label = "eSocial"; 
     if (label === "Settings") label = "Configurações";
     
-    // Avoid adding generic ID segments if previous segment was specific enough
-    if (segment.match(/^(V|RPT|EPI|TRN|CAMP|PROG)\d+/i) && breadcrumbs.length > 1 && breadcrumbs[breadcrumbs.length-1].label !== "Empresas" && !breadcrumbs[breadcrumbs.length-1].label.startsWith("Detalhes")) {
-        return; 
+    // Evitar adicionar "new" ou IDs genéricos como breadcrumbs finais se o contexto já é claro
+    if ((segment === "new" || segment.match(/^(V|RPT|EPI|TRN|CAMP|PROG|AUD)\d+/i)) && 
+        breadcrumbs.length > 1 && 
+        !["Empresas", "Frota", "EPIs", "Programas", "Auditorias"].includes(breadcrumbs[breadcrumbs.length-1].label) && // Não simplifica se o pai for uma lista genérica
+        !breadcrumbs[breadcrumbs.length-1].label.startsWith("Detalhes")) { // Não simplifica se o pai já for um detalhe
+      return; 
     }
-    if (segment === "new") label = "Novo"; 
 
 
     breadcrumbs.push({ href: currentPath, label });
@@ -93,23 +99,19 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
   const { isMobile, toggleSidebar, open } = useSidebar(); 
 
   // Determine the title for mobile view
-  let mobileDisplayTitle = "Painel"; // Default
+  let mobileDisplayTitle = "Painel"; 
   if (breadcrumbs.length > 1) {
     const lastCrumb = breadcrumbs[breadcrumbs.length - 1];
+    const secondLastCrumb = breadcrumbs.length > 2 ? breadcrumbs[breadcrumbs.length - 2] : null;
+
     mobileDisplayTitle = lastCrumb.label;
-    // Specific shortenings for mobile title
-    if (["Solicitar Veículo", "Registrar Abastecimento", "Distribuição de EPIs"].includes(lastCrumb.label)) {
-      mobileDisplayTitle = lastCrumb.label.split(" ")[0]; // e.g., "Solicitar"
-    } else if (lastCrumb.label.startsWith("Detalhes Empresa") && breadcrumbs.length > 2) {
-      mobileDisplayTitle = breadcrumbs[breadcrumbs.length - 2].label; // Show parent page name, e.g., "Empresas"
+    
+    if (["Solicitar Veículo", "Checklist", "Abastecimento", "Distribuição", "Editor"].includes(lastCrumb.label)) {
+      mobileDisplayTitle = lastCrumb.label; // Show full for these specific actions
+    } else if (lastCrumb.label === "Detalhes" && secondLastCrumb) {
+        mobileDisplayTitle = `${secondLastCrumb.label} Detalhes`; // e.g. "Empresas Detalhes"
     } else if (mobileDisplayTitle === "Análise Preditiva") {
         mobileDisplayTitle = "Análise Pred.";
-    } else if (mobileDisplayTitle === "Gerenciamento de Campanhas") {
-        mobileDisplayTitle = "Campanhas";
-    } else if (mobileDisplayTitle === "Configurações") {
-        mobileDisplayTitle = "Ajustes";
-    } else if (mobileDisplayTitle === "Programas de SST") {
-        mobileDisplayTitle = "Programas";
     }
   } else if (pathname === "/dashboard") {
     mobileDisplayTitle = "Painel";
@@ -165,7 +167,7 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
             ))}
           </div>
           
-          <h1 className="text-lg font-semibold md:hidden truncate max-w-[150px] xs:max-w-[200px]">{mobileDisplayTitle}</h1>
+          <h1 className="text-lg font-semibold md:hidden truncate max-w-[150px] xs:max-w-[200px] sm:max-w-xs">{mobileDisplayTitle}</h1>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">

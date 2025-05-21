@@ -3,6 +3,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link'; // Importar Link
+import { useRouter } from 'next/navigation'; // Importar useRouter
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,15 +17,16 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Edit } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Edit, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface Program {
   id: string;
   nome: string;
   tipo: 'PGR' | 'PCMSO' | 'LTCAT' | 'PPP' | 'Outro';
-  revisao: string; // Pode ser um número de versão ou data
+  revisao: string; 
   status: 'Ativo' | 'Em Revisão' | 'Obsoleto' | 'Rascunho';
 }
 
@@ -53,6 +56,7 @@ const getStatusBadgeClass = (status: Program['status']) => {
 
 export default function ProgramasPage() {
   const { toast } = useToast();
+  const router = useRouter(); // Inicializar useRouter
   const [programs, setPrograms] = useState<Program[]>(mockPrograms);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -61,16 +65,15 @@ export default function ProgramasPage() {
   }, []);
 
   const handleAddNewProgram = () => {
-    toast({
-      title: 'Novo Programa',
-      description: 'Funcionalidade para criar um novo programa (abrir ProgramEditorPage) será implementada aqui.',
-    });
+    router.push('/programas/editor');
   };
 
   const handleEditProgram = (programId: string) => {
+    // No futuro, passaremos o ID: router.push(`/programas/editor/${programId}`);
+    router.push('/programas/editor'); 
     toast({
       title: 'Editar Programa',
-      description: `Funcionalidade para editar o programa ${programId} (abrir ProgramEditorPage) será implementada aqui.`,
+      description: `Navegando para o editor do programa ${programId}. (Funcionalidade de carregar dados do programa a ser implementada).`,
     });
   };
 
@@ -87,65 +90,70 @@ export default function ProgramasPage() {
         }
       />
       
-      <div className="rounded-lg border shadow-sm bg-card">
-        <div className="overflow-x-auto w-full">
-          <Table className="min-w-[800px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40%]">Nome do Programa</TableHead>
-                <TableHead className="w-[15%]">Tipo</TableHead>
-                <TableHead className="w-[20%]">Revisão</TableHead>
-                <TableHead className="w-[15%] text-center">Status</TableHead>
-                <TableHead className="w-[10%] text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {programs.length > 0 ? programs.map((program, index) => (
-                <TableRow 
-                  key={program.id} 
-                  className={cn(
-                    "hover:bg-muted/50 opacity-0",
-                    isMounted && "animate-in fade-in-50 slide-in-from-bottom-2"
-                  )}
-                  style={{ animationDelay: isMounted ? `${index * 75}ms` : '0ms', transitionProperty: 'opacity, transform' }}
-                >
-                  <TableCell className="font-medium">{program.nome}</TableCell>
-                  <TableCell>{program.tipo}</TableCell>
-                  <TableCell>{program.revisao}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="outline" className={`text-xs ${getStatusBadgeClass(program.status)}`}>
-                      {program.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Ações para {program.nome}</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditProgram(program.id)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          <span>Editar</span>
-                        </DropdownMenuItem>
-                        {/* Adicionar mais ações como "Ver Histórico", "Excluir", etc. */}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )) : (
+      <Card className="shadow-sm">
+        <CardContent className="p-0">
+            <div className="overflow-x-auto w-full">
+            <Table className="min-w-[800px]">
+                <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    Nenhum programa encontrado.
-                  </TableCell>
+                    <TableHead className="w-[40%]">Nome do Programa</TableHead>
+                    <TableHead className="w-[15%]">Tipo</TableHead>
+                    <TableHead className="w-[20%]">Revisão</TableHead>
+                    <TableHead className="w-[15%] text-center">Status</TableHead>
+                    <TableHead className="w-[10%] text-right">Ações</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+                </TableHeader>
+                <TableBody>
+                {programs.length > 0 ? programs.map((program, index) => (
+                    <TableRow 
+                    key={program.id} 
+                    className={cn(
+                        "hover:bg-muted/50 opacity-0",
+                        isMounted && "animate-in fade-in-50 slide-in-from-bottom-2"
+                    )}
+                    style={{ animationDelay: isMounted ? `${index * 75}ms` : '0ms', transitionProperty: 'opacity, transform' }}
+                    >
+                    <TableCell className="font-medium flex items-center">
+                        <ClipboardList className="mr-3 h-5 w-5 text-muted-foreground"/>
+                        {program.nome}
+                    </TableCell>
+                    <TableCell>{program.tipo}</TableCell>
+                    <TableCell>{program.revisao}</TableCell>
+                    <TableCell className="text-center">
+                        <Badge variant="outline" className={`text-xs ${getStatusBadgeClass(program.status)}`}>
+                        {program.status}
+                        </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Ações para {program.nome}</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditProgram(program.id)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            <span>Editar</span>
+                            </DropdownMenuItem>
+                            {/* Adicionar mais ações como "Ver Histórico", "Excluir", etc. */}
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                    </TableRow>
+                )) : (
+                    <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                        Nenhum programa encontrado.
+                    </TableCell>
+                    </TableRow>
+                )}
+                </TableBody>
+            </Table>
+            </div>
+        </CardContent>
+      </Card>
        <div className="flex items-center justify-end space-x-2 py-4">
         <Button variant="outline" size="sm" disabled={programs.length === 0}>
           Anterior
