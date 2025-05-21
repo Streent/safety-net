@@ -1,5 +1,6 @@
 
 // src/app/(app)/auditorias/page.tsx
+import Link from 'next/link'; // Import Link
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileSearch, ListChecks, Edit3, History, PlusCircle } from 'lucide-react';
@@ -12,9 +13,11 @@ export default function AuditoriasPage() {
         title="Auditorias de Segurança"
         description="Planeje, execute e acompanhe auditorias de SST."
         actions={
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Nova Auditoria
+          <Button asChild>
+            <Link href="/auditorias/checklist">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Nova Auditoria (Checklist)
+            </Link>
           </Button>
         }
       />
@@ -36,7 +39,7 @@ export default function AuditoriasPage() {
               Lista de Auditorias
             </h3>
             <p className="text-sm text-muted-foreground">
-              Uma lista/tabela de auditorias agendadas e concluídas será exibida aqui, com status e datas. O botão "Nova Auditoria" acima iniciará o processo de criação.
+              Uma lista/tabela de auditorias agendadas e concluídas será exibida aqui, com status e datas. O botão "Nova Auditoria (Checklist)" acima iniciará o processo de preenchimento de um checklist.
             </p>
           </div>
 
@@ -46,7 +49,7 @@ export default function AuditoriasPage() {
               Wizard de Checklist Multi-etapas
             </h3>
             <p className="text-sm text-muted-foreground">
-              Um assistente (wizard) para preenchimento de checklists de auditoria com múltiplas etapas será implementado.
+              Um assistente (wizard) para preenchimento de checklists de auditoria com múltiplas etapas será implementado, acessível através do botão "Nova Auditoria (Checklist)".
             </p>
           </div>
 

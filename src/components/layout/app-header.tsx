@@ -29,7 +29,7 @@ interface AppHeaderProps {
 
 function generateBreadcrumbs(pathname: string) {
   const pathSegments = pathname.split('/').filter(segment => segment);
-  const breadcrumbs = [{ href: '/dashboard', label: 'Início' }]; 
+  const breadcrumbs = [{ href: '/dashboard', label: 'Painel' }]; 
 
   let currentPath = '';
   pathSegments.forEach((segment, i) => {
@@ -37,28 +37,28 @@ function generateBreadcrumbs(pathname: string) {
     let label = segment.charAt(0).toUpperCase() + segment.slice(1);
     
     // Specific translations and adjustments
-    if (label === "Dashboard" && breadcrumbs.length === 1) { 
-        breadcrumbs[0].label = "Painel"; 
+    if (label === "Dashboard" && breadcrumbs.length === 1 && currentPath === "/dashboard") { 
+        // "Painel" is already set as the first breadcrumb label for /dashboard
         return; 
     }
     if (label === "Predictive-analysis") label = "Análise Preditiva";
     if (label === "Reports") label = "Relatórios";
     if (label === "Trainings") label = "Treinamentos";
+    
     if (label === "Fleet") {
         label = "Frota";
         if (pathSegments.includes('request') && segment === 'request') label = "Solicitar Veículo";
-        if (pathSegments.includes('checklist') && segment === 'checklist') label = "Checklist";
-        if (pathSegments.includes('fuel') && segment === 'fuel') label = "Abastecimento";
+        else if (pathSegments.includes('checklist') && segment === 'checklist') label = "Checklist de Veículo";
+        else if (pathSegments.includes('fuel') && segment === 'fuel') label = "Registrar Abastecimento";
     }
     if (label === "Epis") {
         label = "EPIs";
-        if (pathSegments.includes('distribuicao') && segment === 'distribuicao') label = "Distribuição";
+        if (pathSegments.includes('distribuicao') && segment === 'distribuicao') label = "Distribuição de EPIs";
     }
     if (label === "Empresas") {
         label = "Empresas";
-        // Verifica se o segmento anterior é "empresas" e se o segmento atual parece um ID
         if (i > 0 && pathSegments[i-1] === "empresas" && (segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/)))) { 
-            label = `Detalhes`; // ou "Detalhes Empresa" se preferir mais específico
+            label = `Detalhes`;
         }
     }
     if (label === "Campanhas") label = "Campanhas";
@@ -70,21 +70,23 @@ function generateBreadcrumbs(pathname: string) {
       label = "Programas";
       if (pathSegments.includes('editor') && segment === 'editor') label = "Editor";
     }
-    if (label === "Auditorias") label = "Auditorias";
+    if (label === "Auditorias") {
+      label = "Auditorias";
+      if (pathSegments.includes('checklist') && segment === 'checklist') label = "Checklist de Auditoria";
+    }
     if (label === "Riscos") label = "Riscos";
     if (label === "Cipa") label = "CIPA";
     if (label === "Iot") label = "IOT"; 
     if (label === "Esocial") label = "eSocial"; 
     if (label === "Settings") label = "Configurações";
     
-    // Evitar adicionar "new" ou IDs genéricos como breadcrumbs finais se o contexto já é claro
     if ((segment === "new" || segment.match(/^(V|RPT|EPI|TRN|CAMP|PROG|AUD)\d+/i)) && 
         breadcrumbs.length > 1 && 
-        !["Empresas", "Frota", "EPIs", "Programas", "Auditorias"].includes(breadcrumbs[breadcrumbs.length-1].label) && // Não simplifica se o pai for uma lista genérica
-        !breadcrumbs[breadcrumbs.length-1].label.startsWith("Detalhes")) { // Não simplifica se o pai já for um detalhe
+        !["Empresas", "Frota", "EPIs", "Programas", "Auditorias"].includes(breadcrumbs[breadcrumbs.length-1].label) && 
+        !breadcrumbs[breadcrumbs.length-1].label.startsWith("Detalhes")) { 
       return; 
     }
-
+    if (currentPath === "/dashboard") return; // Avoid duplicate "Painel" if already handled
 
     breadcrumbs.push({ href: currentPath, label });
   });
@@ -98,23 +100,22 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
   const breadcrumbs = generateBreadcrumbs(pathname);
   const { isMobile, toggleSidebar, open } = useSidebar(); 
 
-  // Determine the title for mobile view
   let mobileDisplayTitle = "Painel"; 
-  if (breadcrumbs.length > 1) {
+  if (breadcrumbs.length > 0) {
     const lastCrumb = breadcrumbs[breadcrumbs.length - 1];
-    const secondLastCrumb = breadcrumbs.length > 2 ? breadcrumbs[breadcrumbs.length - 2] : null;
-
+    const secondLastCrumb = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length - 2] : null;
+    
     mobileDisplayTitle = lastCrumb.label;
     
-    if (["Solicitar Veículo", "Checklist", "Abastecimento", "Distribuição", "Editor"].includes(lastCrumb.label)) {
-      mobileDisplayTitle = lastCrumb.label; // Show full for these specific actions
+    if (["Solicitar Veículo", "Checklist de Veículo", "Registrar Abastecimento", "Distribuição de EPIs", "Editor", "Checklist de Auditoria"].includes(lastCrumb.label)) {
+      // Use full label for specific actions
     } else if (lastCrumb.label === "Detalhes" && secondLastCrumb) {
-        mobileDisplayTitle = `${secondLastCrumb.label} Detalhes`; // e.g. "Empresas Detalhes"
+        mobileDisplayTitle = `${secondLastCrumb.label} Detalhes`; 
     } else if (mobileDisplayTitle === "Análise Preditiva") {
         mobileDisplayTitle = "Análise Pred.";
+    } else if (pathname === "/dashboard") {
+       mobileDisplayTitle = "Painel";
     }
-  } else if (pathname === "/dashboard") {
-    mobileDisplayTitle = "Painel";
   }
 
 
@@ -146,23 +147,15 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
               <span key={crumb.href} className="flex items-center">
                 {index > 0 && <ChevronLeft className="h-4 w-4 rotate-180 mx-1 text-muted-foreground/70" />}
                 
-                {index === 0 && (pathname === '/dashboard' || breadcrumbs.length === 1) ? (
-                   <Home className="h-4 w-4 text-foreground"/>
-                ) : index === 0 ? (
-                   <Link href={'/dashboard'} className="hover:text-foreground transition-colors" aria-label="Início">
-                     <Home className="h-4 w-4" />
-                   </Link>
-                ) : null}
-
-                {index > 0 && (
-                  <Link 
-                    href={crumb.href} 
-                    className={`hover:text-foreground transition-colors ${index === breadcrumbs.length - 1 ? 'text-foreground font-medium pointer-events-none' : ''}`}
-                    aria-current={index === breadcrumbs.length - 1 ? "page" : undefined}
-                  >
-                    {crumb.label}
-                  </Link>
-                )}
+                <Link 
+                  href={crumb.href} 
+                  className={`hover:text-foreground transition-colors ${index === breadcrumbs.length - 1 ? 'text-foreground font-medium pointer-events-none' : ''}
+                              ${index === 0 && crumb.label === "Painel" ? 'flex items-center' : ''}`}
+                  aria-current={index === breadcrumbs.length - 1 ? "page" : undefined}
+                >
+                   {index === 0 && crumb.label === "Painel" ? <Home className="h-4 w-4 mr-1" /> : null}
+                  {crumb.label}
+                </Link>
               </span>
             ))}
           </div>
