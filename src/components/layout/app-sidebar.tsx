@@ -48,7 +48,7 @@ const moduleNavItems = [
 // isVisible prop removida
 export function AppSidebar() {
   const pathname = usePathname();
-  const { setOpenMobile, isMobile, open } = useSidebar(); // 'open' aqui é o estado do SidebarProvider
+  const { isMobile, setOpenMobile, open } = useSidebar(); // 'open' aqui é o estado do SidebarProvider
 
   const handleLinkClick = () => {
     if (isMobile) { 

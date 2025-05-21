@@ -42,7 +42,7 @@ function generateBreadcrumbs(pathname: string) {
         return; // Don't add "Dashboard" as a separate breadcrumb if it's the root
     }
     if (label === "Predictive-analysis") label = "Análise Preditiva";
-    if (label === "Reports") label = "Relatórios"; // No longer a page, but keep for potential future
+    if (label === "Reports") label = "Relatórios";
     if (label === "Trainings") label = "Treinamentos";
     if (label === "Fleet") {
         label = "Frota";
@@ -52,12 +52,12 @@ function generateBreadcrumbs(pathname: string) {
     }
     if (label === "Epis") {
         label = "EPIs";
-        if (pathSegments.includes('distribuicao') && segment === 'distribuicao') label = "Distribuição";
+        if (pathSegments.includes('distribuicao') && segment === 'distribuicao') label = "Distribuição de EPIs";
     }
     if (label === "Empresas") {
         label = "Empresas";
-        if (breadcrumbs.length > 0 && breadcrumbs[breadcrumbs.length -1].label === "Empresas" && segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)\d*/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/))) { // Generic ID check
-            label = `Detalhes`; 
+        if (breadcrumbs.length > 0 && breadcrumbs[breadcrumbs.length -1].label === "Empresas" && (segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/)))) { 
+            label = `Detalhes Empresa`; 
         }
     }
     if (label === "Campanhas") label = "Campanhas";
@@ -74,12 +74,10 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Settings") label = "Configurações";
     
     // Avoid adding generic ID segments if previous segment was specific enough
-    if (segment.match(/^(V|RPT|EPI|TRN|CAMP|PROG)\d+/i) && breadcrumbs.length > 1 && breadcrumbs[breadcrumbs.length-1].label !== "Empresas") {
-        // If it's an ID after a known module, we probably don't need a separate breadcrumb for the ID itself
-        // The detail page title will handle specificity.
+    if (segment.match(/^(V|RPT|EPI|TRN|CAMP|PROG)\d+/i) && breadcrumbs.length > 1 && breadcrumbs[breadcrumbs.length-1].label !== "Empresas" && !breadcrumbs[breadcrumbs.length-1].label.startsWith("Detalhes")) {
         return; 
     }
-    if (segment === "new") label = "Novo"; // This might be obsolete if forms are modals
+    if (segment === "new") label = "Novo"; 
 
 
     breadcrumbs.push({ href: currentPath, label });
@@ -100,11 +98,13 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
     const lastCrumb = breadcrumbs[breadcrumbs.length - 1];
     mobileDisplayTitle = lastCrumb.label;
     if (lastCrumb.label.startsWith("Detalhes") && breadcrumbs.length > 2) {
-        mobileDisplayTitle = breadcrumbs[breadcrumbs.length - 2].label; // Show parent page name
-    } else if (lastCrumb.label === "Solicitar Veículo" || lastCrumb.label === "Registrar Abastecimento" || lastCrumb.label === "Distribuição") {
-        mobileDisplayTitle = lastCrumb.label.split(" ")[0]; // e.g. "Solicitar"
+        mobileDisplayTitle = breadcrumbs[breadcrumbs.length - 2].label; 
+    } else if (["Solicitar Veículo", "Registrar Abastecimento", "Distribuição de EPIs"].includes(lastCrumb.label)) {
+        mobileDisplayTitle = lastCrumb.label.split(" ")[0]; 
     } else if (mobileDisplayTitle === "Análise Preditiva") {
         mobileDisplayTitle = "Análise Pred.";
+    } else if (mobileDisplayTitle === "Gerenciamento de Campanhas") {
+        mobileDisplayTitle = "Campanhas";
     }
   } else if (pathname === "/dashboard") {
     mobileDisplayTitle = "Painel";
