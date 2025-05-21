@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation'; // Importar useRouter
+import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,12 +53,12 @@ const getStatusBadgeClass = (status: Empresa['status']) => {
 
 export default function EmpresasPage() {
   const { toast } = useToast();
-  const router = useRouter(); // Inicializar useRouter
+  const router = useRouter();
   const [empresas, setEmpresas] = useState<Empresa[]>(mockEmpresas);
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleViewDetails = (empresaId: string) => {
-    router.push(`/empresas/${empresaId}`); // Navegar para a página de detalhes
+    router.push(`/empresas/${empresaId}`);
   };
 
   const handleEditItem = (empresaId: string) => {
@@ -119,7 +119,7 @@ export default function EmpresasPage() {
             <CardTitle>Lista de Empresas Cadastradas</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto w-full">
                 <Table>
                 <TableHeader>
                     <TableRow>
