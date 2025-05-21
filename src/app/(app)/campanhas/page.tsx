@@ -63,26 +63,17 @@ const mockCampaigns: Campaign[] = [
 function CampaignCard({ campaign }: { campaign: Campaign }) {
   const { toast } = useToast();
 
-  const handleViewDetails = (campaignId: string) => {
-    toast({
-      title: 'Ver Detalhes da Campanha',
-      description: `Funcionalidade para ver detalhes da campanha ${campaignId} (com descrição em rich text, galeria de mídia, checklist anexado e opções de envio) será implementada aqui.`,
-    });
-  };
-
-  // TODO: Add logic for 'Edit Campaign' button
   const handleEditCampaign = (campaignId: string) => {
     toast({
-      title: 'Editar Campanha',
-      description: `Funcionalidade para editar a campanha ${campaignId} será implementada aqui (provavelmente em um modal ou nova página).`,
+      title: 'Editar Campanha (Placeholder)',
+      description: `Funcionalidade para editar a campanha ${campaignId} (com editor rich text, galeria de mídia, anexar checklist) será implementada aqui.`,
     });
   };
 
-  // TODO: Add logic for 'Send' button
   const handleSendCampaign = (campaignId: string) => {
     toast({
-      title: 'Enviar Campanha',
-      description: `Funcionalidade para enviar a campanha ${campaignId} para pessoas ou grupos será implementada aqui.`,
+      title: 'Enviar Campanha (Placeholder)',
+      description: `Funcionalidade para enviar a campanha ${campaignId} para pessoas ou grupos (via Firebase Messaging ou email) será implementada aqui.`,
     });
   };
   
@@ -91,7 +82,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
       case 'ativa': return 'bg-green-500';
       case 'planejada': return 'bg-blue-500';
       case 'concluida': return 'bg-gray-500';
-      case 'arquivada': return 'bg-orange-500';
+      case 'arquivada': return 'bg-orange-500'; // Added a color for 'arquivada' if needed
       default: return 'bg-gray-300';
     }
   }
@@ -124,8 +115,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
           </div>
           <Progress value={campaign.progress} aria-label={`Progresso da campanha: ${campaign.progress}%`} className="h-2.5" />
         </div>
-        {/* TODO: Add styling for buttons and layout */}
-        <div className="flex space-x-2">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <Button
               variant="outline"
               size="sm"
@@ -133,7 +123,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
               onClick={() => handleEditCampaign(campaign.id)}
           >
             <Edit className="mr-2 h-4 w-4" />
-            Editar Campanha
+            Editar / Detalhes
           </Button>
            <Button
               variant="outline"
@@ -197,7 +187,7 @@ export default function CampanhasPage() {
       )}
       
       <div className="mt-8 text-center text-sm text-muted-foreground">
-        <p>Detalhes da campanha (editor de rich text, galeria de mídia, anexar checklist, envio) serão acessíveis a partir de cada card.</p>
+        <p>A edição e envio de campanhas (editor de rich text, galeria de mídia, anexar checklist, envio) serão acessíveis a partir de cada card.</p>
       </div>
     </>
   );
