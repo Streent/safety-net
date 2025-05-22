@@ -1,7 +1,7 @@
 
 'use client';
 import Link from 'next/link';
-import { PlusCircle, Download, Eye, MoreHorizontal, CalendarDays, Filter, Search } from 'lucide-react';
+import { PlusCircle, Download, Eye, MoreHorizontal, CalendarDays, Filter, Search, X as XIcon } from 'lucide-react'; // Added XIcon for DialogClose
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/common/page-header';
 import {
@@ -29,7 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react'; // Added useRef
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { IncidentForm, type IncidentFormValues } from '@/components/reports/incident-form';
@@ -82,7 +82,7 @@ export default function ReportsListPage() {
   const [technicianFilter, setTechnicianFilter] = useState<string>('Todos');
   const [selectedReportTypes, setSelectedReportTypes] = useState<string[]>([]);
   
-  const [isLoading, setIsLoading] = useState(false); // For skeleton loader
+  const [isLoading, setIsLoading] = useState(false); 
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -99,7 +99,7 @@ export default function ReportsListPage() {
 
   // Effect to handle debounced filtering
   useEffect(() => {
-    if (!isMounted) return; // Don't run on initial server render if not yet mounted
+    if (!isMounted) return; 
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -107,14 +107,10 @@ export default function ReportsListPage() {
     
     debounceTimerRef.current = setTimeout(() => {
       setIsLoading(true);
-      // Simulate API call delay for filtering
       setTimeout(() => {
-        // The actual filtering will be done by `filteredReports` useMemo
-        // This effect primarily triggers the loading state and ensures
-        // `filteredReports` recalculates with the latest filter values.
         setIsLoading(false); 
-      }, 500); // Simulate 500ms loading
-    }, 300); // 300ms debounce
+      }, 500); 
+    }, 300); 
 
     return () => {
       if (debounceTimerRef.current) {
@@ -139,15 +135,13 @@ export default function ReportsListPage() {
         dateMatch = report.date >= dateFrom;
       }
       if (dateTo && isValid(report.date) && dateMatch) {
-        // Set time to end of day for 'to' date for inclusive range
         const toEndOfDay = new Date(dateTo);
         toEndOfDay.setHours(23, 59, 59, 999);
         dateMatch = report.date <= toEndOfDay;
       }
-      if (dateFrom && !dateTo && isValid(report.date)){ // single date selection
+      if (dateFrom && !dateTo && isValid(report.date)){ 
          dateMatch = report.date.toDateString() === dateFrom.toDateString();
       }
-
 
       const statusMatch = statusFilter === 'Todos' || report.status === statusFilter;
       const technicianMatch = technicianFilter === 'Todos' || report.technician === technicianFilter;
@@ -178,7 +172,7 @@ export default function ReportsListPage() {
   const handleFormSubmitSuccess = (submittedData: IncidentFormValues) => {
     const reportData: Omit<Report, 'id' | 'status'> = {
       date: submittedData.date,
-      technician: editingReport?.technician || 'Usuário Atual', // Keep original technician or assign current
+      technician: editingReport?.technician || 'Usuário Atual', 
       type: submittedData.incidentType,
       description: submittedData.description,
       location: submittedData.location,
@@ -189,7 +183,7 @@ export default function ReportsListPage() {
       const newReportEntry: Report = {
         id: `RPT${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`,
         ...reportData,
-        status: 'Aberto',
+        status: 'Aberto', 
       };
       setReports(prevReports => [newReportEntry, ...prevReports]);
       toast({ title: "Relatório Criado", description: "Novo relatório de incidente adicionado com sucesso." });
@@ -200,6 +194,8 @@ export default function ReportsListPage() {
             ? { 
                 ...editingReport, 
                 ...reportData,
+                // Manter o status original ao editar, a menos que o formulário permita alterá-lo
+                status: editingReport.status 
               } 
             : r
         )
@@ -305,7 +301,7 @@ export default function ReportsListPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="md:col-span-2 lg:col-span-3"> {/* Report Types span more columns */}
+          <div className="md:col-span-2 lg:col-span-3"> 
             <Label className="text-sm font-medium text-muted-foreground">Tipo de Relatório</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2 mt-2 p-3 border rounded-md bg-muted/30">
               {allReportTypes.map(type => (
@@ -322,7 +318,7 @@ export default function ReportsListPage() {
           </div>
         </div>
         <div className="flex justify-end mt-4">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => toast({ title: "Exportar CSV (Placeholder)", description: "Funcionalidade para exportar dados filtrados como CSV."})}>
             <Download className="mr-2 h-4 w-4" />
             Exportar (CSV)
           </Button>
@@ -424,7 +420,12 @@ export default function ReportsListPage() {
             <DialogDescription>
               {isNewReport ? 'Forneça informações detalhadas sobre o incidente.' : 'Atualize os detalhes deste relatório de incidente.'}
             </DialogDescription>
-             <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground p-1.5" />
+             <DialogClose asChild>
+                <Button variant="ghost" size="icon" className="absolute right-4 top-4 p-1.5">
+                    <XIcon className="h-5 w-5" />
+                    <span className="sr-only">Fechar</span>
+                </Button>
+            </DialogClose>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-6">
             <IncidentForm 
@@ -434,6 +435,7 @@ export default function ReportsListPage() {
                 location: editingReport?.location || '',
                 geolocation: editingReport?.geolocation || '',
                 date: editingReport?.date ? new Date(editingReport.date) : new Date(),
+                // A propriedade media não precisa ser passada aqui, pois é gerenciada localmente pelo IncidentForm
               }} 
               onSubmitSuccess={handleFormSubmitSuccess} 
               isModalMode={true}
