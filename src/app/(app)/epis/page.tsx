@@ -48,6 +48,7 @@ import * as z from 'zod';
 import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription as UiFormDescription, FormMessage as UiFormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from '@/components/ui/card';
+import { EpiDetailDrawer } from '@/components/epis/EpiDetailDrawer';
 
 
 export interface Epi {
@@ -66,11 +67,11 @@ export interface Epi {
 type EpiStatus = 'OK' | 'Baixo Estoque' | 'Próximo Validade' | 'Validade Crítica' | 'Expirado';
 
 export const mockEpis: Epi[] = [
-  { id: 'EPI001', name: 'Máscara N95 (PFF2)', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345', category: 'protecao_respiratoria', minimumStock: 10, responsible: 'Carlos Silva', photoUrls: ['https://placehold.co/100x100.png'] },
+  { id: 'EPI001', name: 'Máscara N95 (PFF2)', quantity: 50, validity: addMonths(new Date(), 3), location: 'Almoxarifado A', caNumber: '12345', category: 'protecao_respiratoria', minimumStock: 10, responsible: 'Carlos Silva', photoUrls: ['https://placehold.co/100x100.png', 'https://placehold.co/100x100.png'] },
   { id: 'EPI002', name: 'Capacete de Segurança Amarelo', quantity: 5, validity: addMonths(new Date(), 12), location: 'Estante B1', category: 'protecao_cabeca', minimumStock: 8, responsible: 'Ana Lima' },
   { id: 'EPI003', name: 'Luvas de Proteção (par) Tamanho M', quantity: 20, validity: addMonths(new Date(), -1), location: 'Almoxarifado A', category: 'protecao_maos', minimumStock: 10, responsible: 'Carlos Silva' }, // Expirado
   { id: 'EPI004', name: 'Protetor Auricular Plug Silicone', quantity: 10, validity: addMonths(new Date(), 0.5), location: 'Estante C3', caNumber: '67890', category: 'protecao_auditiva', minimumStock: 25, responsible: 'João Souza' }, // Validade Crítica (aprox. 15 dias) e Baixo Estoque
-  { id: 'EPI005', name: 'Óculos de Segurança Incolor', quantity: 15, validity: addMonths(new Date(), 6), location: 'Almoxarifado B', category: 'protecao_visual', minimumStock: 5, responsible: 'Maria Oliveira' },
+  { id: 'EPI005', name: 'Óculos de Segurança Incolor', quantity: 15, validity: addMonths(new Date(), 6), location: 'Almoxarifado B', category: 'protecao_visual', minimumStock: 5, responsible: 'Maria Oliveira', photoUrls: ['https://placehold.co/100x100.png'] },
   { id: 'EPI006', name: 'Extintor ABC (2kg) - Corredor', quantity: 2, validity: startOfDay(new Date()), location: 'Corredor Principal', category: 'combate_incendio', minimumStock: 1, responsible: 'Equipe de Segurança' }, // Validade Crítica (hoje)
   { id: 'EPI007', name: 'Cinto de Segurança para Altura Completo', quantity: 8, validity: addMonths(new Date(), 24), location: 'Sala de Equipamentos', caNumber: '11223', category: 'trabalho_altura', minimumStock: 2, responsible: 'José Santos' },
   { id: 'EPI008', name: 'Botina de Segurança com Bico de Aço Tam 42', quantity: 3, validity: addMonths(new Date(), 1), location: 'Vestiário Obra X', category: 'protecao_pes', minimumStock: 5, responsible: 'Pedro Costa' }, // Próximo Validade (1 mês) e Baixo Estoque
@@ -112,6 +113,9 @@ export default function EpisPage() {
   const [statusFilter, setStatusFilter] = useState('Todos');
   const [locationFilter, setLocationFilter] = useState('');
 
+  const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
+  const [selectedEpiForDetail, setSelectedEpiForDetail] = useState<Epi | null>(null);
+
 
   const form = useForm<EpiFormValues>({
     resolver: zodResolver(epiFormSchema),
@@ -128,19 +132,6 @@ export default function EpisPage() {
     },
   });
 
-  const cleanupPhotoPreviews = useCallback(() => {
-    photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
-    // Não resetar setPhotoPreviewUrls([]) aqui diretamente se for usado em dependências de effects que o recriam
-  }, [photoPreviewUrls]);
-
-
-  useEffect(() => {
-    // Cleanup object URLs on component unmount
-    return () => {
-      cleanupPhotoPreviews();
-    };
-  }, [cleanupPhotoPreviews]); // Dependência apenas em cleanupPhotoPreviews
-
   const resetAndCloseModal = useCallback(() => {
     form.reset({
       name: '',
@@ -154,8 +145,11 @@ export default function EpisPage() {
       responsible: '',
     });
     
-    // Revogar URLs de pré-visualização antes de limpar os arrays
-    photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    photoPreviewUrls.forEach(url => {
+      if (url.startsWith('blob:')) { // Only revoke blob URLs
+        URL.revokeObjectURL(url);
+      }
+    });
     setPhotoPreviewUrls([]);
     setPhotoFiles([]);
 
@@ -166,8 +160,6 @@ export default function EpisPage() {
 
   useEffect(() => {
     if (!isAddModalOpen) {
-      // Se o modal não estiver aberto, não há necessidade de fazer nada aqui
-      // resetAndCloseModal já será chamado pelo onOpenChange do Dialog.
       return;
     }
     
@@ -179,13 +171,16 @@ export default function EpisPage() {
         location: editingEpi.location,
         caNumber: editingEpi.caNumber || '',
         category: editingEpi.category || '',
-        minimumStock: editingEpi.minimumStock || 0,
+        minimumStock: editingEpi.minimumStock ?? 0,
         responsible: editingEpi.responsible || '',
         photos: undefined, 
       });
       
-      // Limpar visualizações antigas e arquivos
-      photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+      photoPreviewUrls.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
       setPhotoPreviewUrls(editingEpi.photoUrls || []); 
       setPhotoFiles([]);
     } else {
@@ -200,7 +195,11 @@ export default function EpisPage() {
         minimumStock: 0,
         responsible: '',
       });
-      photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+      photoPreviewUrls.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
       setPhotoFiles([]);
       setPhotoPreviewUrls([]);
     }
@@ -227,10 +226,9 @@ export default function EpisPage() {
       status = 'Validade Crítica';
     } else if (daysRemaining <= 30) { 
       status = 'Próximo Validade';
-    } else if (isLowStock) { // Baixo estoque só se não estiver em validade crítica ou expirado
+    } else if (isLowStock) {
         status = 'Baixo Estoque';
-    }
-    else { 
+    } else { 
       status = 'OK';
     }
         
@@ -241,7 +239,7 @@ export default function EpisPage() {
   
   const lowStockItemsCount = useMemo(() => epis.filter(item => {
     const { isLowStock, status } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
-    return isLowStock && status !== 'Expirado' && status !== 'Validade Crítica' && status !== 'Próximo Validade';
+    return isLowStock && status !== 'Expirado' && status !== 'Validade Crítica'; 
   }).length, [epis, getValidityStatus]);
 
   const criticalValidityItemsCount = useMemo(() => epis.filter(item => {
@@ -250,24 +248,24 @@ export default function EpisPage() {
   }).length, [epis, getValidityStatus]);
 
 
-  const getStatusBadgeClass = (status: EpiStatus) => {
+  const getStatusBadgeClass = (status: EpiStatus | string) => {
     switch (status) {
       case 'OK':
         return 'bg-green-500/20 text-green-700 border-green-500/30';
       case 'Baixo Estoque': 
-        return 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30'; // Amarelo para Baixo Estoque
+        return 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30';
       case 'Próximo Validade': 
-        return 'bg-amber-500/20 text-amber-700 border-amber-500/30';  // Laranja claro/Âmbar para Próximo Validade
+        return 'bg-amber-500/20 text-amber-700 border-amber-500/30';
       case 'Validade Crítica': 
-        return 'bg-orange-500/20 text-orange-700 border-orange-500/30'; // Laranja para Validade Crítica
+        return 'bg-orange-500/20 text-orange-700 border-orange-500/30';
       case 'Expirado':
-        return 'bg-red-500/20 text-red-700 border-red-500/30'; // Vermelho para Expirado
+        return 'bg-red-500/20 text-red-700 border-red-500/30';
       default:
         return 'bg-gray-500/20 text-gray-700 border-gray-500/30';
     }
   };
   
-  const getStatusText = (status: EpiStatus) => {
+  const getStatusText = (status: EpiStatus | string) => {
      switch (status) {
       case 'Próximo Validade': return 'Próx. Val.';
       case 'Validade Crítica': return 'Val. Crítica';
@@ -280,11 +278,9 @@ export default function EpisPage() {
     setIsAddModalOpen(true);
   };
 
-  const handleViewDetails = (epiId: string) => {
-    toast({
-      title: 'Ver Detalhes do EPI',
-      description: `Funcionalidade para ver detalhes do EPI ${epiId} (com abas: Visão Geral, Histórico de Uso, Anexos) será implementada aqui.`,
-    });
+  const handleViewDetails = (epi: Epi) => {
+    setSelectedEpiForDetail(epi);
+    setIsDetailDrawerOpen(true);
   };
   
   const handleDeleteEpi = (epi: Epi) => {
@@ -306,8 +302,9 @@ export default function EpisPage() {
   };
   
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Revogar URLs de pré-visualização antigos
-    photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    photoPreviewUrls.forEach(url => {
+        if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+    });
 
     if (event.target.files && event.target.files.length > 0) {
       const filesArray = Array.from(event.target.files);
@@ -317,14 +314,13 @@ export default function EpisPage() {
       form.setValue('photos', filesArray, { shouldValidate: true }); 
     } else {
       setPhotoFiles([]);
-      setPhotoPreviewUrls([]); // Limpar URLs de pré-visualização
+      setPhotoPreviewUrls([]);
       form.setValue('photos', undefined, { shouldValidate: true });
     }
   };
 
   const handleRemovePhoto = (indexToRemove: number) => {
-    // Revogar o URL do objeto da imagem que está sendo removida
-    if (photoPreviewUrls[indexToRemove]) {
+    if (photoPreviewUrls[indexToRemove]?.startsWith('blob:')) {
         URL.revokeObjectURL(photoPreviewUrls[indexToRemove]); 
     }
     
@@ -341,7 +337,12 @@ export default function EpisPage() {
     setIsLoadingForm(true);
     await new Promise(resolve => setTimeout(resolve, 1000)); 
     
-    const uploadedPhotoUrls = photoFiles.map(file => URL.createObjectURL(file)); // Usando createObjectURL para demonstração
+    let finalPhotoUrls: string[] = [];
+    if (photoFiles.length > 0) {
+      finalPhotoUrls = photoPreviewUrls.filter(url => url.startsWith('blob:')); 
+    } else if (editingEpi && editingEpi.photoUrls) {
+      finalPhotoUrls = editingEpi.photoUrls; 
+    }
     
     const newOrUpdatedEpi: Epi = {
       id: editingEpi ? editingEpi.id : `EPI${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`,
@@ -353,7 +354,7 @@ export default function EpisPage() {
       category: data.category,
       minimumStock: data.minimumStock === undefined ? 0 : data.minimumStock,
       responsible: data.responsible,
-      photoUrls: uploadedPhotoUrls.length > 0 ? uploadedPhotoUrls : (editingEpi?.photoUrls || []),
+      photoUrls: finalPhotoUrls,
     };
 
     if (editingEpi) {
@@ -379,7 +380,7 @@ export default function EpisPage() {
       const { status: itemStatus } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
       const nameMatch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
       const statusMatch = statusFilter === 'Todos' || itemStatus === statusFilter;
-      const locationMatch = item.location.toLowerCase().includes(locationFilter.toLowerCase());
+      const locationMatch = !locationFilter || item.location.toLowerCase().includes(locationFilter.toLowerCase());
       return nameMatch && statusMatch && locationMatch;
     });
   }, [epis, searchTerm, statusFilter, locationFilter, getValidityStatus]);
@@ -398,10 +399,8 @@ export default function EpisPage() {
             </Button>
             <Button asChild variant="outline">
               <Link href="/epis/distribuicao">
-                <span className="flex items-center gap-2">
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Registrar Distribuição
-                </span>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                <span>Registrar Distribuição</span>
               </Link>
             </Button>
           </div>
@@ -440,7 +439,7 @@ export default function EpisPage() {
                 <Label htmlFor="statusFilter" className="text-sm font-medium">Filtrar por Status</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger id="statusFilter" className="mt-1">
-                        <SelectValue /> {/* Removed placeholder */}
+                        <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="Todos">Todos os Status</SelectItem>
@@ -486,10 +485,10 @@ export default function EpisPage() {
                 <TableBody>
                   {filteredEpis.length > 0 ? filteredEpis.map((item) => {
                     const { status, daysRemaining } = getValidityStatus(item.validity, item.quantity, item.minimumStock);
-                    let validityText = format(new Date(item.validity), 'dd/MM/yyyy', { locale: ptBR });
+                    let validityText = isValid(new Date(item.validity)) ? format(new Date(item.validity), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A';
                     if ((status === 'Próximo Validade' || status === 'Validade Crítica') && daysRemaining !== null && daysRemaining >= 0) {
                       validityText += ` (${daysRemaining}d)`;
-                    } else if (status === 'Expirado') {
+                    } else if (status === 'Expirado' && isValid(new Date(item.validity))) {
                       validityText = `Expirou em ${format(new Date(item.validity), 'dd/MM/yyyy', { locale: ptBR })}`;
                     }
 
@@ -521,7 +520,7 @@ export default function EpisPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewDetails(item.id)}>
+                              <DropdownMenuItem onClick={() => handleViewDetails(item)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 <span>Ver Detalhes</span>
                               </DropdownMenuItem>
@@ -634,7 +633,7 @@ export default function EpisPage() {
                               )}
                             >
                               <CalendarIconLucide className="mr-2 h-4 w-4" />
-                              {field.value ? format(new Date(field.value), "dd/MM/yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
+                              {field.value && isValid(new Date(field.value)) ? format(new Date(field.value), "dd/MM/yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
@@ -724,7 +723,7 @@ export default function EpisPage() {
                 <FormField
                   control={form.control}
                   name="photos"
-                  render={({ field }) => ( 
+                  render={({ field: { onChange, value, ...restField } }) => ( 
                     <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-start gap-x-4 gap-y-2 sm:gap-y-4">
                       <FormLabel className="sm:text-right sm:col-span-1 pt-2">
                         <CloudUpload className="inline h-4 w-4 mr-1.5" /> Fotos
@@ -735,8 +734,9 @@ export default function EpisPage() {
                             type="file" 
                             multiple 
                             accept="image/*"
-                            onChange={handlePhotoChange}
+                            onChange={handlePhotoChange} 
                             className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                            {...restField}
                           />
                         </FormControl>
                         {photoPreviewUrls.length > 0 && (
@@ -810,7 +810,15 @@ export default function EpisPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EpiDetailDrawer
+        epi={selectedEpiForDetail}
+        isOpen={isDetailDrawerOpen}
+        onOpenChange={setIsDetailDrawerOpen}
+        getValidityStatus={getValidityStatus}
+        getStatusBadgeClass={getStatusBadgeClass}
+        getStatusText={getStatusText}
+      />
     </>
   );
 }
-
