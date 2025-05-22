@@ -1,7 +1,7 @@
 
 'use client';
 import Link from 'next/link';
-import { PlusCircle, Download, Eye, MoreHorizontal, SlidersHorizontal, Filter as FilterIcon, X as XIcon, Search } from 'lucide-react';
+import { PlusCircle, Download, Eye, MoreHorizontal, SlidersHorizontal, Filter as FilterIcon, X as XIcon, Search, CalendarDays as CalendarIconLucide } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/common/page-header';
 import {
@@ -25,7 +25,7 @@ import { format, isValid, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { IncidentForm, type IncidentFormValues } from '@/components/reports/incident-form';
 import { useToast } from '@/hooks/use-toast';
@@ -56,6 +56,14 @@ const initialMockReports: Report[] = [
   { id: 'RPT006', date: new Date(2024, 4, 28), technician: 'Juliana Lima', type: 'Inspeção', status: 'Fechado', description: 'Inspeção de segurança da área de solda completa.', location: 'Área de Solda' },
   { id: 'RPT007', date: new Date(2024, 4, 5), technician: 'Alice Silva', type: 'Auditoria', status: 'Em Progresso', description: 'Auditoria interna do sistema de gestão de SST.', location: 'Escritório Central' },
   { id: 'RPT008', date: new Date(2024, 3, 20), technician: 'Carlos Neves', type: 'DDS', status: 'Fechado', description: 'DDS sobre uso de óculos de proteção.', location: 'Canteiro de Obras Z' },
+  // Add more mock data for pagination
+  { id: 'RPT009', date: new Date(2024, 6, 1), technician: 'Fernanda Dias', type: 'Quase Acidente', status: 'Aberto', description: 'Material quase caiu de prateleira alta.', location: 'Depósito Central' },
+  { id: 'RPT010', date: new Date(2024, 6, 2), technician: 'Lucas Martins', type: 'Observação de Segurança', status: 'Em Progresso', description: 'Falta de sinalização em área de risco.', location: 'Pátio Externo' },
+  { id: 'RPT011', date: new Date(2024, 6, 3), technician: 'Alice Silva', type: 'Inspeção', status: 'Fechado', description: 'Inspeção dos extintores da Ala Sul.', location: 'Ala Sul' },
+  { id: 'RPT012', date: new Date(2024, 6, 4), technician: 'Roberto Costa', type: 'Primeiros Socorros', status: 'Aberto', description: 'Pequena queimadura em colaborador.', location: 'Cozinha Industrial' },
+  { id: 'RPT013', date: new Date(2024, 6, 5), technician: 'Carlos Neves', type: 'Dano à Propriedade', status: 'Fechado', description: 'Vidro de janela quebrado por impacto.', location: 'Escritório 203' },
+  { id: 'RPT014', date: new Date(2024, 6, 6), technician: 'Juliana Lima', type: 'Ambiental', status: 'Em Progresso', description: 'Descarte inadequado de resíduos observado.', location: 'Área de Descarte' },
+  { id: 'RPT015', date: new Date(2024, 6, 7), technician: 'Fernanda Dias', type: 'Auditoria', status: 'Aberto', description: 'Auditoria de conformidade NR-12 em máquinas.', location: 'Linha de Produção Alfa' },
 ];
 
 export type ReportStatus = 'Aberto' | 'Em Progresso' | 'Fechado';
@@ -68,6 +76,8 @@ const statusColors: Record<ReportStatus, string> = {
 
 const allReportTypes = Array.from(new Set(initialMockReports.map(report => report.type))).sort();
 
+const ITEMS_PER_PAGE = 7;
+
 export default function ReportsListPage() {
   const [reports, setReports] = useState<Report[]>(initialMockReports);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -78,11 +88,13 @@ export default function ReportsListPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [statusFilter, setStatusFilter] = useState<ReportStatus | 'Todos'>('Todos');
-  const [technicianFilter, setTechnicianFilter] = useState<string | undefined>(undefined); // Alterado para undefined para "Todos"
+  const [technicianFilter, setTechnicianFilter] = useState<string | undefined>(undefined);
   const [selectedReportTypes, setSelectedReportTypes] = useState<string[]>([]);
   
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -99,11 +111,11 @@ export default function ReportsListPage() {
     
     debounceTimerRef.current = setTimeout(() => {
       setIsLoading(true);
-      // Simulate data fetching delay
+      setCurrentPage(1); // Reset to first page on filter change
       setTimeout(() => {
         setIsLoading(false);
       }, 500);
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => {
       if (debounceTimerRef.current) {
@@ -115,17 +127,17 @@ export default function ReportsListPage() {
 
   const uniqueTechnicians = useMemo(() => {
     const techs = new Set(reports.map(report => report.technician));
-    // Adiciona "Todos" como primeira opção para o Combobox
     return ['Todos', ...Array.from(techs).sort()];
   }, [reports]);
 
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
+      const normalizedSearchTerm = searchTerm.toLowerCase();
       const searchMatch = searchTerm === '' ||
-                          report.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          report.technician.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (report.description && report.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          (report.location && report.location.toLowerCase().includes(searchTerm.toLowerCase()));
+                          report.id.toLowerCase().includes(normalizedSearchTerm) ||
+                          report.technician.toLowerCase().includes(normalizedSearchTerm) ||
+                          (report.description && report.description.toLowerCase().includes(normalizedSearchTerm)) ||
+                          (report.location && report.location.toLowerCase().includes(normalizedSearchTerm));
 
       const dateFrom = dateRange?.from;
       const dateTo = dateRange?.to;
@@ -142,17 +154,36 @@ export default function ReportsListPage() {
           dateMatch = reportDateOnly.getTime() === startOfDay(dateFrom).getTime();
         }
       } else {
-        dateMatch = false; // Or handle invalid dates as per requirement
+        dateMatch = false; 
       }
       
       const statusMatch = statusFilter === 'Todos' || report.status === statusFilter;
-      // Se technicianFilter for undefined (ou "Todos"), não filtra por técnico
       const technicianMatch = !technicianFilter || technicianFilter === 'Todos' || report.technician === technicianFilter;
       const typeMatch = selectedReportTypes.length === 0 || selectedReportTypes.includes(report.type);
       
       return searchMatch && dateMatch && statusMatch && technicianMatch && typeMatch;
     });
   }, [reports, searchTerm, dateRange, statusFilter, technicianFilter, selectedReportTypes]);
+
+  const totalPages = Math.ceil(filteredReports.length / ITEMS_PER_PAGE);
+  const paginatedReports = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredReports.slice(startIndex, endIndex);
+  }, [filteredReports, currentPage]);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
 
   const handleOpenNewReportModal = () => {
     setEditingReport(null);
@@ -175,7 +206,7 @@ export default function ReportsListPage() {
   const handleFormSubmitSuccess = useCallback((submittedData: IncidentFormValues) => {
     const reportData: Omit<Report, 'id' | 'status' | 'date'> & { date: Date } = {
       date: submittedData.date,
-      technician: editingReport?.technician || 'Usuário Atual (Definir)', // Placeholder
+      technician: editingReport?.technician || 'Usuário Atual (TBD)', 
       type: submittedData.incidentType,
       description: submittedData.description,
       location: submittedData.location,
@@ -186,7 +217,7 @@ export default function ReportsListPage() {
       const newReportEntry: Report = {
         id: `RPT${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`,
         ...reportData,
-        status: 'Aberto', // Default status for new reports
+        status: 'Aberto', 
       };
       setReports(prevReports => [newReportEntry, ...prevReports]);
       toast({ title: "Relatório Criado", description: "Novo relatório de incidente adicionado com sucesso." });
@@ -197,7 +228,6 @@ export default function ReportsListPage() {
             ? { 
                 ...editingReport, 
                 ...reportData,
-                // Manter o status original ou permitir alteração no formulário
                 status: editingReport.status 
               } 
             : r
@@ -206,7 +236,7 @@ export default function ReportsListPage() {
       toast({ title: "Relatório Atualizado", description: `Relatório ${editingReport.id} atualizado com sucesso.` });
     }
     handleCloseReportModal();
-  }, [editingReport, isNewReport, toast]); // handleCloseReportModal não precisa ser dependência aqui
+  }, [editingReport, isNewReport, toast]); 
 
   const handleReportTypeChange = (type: string) => {
     setSelectedReportTypes(prev => 
@@ -237,7 +267,6 @@ export default function ReportsListPage() {
       />
 
       <div className="flex flex-col md:flex-row md:gap-6">
-        {/* Mobile: Accordion for Filters */}
         <div className="md:hidden mb-6">
           <Accordion type="single" collapsible className="w-full border rounded-lg bg-card shadow-sm">
             <AccordionItem value="filters">
@@ -267,7 +296,6 @@ export default function ReportsListPage() {
           </Accordion>
         </div>
 
-        {/* Desktop: Static Filter Panel */}
         <aside className="hidden md:block md:w-72 lg:w-80 xl:w-96 md:sticky md:top-[calc(4rem+1rem)] md:h-[calc(100vh-5rem-2rem)] md:overflow-y-auto md:pr-2">
            <Card className="shadow-md">
             <CardHeader className="border-b py-4">
@@ -294,7 +322,6 @@ export default function ReportsListPage() {
           </Card>
         </aside>
 
-        {/* Reports Table Section */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
             <h2 className="text-xl font-semibold">Lista de Relatórios ({isLoading ? '...' : filteredReports.length})</h2>
@@ -327,9 +354,9 @@ export default function ReportsListPage() {
                   <TableBody className="transition-opacity duration-300 ease-in-out">
                     {isLoading ? (
                       <>
-                        {[...Array(5)].map((_, i) => <SkeletonRow key={i} />)}
+                        {[...Array(ITEMS_PER_PAGE)].map((_, i) => <SkeletonRow key={i} />)}
                       </>
-                    ) : filteredReports.length > 0 ? filteredReports.map((report) => (
+                    ) : paginatedReports.length > 0 ? paginatedReports.map((report) => (
                       <TableRow
                         key={report.id}
                         className="hover:bg-muted/50 cursor-pointer"
@@ -385,29 +412,44 @@ export default function ReportsListPage() {
               </div>
             </CardContent>
           </Card>
-          <div className="flex items-center justify-end space-x-2 py-4">
-            <Button variant="outline" size="sm" disabled={isLoading || filteredReports.length === 0}>
-              Anterior
-            </Button>
-            <Button variant="outline" size="sm" disabled={isLoading || filteredReports.length === 0}>
-              Próximo
-            </Button>
+          <div className="flex items-center justify-between space-x-2 py-4">
+            <span className="text-sm text-muted-foreground">
+              Página {currentPage} de {totalPages > 0 ? totalPages : 1}
+            </span>
+            <div className="space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handlePreviousPage}
+                disabled={isLoading || currentPage === 1}
+              >
+                Anterior
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleNextPage}
+                disabled={isLoading || currentPage === totalPages || totalPages === 0}
+              >
+                Próximo
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       <Dialog open={isReportModalOpen} onOpenChange={handleCloseReportModal}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
+           {/* Botão de fechar explícito removido conforme solicitado anteriormente */}
           <DialogHeader className="p-6 pb-4 border-b">
             <DialogTitle className="text-2xl">
               {isNewReport ? 'Registrar Novo Incidente' : `Editar Relatório #${editingReport?.id}`}
             </DialogTitle>
-            <DialogDescription>
+            <UiDialogDescription>
               {isNewReport ? 'Forneça informações detalhadas sobre o incidente.' : 'Atualize os detalhes deste relatório de incidente.'}
-            </DialogDescription>
-            {/* Botão de fechar explícito removido conforme solicitado anteriormente */}
+            </UiDialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6"> {/* Padding movido para cá */}
             <IncidentForm 
               initialData={isNewReport ? undefined : {
                 incidentType: editingReport?.type || '',
@@ -415,16 +457,12 @@ export default function ReportsListPage() {
                 location: editingReport?.location || '',
                 geolocation: editingReport?.geolocation || '',
                 date: editingReport?.date ? new Date(editingReport.date) : new Date(),
-                // media: undefined, // Media é tratado separadamente no IncidentForm
               }} 
               onSubmitSuccess={handleFormSubmitSuccess} 
               isModalMode={true}
             />
           </div>
-          <DialogFooter className="p-6 border-t">
-            <Button variant="outline" onClick={handleCloseReportModal}>Cancelar</Button>
-            {/* O botão de submit principal está dentro do IncidentForm agora */}
-          </DialogFooter>
+          {/* Footer removido daqui pois os botões de ação estão no IncidentForm */}
         </DialogContent>
       </Dialog>
     </>
