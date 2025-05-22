@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image'; // Import Image
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,11 +16,11 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Building, MoreHorizontal, Eye, Edit2, Search, PlusCircle, Trash2 } from 'lucide-react';
+import { Building, Eye, Edit2, Search, PlusCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -182,7 +183,7 @@ export default function EmpresasPage() {
       <Card className="mb-6 shadow">
         <CardHeader>
             <CardTitle className="text-lg">Filtro e Busca</CardTitle>
-            <CardDescription>Use o campo abaixo para buscar por nome ou CNPJ.</CardDescription>
+            <UiCardDescription>Use o campo abaixo para buscar por nome ou CNPJ.</UiCardDescription>
         </CardHeader>
         <CardContent>
           <div className="relative">
@@ -231,8 +232,18 @@ export default function EmpresasPage() {
                         <TableCell className="text-right">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
+                            <Button 
+                                variant="default" // Changed from ghost to allow bg color
+                                size="icon" 
+                                className="h-9 w-9 p-0 bg-yellow-400 hover:bg-yellow-500 dark:bg-primary dark:hover:bg-primary/90" // Yellow background
+                            >
+                                <Image 
+                                    src="/images/mascote-leao.png" 
+                                    alt={`Ações para ${empresa.nome}`}
+                                    width={24} // Adjust size as needed
+                                    height={24}
+                                    className="rounded-full"
+                                />
                                 <span className="sr-only">Ações para {empresa.nome}</span>
                             </Button>
                             </DropdownMenuTrigger>
