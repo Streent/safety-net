@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image'; // Import Image
+import Image from 'next/image';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,33 +30,37 @@ import * as z from 'zod';
 import { cn } from '@/lib/utils';
 
 const mockEmpresasData = [
-  { id: 'EMP001', nome: 'Construtora Segura Ltda.', cnpj: '12.345.678/0001-99', status: 'Ativo', cidade: 'São Paulo, SP', endereco: 'Rua das Palmeiras, 123', email: 'contato@construtorasegura.com.br', telefone: '(11) 98765-4321', responsavel: 'João da Silva' },
-  { id: 'EMP002', nome: 'Indústria Forte S.A.', cnpj: '98.765.432/0001-11', status: 'Inativo', cidade: 'Rio de Janeiro, RJ', endereco: 'Av. Principal, 456', email: 'financeiro@fortesa.com', telefone: '(21) 12345-6789', responsavel: 'Maria Costa' },
-  { id: 'EMP003', nome: 'Serviços Ágeis EIRELI', cnpj: '11.222.333/0001-44', status: 'Ativo', cidade: 'Belo Horizonte, MG', endereco: 'Alameda dos Anjos, 789', email: 'comercial@servicosageis.com.br', telefone: '(31) 99887-7665', responsavel: 'Carlos Magno' },
-  { id: 'EMP004', nome: 'Tecnologia Inovadora ME', cnpj: '44.555.666/0001-77', status: 'Pendente', cidade: 'Curitiba, PR', endereco: 'Rua da Tecnologia, 101', email: 'suporte@tecinovadora.dev', telefone: '(41) 3030-4040', responsavel: 'Ana Pereira' },
-  { id: 'EMP005', nome: 'Agropecuária Campos Verdes', cnpj: '77.888.999/0001-00', status: 'Ativo', cidade: 'Goiânia, GO', endereco: 'Fazenda Boa Esperança, S/N', email: 'agro@camposverdes.com.br', telefone: '(62) 98000-0001', responsavel: 'José Oliveira' },
+  { id: 'EMP001', nomeFantasia: 'Construtora Segura Ltda.', razaoSocial: 'CONSTRUTORA SEGURA E PARTICIPACOES LTDA', cnpj: '12.345.678/0001-99', inscricaoEstadual: '123.456.789.112', status: 'Ativo', cidade: 'São Paulo, SP', endereco: 'Rua das Palmeiras, 123', email: 'contato@construtorasegura.com.br', telefone: '(11) 98765-4321', responsavelLegal: 'João da Silva' },
+  { id: 'EMP002', nomeFantasia: 'Indústria Forte S.A.', razaoSocial: 'INDUSTRIA FORTE METALURGICA S.A.', cnpj: '98.765.432/0001-11', inscricaoEstadual: 'ISENTO', status: 'Inativo', cidade: 'Rio de Janeiro, RJ', endereco: 'Av. Principal, 456', email: 'financeiro@fortesa.com', telefone: '(21) 12345-6789', responsavelLegal: 'Maria Costa' },
+  { id: 'EMP003', nomeFantasia: 'Serviços Ágeis EIRELI', razaoSocial: 'SERVICOS AGEIS DE CONSULTORIA EIRELI', cnpj: '11.222.333/0001-44', inscricaoEstadual: '987.654.321.000', status: 'Ativo', cidade: 'Belo Horizonte, MG', endereco: 'Alameda dos Anjos, 789', email: 'comercial@servicosageis.com.br', telefone: '(31) 99887-7665', responsavelLegal: 'Carlos Magno' },
+  { id: 'EMP004', nomeFantasia: 'Tecnologia Inovadora ME', razaoSocial: 'TECNOLOGIA INOVADORA SOFTWARE ME', cnpj: '44.555.666/0001-77', status: 'Pendente', cidade: 'Curitiba, PR', endereco: 'Rua da Tecnologia, 101', email: 'suporte@tecinovadora.dev', telefone: '(41) 3030-4040', responsavelLegal: 'Ana Pereira' },
+  { id: 'EMP005', nomeFantasia: 'Agropecuária Campos Verdes', razaoSocial: 'AGROPECUARIA CAMPOS VERDES LTDA - ME', cnpj: '77.888.999/0001-00', status: 'Ativo', cidade: 'Goiânia, GO', endereco: 'Fazenda Boa Esperança, S/N', email: 'agro@camposverdes.com.br', telefone: '(62) 98000-0001', responsavelLegal: 'José Oliveira' },
 ];
 
 interface Empresa {
   id: string;
-  nome: string;
+  nomeFantasia: string;
+  razaoSocial: string;
   cnpj: string;
+  inscricaoEstadual?: string;
   status: 'Ativo' | 'Inativo' | 'Pendente';
   cidade: string;
   endereco?: string;
   email?: string;
   telefone?: string;
-  responsavel?: string;
+  responsavelLegal?: string;
 }
 
 const empresaFormSchema = z.object({
-  nome: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
+  nomeFantasia: z.string().min(3, { message: 'O nome fantasia deve ter pelo menos 3 caracteres.' }),
+  razaoSocial: z.string().min(3, { message: 'A razão social deve ter pelo menos 3 caracteres.' }),
   cnpj: z.string().regex(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/, { message: 'CNPJ inválido. Use o formato XX.XXX.XXX/XXXX-XX.' }),
+  inscricaoEstadual: z.string().optional().or(z.literal('')), // Allow empty string for optional
   endereco: z.string().optional(),
   email: z.string().email({ message: 'E-mail inválido.' }).optional().or(z.literal('')),
   telefone: z.string().optional(),
   status: z.enum(['Ativo', 'Inativo', 'Pendente'], { required_error: 'O status é obrigatório.' }),
-  responsavel: z.string().optional(),
+  responsavelLegal: z.string().optional(),
   cidade: z.string().min(2, { message: 'A cidade deve ter pelo menos 2 caracteres.'}),
 });
 
@@ -86,13 +90,15 @@ export default function EmpresasPage() {
   const form = useForm<EmpresaFormValues>({
     resolver: zodResolver(empresaFormSchema),
     defaultValues: {
-      nome: '',
+      nomeFantasia: '',
+      razaoSocial: '',
       cnpj: '',
+      inscricaoEstadual: '',
       endereco: '',
       email: '',
       telefone: '',
       status: 'Ativo',
-      responsavel: '',
+      responsavelLegal: '',
       cidade: '',
     },
   });
@@ -100,16 +106,25 @@ export default function EmpresasPage() {
   useEffect(() => {
     if (isEmpresaModalOpen) {
       if (editingEmpresa) {
-        form.reset(editingEmpresa);
+        form.reset({
+            ...editingEmpresa,
+            inscricaoEstadual: editingEmpresa.inscricaoEstadual || '', // Ensure optional fields are reset correctly
+            endereco: editingEmpresa.endereco || '',
+            email: editingEmpresa.email || '',
+            telefone: editingEmpresa.telefone || '',
+            responsavelLegal: editingEmpresa.responsavelLegal || '',
+        });
       } else {
         form.reset({
-          nome: '',
+          nomeFantasia: '',
+          razaoSocial: '',
           cnpj: '',
+          inscricaoEstadual: '',
           endereco: '',
           email: '',
           telefone: '',
           status: 'Ativo',
-          responsavel: '',
+          responsavelLegal: '',
           cidade: '',
         });
       }
@@ -148,22 +163,31 @@ export default function EmpresasPage() {
   };
 
   async function onEmpresaSubmit(data: EmpresaFormValues) {
+    const empresaDataToSave = {
+        ...data,
+        inscricaoEstadual: data.inscricaoEstadual || undefined, // Convert empty string to undefined for consistency
+        responsavelLegal: data.responsavelLegal || undefined,
+        email: data.email || undefined,
+        telefone: data.telefone || undefined,
+        endereco: data.endereco || undefined,
+    };
+
     if (editingEmpresa) {
-      setEmpresas(prev => prev.map(e => e.id === editingEmpresa.id ? { ...editingEmpresa, ...data } : e));
-      toast({ title: "Empresa Atualizada!", description: `Os dados de ${data.nome} foram atualizados.` });
+      setEmpresas(prev => prev.map(e => e.id === editingEmpresa.id ? { ...editingEmpresa, ...empresaDataToSave } : e));
+      toast({ title: "Empresa Atualizada!", description: `Os dados de ${data.nomeFantasia} foram atualizados.` });
     } else {
       const newEmpresa: Empresa = {
         id: `EMP-${Date.now()}`,
-        ...data,
+        ...empresaDataToSave,
       };
       setEmpresas(prev => [newEmpresa, ...prev]);
-      toast({ title: "Empresa Adicionada!", description: `${data.nome} foi adicionada.` });
+      toast({ title: "Empresa Adicionada!", description: `${data.nomeFantasia} foi adicionada.` });
     }
     setIsEmpresaModalOpen(false);
   }
 
   const filteredEmpresas = empresas.filter(empresa => 
-    empresa.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    empresa.nomeFantasia.toLowerCase().includes(searchTerm.toLowerCase()) ||
     empresa.cnpj.replace(/[^\d]/g, "").includes(searchTerm.replace(/[^\d]/g, ""))
   );
 
@@ -183,13 +207,13 @@ export default function EmpresasPage() {
       <Card className="mb-6 shadow">
         <CardHeader>
             <CardTitle className="text-lg">Filtro e Busca</CardTitle>
-            <UiCardDescription>Use o campo abaixo para buscar por nome ou CNPJ.</UiCardDescription>
+            <UiCardDescription>Use o campo abaixo para buscar por nome fantasia ou CNPJ.</UiCardDescription>
         </CardHeader>
         <CardContent>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input 
-              placeholder="Buscar por nome ou CNPJ..."
+              placeholder="Buscar por nome fantasia ou CNPJ..."
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -208,7 +232,7 @@ export default function EmpresasPage() {
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead className="w-[300px]">Nome da Empresa</TableHead>
+                    <TableHead className="w-[300px]">Nome Fantasia</TableHead>
                     <TableHead>CNPJ</TableHead>
                     <TableHead>Cidade</TableHead>
                     <TableHead className="text-center">Status</TableHead>
@@ -220,7 +244,7 @@ export default function EmpresasPage() {
                     <TableRow key={empresa.id} className="hover:bg-muted/50">
                         <TableCell className="font-medium flex items-center">
                         <Building className="mr-3 h-5 w-5 text-muted-foreground"/>
-                        {empresa.nome}
+                        {empresa.nomeFantasia}
                         </TableCell>
                         <TableCell>{empresa.cnpj}</TableCell>
                         <TableCell>{empresa.cidade}</TableCell>
@@ -233,18 +257,18 @@ export default function EmpresasPage() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                             <Button 
-                                variant="default" // Changed from ghost to allow bg color
+                                variant="default" 
                                 size="icon" 
-                                className="h-9 w-9 p-0 bg-yellow-400 hover:bg-yellow-500 dark:bg-primary dark:hover:bg-primary/90" // Yellow background
+                                className="h-9 w-9 p-0 bg-yellow-400 hover:bg-yellow-500 dark:bg-primary dark:hover:bg-primary/90"
                             >
                                 <Image 
                                     src="/images/mascote-leao.png" 
-                                    alt={`Ações para ${empresa.nome}`}
-                                    width={24} // Adjust size as needed
+                                    alt={`Ações para ${empresa.nomeFantasia}`}
+                                    width={24} 
                                     height={24}
                                     className="rounded-full"
                                 />
-                                <span className="sr-only">Ações para {empresa.nome}</span>
+                                <span className="sr-only">Ações para {empresa.nomeFantasia}</span>
                             </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -297,12 +321,25 @@ export default function EmpresasPage() {
             <form onSubmit={form.handleSubmit(onEmpresaSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
               <FormField
                 control={form.control}
-                name="nome"
+                name="nomeFantasia"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome da Empresa</FormLabel>
+                    <FormLabel>Nome Fantasia</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome da empresa" {...field} />
+                      <Input placeholder="Nome fantasia da empresa" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="razaoSocial"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Razão Social</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Razão social completa" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -328,12 +365,25 @@ export default function EmpresasPage() {
               />
               <FormField
                 control={form.control}
+                name="inscricaoEstadual"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Inscrição Estadual (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Número da IE ou 'ISENTO'" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="endereco"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Endereço (Opcional)</FormLabel>
+                    <FormLabel>Endereço Completo (Opcional)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Rua, Número, Bairro..." {...field} />
+                      <Textarea placeholder="Rua, Número, Bairro, Complemento..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -344,9 +394,9 @@ export default function EmpresasPage() {
                 name="cidade"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cidade</FormLabel>
+                    <FormLabel>Cidade e UF</FormLabel>
                     <FormControl>
-                      <Input placeholder="Cidade, UF" {...field} />
+                      <Input placeholder="Ex: São Paulo, SP" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -376,7 +426,7 @@ export default function EmpresasPage() {
                         placeholder="(00) 00000-0000" 
                         {...field}
                         onChange={(e) => field.onChange(formatTelefone(e.target.value))}
-                        maxLength={16} // Considera (XX) X XXXX-XXXX
+                        maxLength={16}
                       />
                     </FormControl>
                     <FormMessage />
@@ -385,12 +435,12 @@ export default function EmpresasPage() {
               />
               <FormField
                 control={form.control}
-                name="responsavel"
+                name="responsavelLegal"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Responsável Principal (Opcional)</FormLabel>
+                    <FormLabel>Responsável Legal (Opcional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome do responsável" {...field} />
+                      <Input placeholder="Nome do responsável legal" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -431,3 +481,4 @@ export default function EmpresasPage() {
     </>
   );
 }
+

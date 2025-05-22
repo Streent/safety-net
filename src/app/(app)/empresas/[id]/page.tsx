@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2, CalendarIcon as CalendarIconLucide, View, FileIcon } from 'lucide-react';
+import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2, CalendarIcon as CalendarIconLucide, View, FileIcon, Building, Mail, Phone, UserCircle2, CheckSquare, XSquare, UserCheck, UserX } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -16,21 +16,25 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as UiFormDescription } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 // Mock data - em uma aplicação real, isso viria do backend baseado no `id`
 const mockCompanyData = {
   id: 'EMP001',
-  nome: 'Construtora Segura Ltda.',
+  nomeFantasia: 'Construtora Segura Ltda.',
+  razaoSocial: 'CONSTRUTORA SEGURA E PARTICIPACOES LTDA',
   cnpj: '12.345.678/0001-99',
+  inscricaoEstadual: '123.456.789.112',
   endereco: 'Rua das Palmeiras, 123, São Paulo, SP',
   email: 'contato@construtorasegura.com.br',
   telefone: '(11) 98765-4321',
-  responsavel: 'João da Silva',
+  responsavelLegal: 'João da Silva',
   status: 'Ativo',
 };
 
@@ -50,8 +54,8 @@ interface Documento {
 
 const mockDocumentos: Documento[] = [
   { id: 'D001', nome: 'PGR - Programa de Gerenciamento de Riscos', tipo: 'PGR', validade: '31/12/2024', descricao: 'Documento base do Programa de Gerenciamento de Riscos da empresa, conforme NR-01. Este é o documento de exemplo principal.', linkVisualizacao: '/documents/exemplo_documento.txt' },
-  { id: 'D002', nome: 'PCMSO - Programa de Controle Médico de Saúde Ocupacional', tipo: 'PCMSO', validade: '15/07/2024', descricao: 'Programa visa a promoção e preservação da saúde dos trabalhadores.', linkVisualizacao: '#' }, // Link de placeholder
-  { id: 'D003', nome: 'Relatório de Auditoria Interna Q3', tipo: 'Auditoria', validade: 'N/A', descricao: 'Resultados da auditoria interna de segurança realizada no terceiro trimestre.', linkVisualizacao: '#' }, // Link de placeholder
+  { id: 'D002', nome: 'PCMSO - Programa de Controle Médico de Saúde Ocupacional', tipo: 'PCMSO', validade: '15/07/2024', descricao: 'Programa visa a promoção e preservação da saúde dos trabalhadores.', linkVisualizacao: '#' },
+  { id: 'D003', nome: 'Relatório de Auditoria Interna Q3', tipo: 'Auditoria', validade: 'N/A', descricao: 'Resultados da auditoria interna de segurança realizada no terceiro trimestre.', linkVisualizacao: '#' },
 ];
 
 interface Colaborador {
@@ -61,6 +65,7 @@ interface Colaborador {
   funcao: string;
   dataNascimento?: Date;
   dataAdmissao?: Date;
+  status: 'Ativo' | 'Desligado';
 }
 
 const colaboradorFormSchema = z.object({
@@ -83,14 +88,17 @@ const colaboradorFormSchema = z.object({
       return { message: ctx.defaultError };
     }
   }).optional(),
+  status: z.enum(['Ativo', 'Desligado'], { required_error: 'O status é obrigatório.' }),
 });
 
 type ColaboradorFormValues = z.infer<typeof colaboradorFormSchema>;
 
 export default function CompanyDetailPage() {
   const params = useParams();
-  const companyId = params.id as string;
+  const companyId = params.id as string; 
   const { toast } = useToast();
+
+  const [companyData, setCompanyData] = useState(mockCompanyData); 
 
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [isColaboradorModalOpen, setIsColaboradorModalOpen] = useState(false);
@@ -107,8 +115,27 @@ export default function CompanyDetailPage() {
       funcao: '',
       dataNascimento: undefined,
       dataAdmissao: undefined,
+      status: 'Ativo',
     },
   });
+
+  useEffect(() => {
+    if (companyId) {
+        // Em uma aplicação real, buscaria os dados da empresa pelo ID.
+        // Por agora, estamos usando mockCompanyData, mas podemos simular uma busca
+        // e se o ID não corresponder ao mock, talvez mostrar um erro ou estado de "não encontrado".
+        const foundCompany = mockCompanyData; // Simula busca.
+        if (foundCompany && foundCompany.id === companyId) {
+            setCompanyData(foundCompany);
+        } else {
+             // Atualiza para o mock se o ID não for o "EMP001" do mock principal, 
+             // ou poderia redirecionar/mostrar erro.
+            setCompanyData({ ...mockCompanyData, id: companyId, nomeFantasia: `Empresa ${companyId}` }); 
+            // Poderia carregar um mock diferente ou limpar dados.
+            setColaboradores([]); // Limpar colaboradores se a empresa mudar
+        }
+    }
+  }, [companyId]);
 
   useEffect(() => {
     if (isColaboradorModalOpen) {
@@ -117,6 +144,7 @@ export default function CompanyDetailPage() {
           ...editingColaborador,
           dataNascimento: editingColaborador.dataNascimento ? new Date(editingColaborador.dataNascimento) : undefined,
           dataAdmissao: editingColaborador.dataAdmissao ? new Date(editingColaborador.dataAdmissao) : undefined,
+          status: editingColaborador.status || 'Ativo',
         });
       } else {
         form.reset({
@@ -125,6 +153,7 @@ export default function CompanyDetailPage() {
           funcao: '',
           dataNascimento: undefined,
           dataAdmissao: undefined,
+          status: 'Ativo',
         });
       }
     }
@@ -138,6 +167,7 @@ export default function CompanyDetailPage() {
         funcao: '',
         dataNascimento: undefined,
         dataAdmissao: undefined,
+        status: 'Ativo',
     });
     setIsColaboradorModalOpen(true);
   };
@@ -189,11 +219,22 @@ export default function CompanyDetailPage() {
     }
   };
 
+  const getColaboradorStatusBadgeClass = (status: Colaborador['status']) => {
+    switch (status) {
+      case 'Ativo':
+        return 'bg-green-100 text-green-700 border-green-300';
+      case 'Desligado':
+        return 'bg-red-100 text-red-700 border-red-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
   return (
     <>
       <PageHeader
-        title={mockCompanyData.nome || `Detalhes da Empresa ${companyId}`}
-        description={`Informações detalhadas, pessoas, colaboradores e documentos associados.`}
+        title={companyData.nomeFantasia || `Detalhes da Empresa`}
+        description={`Informações detalhadas, contatos, colaboradores e documentos associados.`}
       />
 
       <div className="space-y-6">
@@ -204,14 +245,22 @@ export default function CompanyDetailPage() {
               Informações da Empresa
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <div><strong>CNPJ:</strong> {mockCompanyData.cnpj}</div>
-              <div><strong>Status:</strong> <span className={`font-semibold ${mockCompanyData.status === 'Ativo' ? 'text-green-600' : 'text-red-600'}`}>{mockCompanyData.status}</span></div>
-              <div className="md:col-span-2"><strong>Endereço:</strong> {mockCompanyData.endereco}</div>
-              <div><strong>Email:</strong> {mockCompanyData.email}</div>
-              <div><strong>Telefone:</strong> {mockCompanyData.telefone}</div>
-              <div><strong>Responsável Principal:</strong> {mockCompanyData.responsavel}</div>
+          <CardContent className="space-y-3 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              <div><Building className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Nome Fantasia:</strong> {companyData.nomeFantasia}</div>
+              <div><Building className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Razão Social:</strong> {companyData.razaoSocial}</div>
+              <div><FileText className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>CNPJ:</strong> {companyData.cnpj}</div>
+              <div><FileText className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Inscrição Estadual:</strong> {companyData.inscricaoEstadual || 'N/A'}</div>
+              <div className="md:col-span-2"><MapPinIcon className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Endereço:</strong> {companyData.endereco}</div>
+              <div><Mail className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Email:</strong> {companyData.email}</div>
+              <div><Phone className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Telefone:</strong> {companyData.telefone}</div>
+              <div><UserCircle2 className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Responsável Legal:</strong> {companyData.responsavelLegal}</div>
+              <div>
+                <span className="font-semibold">Status: </span>
+                <Badge variant="outline" className={`ml-1 text-xs ${companyData.status === 'Ativo' ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}>
+                  {companyData.status}
+                </Badge>
+              </div>
             </div>
             <Separator className="my-4" />
             <Button variant="outline">
@@ -240,13 +289,14 @@ export default function CompanyDetailPage() {
           <CardContent>
             {colaboradores.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[600px]">
+                <table className="w-full text-sm min-w-[700px]">
                   <thead>
                     <tr className="border-b">
                       <th className="p-2 text-left font-semibold">Nome</th>
                       <th className="p-2 text-left font-semibold">CPF</th>
                       <th className="p-2 text-left font-semibold">Função</th>
                       <th className="p-2 text-left font-semibold">Admissão</th>
+                      <th className="p-2 text-center font-semibold">Status</th>
                       <th className="p-2 text-right font-semibold">Ações</th>
                     </tr>
                   </thead>
@@ -257,6 +307,12 @@ export default function CompanyDetailPage() {
                         <td className="p-2">{colaborador.cpf}</td>
                         <td className="p-2">{colaborador.funcao}</td>
                         <td className="p-2">{colaborador.dataAdmissao ? format(colaborador.dataAdmissao, "dd/MM/yyyy", { locale: ptBR }) : 'N/A'}</td>
+                        <td className="p-2 text-center">
+                          <Badge variant="outline" className={`text-xs ${getColaboradorStatusBadgeClass(colaborador.status)}`}>
+                             {colaborador.status === 'Ativo' ? <UserCheck className="inline h-3 w-3 mr-1"/> : <UserX className="inline h-3 w-3 mr-1"/>}
+                            {colaborador.status}
+                          </Badge>
+                        </td>
                         <td className="p-2 text-right">
                           <Button variant="ghost" size="icon" className="h-8 w-8 mr-1" onClick={() => handleEditColaborador(colaborador)} aria-label={`Editar ${colaborador.nome}`}>
                             <Edit2 className="h-4 w-4" />
@@ -386,11 +442,32 @@ export default function CompanyDetailPage() {
                     )}
                   />
                 </div>
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status do Colaborador</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Ativo">Ativo</SelectItem>
+                          <SelectItem value="Desligado">Desligado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                  <Separator className="my-6" />
                 <div>
-                    <FormLabel>Adicionar Vários Colaboradores (Copiar e Colar)</FormLabel>
+                    <FormLabel>Adicionar Vários Colaboradores (Copia e Cola)</FormLabel>
                     <Textarea
-                        placeholder="Cole aqui os dados dos colaboradores (Ex: Nome;CPF;Função por linha). Funcionalidade de parsing a ser implementada."
+                        placeholder="Cole aqui os dados dos colaboradores (Ex: Nome;CPF;Função;Nascimento;Admissão por linha). Funcionalidade de parsing a ser implementada."
                         className="mt-1"
                         rows={3}
                         disabled 
@@ -433,7 +510,6 @@ export default function CompanyDetailPage() {
             ) : (
               <p className="text-sm text-muted-foreground">Nenhuma pessoa relacionada cadastrada.</p>
             )}
-            {/* TODO: Botão para adicionar/vincular nova pessoa */}
           </CardContent>
         </Card>
 
@@ -473,7 +549,36 @@ export default function CompanyDetailPage() {
             ) : (
               <p className="text-sm text-muted-foreground">Nenhum documento cadastrado.</p>
             )}
-             {/* TODO: Botão para upload de novo documento */}
+          </CardContent>
+        </Card>
+         {/* Placeholders for future sections */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center text-xl">
+              <CheckSquare className="mr-3 h-6 w-6 text-primary" />
+              Relatórios Vinculados (Placeholder)
+            </CardTitle>
+            <CardDescription>
+              Histórico de relatórios de inspeção, incidentes, etc., associados a esta empresa.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground p-4 text-center">Lista de relatórios será implementada aqui.</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center text-xl">
+              <XSquare className="mr-3 h-6 w-6 text-primary" /> {/* Using XSquare as a generic placeholder for trainings */}
+              Treinamentos Associados (Placeholder)
+            </CardTitle>
+            <CardDescription>
+              Registro de treinamentos realizados ou agendados para os colaboradores desta empresa.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground p-4 text-center">Lista de treinamentos será implementada aqui.</p>
           </CardContent>
         </Card>
       </div>
@@ -539,7 +644,6 @@ export default function CompanyDetailPage() {
             <DialogClose asChild>
               <Button type="button" variant="outline">Fechar</Button>
             </DialogClose>
-            {/* Poderia adicionar um botão de Download aqui no futuro */}
           </DialogFooter>
         </DialogContent>
       </Dialog>
