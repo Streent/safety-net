@@ -33,14 +33,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{/* Opening body tag - removed accidental whitespace that might have been here */}
-        <ThemeProvider
+      <body><ThemeProvider
           defaultTheme="light"
         >
           {children}
         </ThemeProvider>
         <Toaster />
-      </body> {/* Closing body tag */}
+      </body>
     </html>
   );
 }
