@@ -38,12 +38,11 @@ function generateBreadcrumbs(pathname: string) {
     
     // Specific translations and adjustments
     if (label === "Dashboard" && breadcrumbs.length === 1 && currentPath === "/dashboard") { 
-        // "Painel" is already set as the first breadcrumb label for /dashboard
         return; 
     }
     if (label === "Predictive-analysis") label = "Análise Preditiva";
     if (label === "Reports") label = "Relatórios";
-    if (label === "Trainings") label = "Treinamentos";
+    if (label === "Trainings") label = "Agenda"; // Atualizado para Agenda de Eventos
     
     if (label === "Fleet") {
         label = "Frota";
@@ -57,8 +56,9 @@ function generateBreadcrumbs(pathname: string) {
     }
     if (label === "Empresas") {
         label = "Empresas";
-        if (i > 0 && pathSegments[i-1] === "empresas" && (segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/)))) { 
-            label = `Detalhes`;
+        // Check if the segment is likely an ID and the previous was "empresas"
+        if (i > 0 && pathSegments[i-1] === "empresas" && (segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/) && !isNaN(Number(segment.slice(-3))))) ) {
+            label = `Detalhes Empresa`; // Mais específico
         }
     }
     if (label === "Campanhas") label = "Campanhas";
@@ -86,7 +86,7 @@ function generateBreadcrumbs(pathname: string) {
         !breadcrumbs[breadcrumbs.length-1].label.startsWith("Detalhes")) { 
       return; 
     }
-    if (currentPath === "/dashboard") return; // Avoid duplicate "Painel" if already handled
+    if (currentPath === "/dashboard") return;
 
     breadcrumbs.push({ href: currentPath, label });
   });
@@ -109,12 +109,14 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
     
     if (["Solicitar Veículo", "Checklist de Veículo", "Registrar Abastecimento", "Distribuição de EPIs", "Editor", "Checklist de Auditoria"].includes(lastCrumb.label)) {
       // Use full label for specific actions
-    } else if (lastCrumb.label === "Detalhes" && secondLastCrumb) {
-        mobileDisplayTitle = `${secondLastCrumb.label} Detalhes`; 
+    } else if (lastCrumb.label === "Detalhes Empresa" && secondLastCrumb) { // Ajustado para "Detalhes Empresa"
+        mobileDisplayTitle = `Detalhes Empresa`; 
     } else if (mobileDisplayTitle === "Análise Preditiva") {
         mobileDisplayTitle = "Análise Pred.";
     } else if (pathname === "/dashboard") {
        mobileDisplayTitle = "Painel";
+    } else if (mobileDisplayTitle === "Agenda" && pathname.startsWith("/trainings")) { 
+        mobileDisplayTitle = "Agenda";
     }
   }
 
@@ -220,3 +222,5 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
     </header>
   );
 }
+
+    

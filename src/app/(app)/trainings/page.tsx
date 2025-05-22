@@ -1,23 +1,24 @@
 
-'use client'; // Add this directive
+'use client'; 
 
 import { useState } from 'react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar'; // Renamed to avoid conflict
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'; 
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, GripVertical } from 'lucide-react'; // Added GripVertical for drag handle
-import { format, isEqual, startOfDay, addMonths } from 'date-fns';
+import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, PlusCircle, GripVertical } from 'lucide-react'; 
+import { format, isEqual, startOfDay, addMonths, differenceInDays as fnsDifferenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 
 interface TrainingSession {
   id: string;
   title: string;
+  type: 'Treinamento' | 'Consultoria' | 'Auditoria Agendada' | 'Outro Evento';
   topic: string;
   location: string;
   date: Date;
@@ -30,14 +31,15 @@ interface TrainingSession {
 }
 
 const mockSessions: TrainingSession[] = [
-  { id: 'TRN001', title: 'Treinamento NR-35 (Trabalho em Altura)', topic: 'Segurança em Altura', location: 'Sala de Treinamento A', date: new Date(2024, 6, 15), startTime: '09:00', endTime: '17:00', technician: 'Carlos Silva', renewalDue: addMonths(new Date(2024, 6, 15), 11) },
-  { id: 'TRN002', title: 'Uso Correto de EPIs', topic: 'Equipamentos de Proteção', location: 'Auditório Principal', date: new Date(2024, 6, 15), startTime: '14:00', endTime: '16:00', technician: 'Ana Pereira' },
-  { id: 'TRN003', title: 'Primeiros Socorros Básico', topic: 'Atendimento Emergencial', location: 'Sala de Treinamento B', date: new Date(2024, 6, 22), startTime: '08:00', endTime: '12:00', technician: 'Juliana Costa' },
-  { id: 'TRN004', title: 'Seminário de Segurança do Trabalho', topic: 'Conscientização Geral', location: 'Online', date: new Date(2024, 7, 5), startTime: '10:00', endTime: '11:30', technician: 'Marcos Andrade', isRecurring: true },
+  { id: 'TRN001', title: 'NR-35 (Trabalho em Altura)', type: 'Treinamento', topic: 'Segurança em Altura', location: 'Sala de Treinamento A', date: new Date(2024, 6, 15), startTime: '09:00', endTime: '17:00', technician: 'Carlos Silva', renewalDue: addMonths(new Date(2024, 6, 15), 11) },
+  { id: 'TRN002', title: 'Uso Correto de EPIs', type: 'Treinamento', topic: 'Equipamentos de Proteção', location: 'Auditório Principal', date: new Date(2024, 6, 15), startTime: '14:00', endTime: '16:00', technician: 'Ana Pereira' },
+  { id: 'TRN003', title: 'Primeiros Socorros Básico', type: 'Treinamento', topic: 'Atendimento Emergencial', location: 'Sala de Treinamento B', date: new Date(2024, 6, 22), startTime: '08:00', endTime: '12:00', technician: 'Juliana Costa' },
+  { id: 'CON001', title: 'Consultoria PGR', type: 'Consultoria', topic: 'Análise de Riscos', location: 'Cliente Y - Sala Reuniões', date: new Date(2024, 6, 18), startTime: '10:00', endTime: '12:00', technician: 'Roberto Alves' },
+  { id: 'AUD001', title: 'Auditoria Interna ISO 45001', type: 'Auditoria Agendada', topic: 'Sistema de Gestão', location: 'Setor de Produção', date: new Date(2024, 7, 5), startTime: '09:00', endTime: '17:00', technician: 'Fernanda Lima', isRecurring: true },
 ];
 
 
-export default function TrainingsPage() {
+export default function TrainingsAndAppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const { toast } = useToast();
@@ -50,8 +52,10 @@ export default function TrainingsPage() {
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
-    if (date) {
+    if (date && mockSessions.filter(s => isEqual(startOfDay(s.date), startOfDay(date))).length > 0) {
       setIsSheetOpen(true);
+    } else if (date) {
+      setIsSheetOpen(true); 
     }
   };
   
@@ -69,12 +73,27 @@ export default function TrainingsPage() {
     });
   };
 
+  const handleNewAppointment = () => {
+    toast({
+        title: "Novo Agendamento",
+        description: "Funcionalidade para criar um novo agendamento (treinamento, consultoria, etc.) será implementada aqui, provavelmente em um formulário ou modal."
+    });
+  }
+
+  const getEventTypeColor = (type: TrainingSession['type']) => {
+    switch(type) {
+        case 'Treinamento': return 'bg-blue-500/20 text-blue-700 border-blue-500/30';
+        case 'Consultoria': return 'bg-purple-500/20 text-purple-700 border-purple-500/30';
+        case 'Auditoria Agendada': return 'bg-teal-500/20 text-teal-700 border-teal-500/30';
+        default: return 'bg-gray-500/20 text-gray-700 border-gray-500/30';
+    }
+  }
 
   return (
     <>
       <PageHeader 
-        title="Gerenciamento de Treinamentos"
-        description="Visualize o calendário de treinamentos, gerencie sessões e acompanhe participações."
+        title="Agenda de Eventos e Treinamentos" 
+        description="Visualize o calendário de treinamentos, consultorias e outros eventos. Gerencie sessões e acompanhe participações." 
       />
       <Tabs defaultValue="month" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4 sm:w-[400px]">
@@ -86,10 +105,10 @@ export default function TrainingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <CalendarIcon className="mr-2 h-6 w-6 text-primary" />
-                Calendário de Treinamentos
+                Calendário de Eventos
               </CardTitle>
               <CardDescription>
-                Selecione uma data para ver os treinamentos agendados. Dias com treinamentos são marcados.
+                Selecione uma data para ver os eventos agendados. Dias com eventos são marcados.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
@@ -126,25 +145,36 @@ export default function TrainingsPage() {
           <SheetHeader className="p-4 border-b">
              <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-2 cursor-grab active:cursor-grabbing"></div>
             <SheetTitle className="text-center text-xl">
-              Treinamentos em {selectedDate ? format(selectedDate, 'PPP', { locale: ptBR }) : 'Data Selecionada'}
+              Eventos em {selectedDate ? format(selectedDate, 'PPP', { locale: ptBR }) : 'Data Selecionada'}
             </SheetTitle>
              <SheetClose className="absolute right-3 top-3 p-1 rounded-full hover:bg-muted" />
           </SheetHeader>
+          <div className="p-4 flex justify-end border-b">
+            <Button onClick={handleNewAppointment} size="sm">
+                <PlusCircle className="mr-2 h-4 w-4"/>
+                Novo Agendamento
+            </Button>
+          </div>
           <ScrollArea className="flex-1 px-1 py-4">
             {sessionsForSelectedDate.length > 0 ? (
               <div className="space-y-4 p-3">
                 {sessionsForSelectedDate.map(session => (
                   <Card key={session.id} className="shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-lg">{session.title}</CardTitle>
-                      <CardDescription className="text-sm">{session.topic}</CardDescription>
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">{session.title}</CardTitle>
+                        <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getEventTypeColor(session.type)}`}>
+                            {session.type}
+                        </span>
+                      </div>
+                      <CardDescription className="text-sm pt-1">{session.topic}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm">
                       <p><strong className="font-medium">Local:</strong> {session.location}</p>
                       <p><strong className="font-medium">Horário:</strong> {session.startTime} - {session.endTime}</p>
-                      <p><strong className="font-medium">Técnico:</strong> {session.technician}</p>
+                      <p><strong className="font-medium">Técnico/Responsável:</strong> {session.technician}</p>
                       
-                      {session.renewalDue && differenceInDays(session.renewalDue, new Date()) <= 30 && (
+                      {session.renewalDue && fnsDifferenceInDays(session.renewalDue, new Date()) <= 30 && (
                         <Card className="mt-3 p-3 bg-destructive/10 border-destructive/30">
                             <div className="flex items-center text-destructive">
                                 <AlertTriangle className="h-5 w-5 mr-2" />
@@ -153,7 +183,7 @@ export default function TrainingsPage() {
                         </Card>
                       )}
 
-                      <div className="pt-3 space-y-2">
+                      <div className="pt-3 space-y-2 sm:flex sm:space-y-0 sm:space-x-2">
                          <Button 
                             variant="outline" 
                             size="sm" 
@@ -187,7 +217,11 @@ export default function TrainingsPage() {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center p-6">
                 <CalendarIcon className="w-16 h-16 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Nenhum treinamento agendado para esta data.</p>
+                <p className="text-muted-foreground">Nenhum evento agendado para esta data.</p>
+                 <Button onClick={handleNewAppointment} size="sm" className="mt-4">
+                    <PlusCircle className="mr-2 h-4 w-4"/>
+                    Agendar Novo Evento
+                </Button>
               </div>
             )}
           </ScrollArea>
@@ -198,8 +232,11 @@ export default function TrainingsPage() {
 }
 
 // Helper function to calculate difference in days
+// Renamed to fnsDifferenceInDays to avoid potential conflicts if defined elsewhere
 function differenceInDays(dateLeft: Date, dateRight: Date): number {
   const utc1 = Date.UTC(dateLeft.getFullYear(), dateLeft.getMonth(), dateLeft.getDate());
   const utc2 = Date.UTC(dateRight.getFullYear(), dateRight.getMonth(), dateRight.getDate());
   return Math.floor((utc1 - utc2) / (1000 * 60 * 60 * 24));
 }
+
+    

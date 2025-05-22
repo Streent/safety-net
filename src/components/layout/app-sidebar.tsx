@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Home, FileText, Brain, Users, Car, Gem, ShieldCheck, Building, Megaphone, Library, Landmark, Settings as SettingsIcon, LifeBuoy,
-  ClipboardList, FileSearch, AlertOctagon, Signal, UploadCloud 
+  ClipboardList, FileSearch, AlertOctagon, Signal, UploadCloud, CalendarDays 
 } from 'lucide-react';
 import {
   Sidebar,
@@ -28,7 +28,7 @@ const mainNavItems = [
 ];
 
 const moduleNavItems = [
-  { href: '/trainings', label: 'Treinamentos', icon: Users }, 
+  { href: '/trainings', label: 'Agenda', icon: CalendarDays }, 
   { href: '/fleet', label: 'Frota', icon: Car }, 
   { href: '/epis', label: 'EPIs', icon: ShieldCheck }, 
   { href: '/empresas', label: 'Empresas', icon: Building }, 
@@ -45,26 +45,21 @@ const moduleNavItems = [
   { href: '/suporte', label: 'Suporte', icon: LifeBuoy },
 ];
 
-// isVisible prop removida
 export function AppSidebar() {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile, open } = useSidebar(); // 'open' aqui é o estado do SidebarProvider
+  const { isMobile, setOpenMobile, open } = useSidebar(); 
 
   const handleLinkClick = () => {
     if (isMobile) { 
       setOpenMobile(false);
     }
-    // Não precisamos fechar a sidebar em desktop ao clicar em um link,
-    // a menos que esse seja o comportamento desejado.
-    // Se for, podemos adicionar: else if (!open) { /* não fazer nada se já estiver recolhida */ }
   };
 
   return (
     <Sidebar 
       variant="sidebar" 
-      collapsible="icon" // Esta prop permite que a sidebar encolha para ícones
+      collapsible="icon"
       side="left" 
-      // Classes de transition-transform e translate-x removidas
       className={cn(
         "border-r fixed top-0 left-0 h-screen pt-16 z-30"
       )}
@@ -137,3 +132,5 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
+    
