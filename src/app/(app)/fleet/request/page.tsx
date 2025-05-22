@@ -4,6 +4,7 @@
 import { PageHeader } from '@/components/common/page-header';
 import { RequestVehicleForm } from '@/components/fleet/request-vehicle-form';
 import { Suspense } from 'react';
+import { Loader2 } from 'lucide-react'; // Added import for Loader2
 
 function VehicleRequestPageContents() {
   return (
