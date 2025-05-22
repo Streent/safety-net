@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2, CalendarIcon as CalendarIconLucide, View, FileIcon, Building, Mail, Phone, UserCircle2, CheckSquare, XSquare, UserCheck, UserX } from 'lucide-react';
+import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2, CalendarIcon as CalendarIconLucide, View, FileIcon, Building, Mail, Phone, UserCircle2, CheckSquare, XSquare, UserCheck, UserX, MapPin } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -49,7 +49,7 @@ interface Documento {
   tipo: string;
   validade: string;
   descricao?: string;
-  linkVisualizacao?: string; 
+  linkVisualizacao?: string;
 }
 
 const mockDocumentos: Documento[] = [
@@ -95,10 +95,10 @@ type ColaboradorFormValues = z.infer<typeof colaboradorFormSchema>;
 
 export default function CompanyDetailPage() {
   const params = useParams();
-  const companyId = params.id as string; 
+  const companyId = params.id as string;
   const { toast } = useToast();
 
-  const [companyData, setCompanyData] = useState(mockCompanyData); 
+  const [companyData, setCompanyData] = useState(mockCompanyData);
 
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [isColaboradorModalOpen, setIsColaboradorModalOpen] = useState(false);
@@ -121,18 +121,12 @@ export default function CompanyDetailPage() {
 
   useEffect(() => {
     if (companyId) {
-        // Em uma aplicação real, buscaria os dados da empresa pelo ID.
-        // Por agora, estamos usando mockCompanyData, mas podemos simular uma busca
-        // e se o ID não corresponder ao mock, talvez mostrar um erro ou estado de "não encontrado".
-        const foundCompany = mockCompanyData; // Simula busca.
+        const foundCompany = mockCompanyData;
         if (foundCompany && foundCompany.id === companyId) {
             setCompanyData(foundCompany);
         } else {
-             // Atualiza para o mock se o ID não for o "EMP001" do mock principal, 
-             // ou poderia redirecionar/mostrar erro.
-            setCompanyData({ ...mockCompanyData, id: companyId, nomeFantasia: `Empresa ${companyId}` }); 
-            // Poderia carregar um mock diferente ou limpar dados.
-            setColaboradores([]); // Limpar colaboradores se a empresa mudar
+            setCompanyData({ ...mockCompanyData, id: companyId, nomeFantasia: `Empresa ${companyId}` });
+            setColaboradores([]);
         }
     }
   }, [companyId]);
@@ -161,7 +155,7 @@ export default function CompanyDetailPage() {
 
   const handleAddColaborador = () => {
     setEditingColaborador(null);
-    form.reset({ 
+    form.reset({
         nome: '',
         cpf: '',
         funcao: '',
@@ -196,7 +190,7 @@ export default function CompanyDetailPage() {
     }
     setIsColaboradorModalOpen(false);
   }
-  
+
   const formatCpf = (value: string) => {
     const cpf = value.replace(/\D/g, '');
     if (cpf.length <= 3) return cpf;
@@ -251,7 +245,7 @@ export default function CompanyDetailPage() {
               <div><Building className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Razão Social:</strong> {companyData.razaoSocial}</div>
               <div><FileText className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>CNPJ:</strong> {companyData.cnpj}</div>
               <div><FileText className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Inscrição Estadual:</strong> {companyData.inscricaoEstadual || 'N/A'}</div>
-              <div className="md:col-span-2"><MapPinIcon className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Endereço:</strong> {companyData.endereco}</div>
+              <div className="md:col-span-2"><MapPin className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Endereço:</strong> {companyData.endereco}</div>
               <div><Mail className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Email:</strong> {companyData.email}</div>
               <div><Phone className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Telefone:</strong> {companyData.telefone}</div>
               <div><UserCircle2 className="inline mr-2 h-4 w-4 text-muted-foreground" /><strong>Responsável Legal:</strong> {companyData.responsavelLegal}</div>
@@ -362,8 +356,8 @@ export default function CompanyDetailPage() {
                     <FormItem>
                       <FormLabel>CPF</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="000.000.000-00" 
+                        <Input
+                          placeholder="000.000.000-00"
                           {...field}
                           onChange={(e) => {
                             field.onChange(formatCpf(e.target.value));
@@ -470,7 +464,7 @@ export default function CompanyDetailPage() {
                         placeholder="Cole aqui os dados dos colaboradores (Ex: Nome;CPF;Função;Nascimento;Admissão por linha). Funcionalidade de parsing a ser implementada."
                         className="mt-1"
                         rows={3}
-                        disabled 
+                        disabled
                     />
                     <p className="text-xs text-muted-foreground mt-1">Esta funcionalidade permitirá o cadastro em lote no futuro.</p>
                 </div>
@@ -527,8 +521,8 @@ export default function CompanyDetailPage() {
             {mockDocumentos.length > 0 ? (
               <ul className="space-y-3">
                 {mockDocumentos.map(doc => (
-                  <li 
-                    key={doc.id} 
+                  <li
+                    key={doc.id}
                     className="p-3 border rounded-md bg-muted/40 hover:bg-muted/60 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 group"
                     onClick={() => handleViewDocumentDetails(doc.id)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleViewDocumentDetails(doc.id); }}
@@ -650,4 +644,3 @@ export default function CompanyDetailPage() {
     </>
   );
 }
-
