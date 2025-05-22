@@ -63,11 +63,22 @@ export function EpiDetailDrawer({
     return null;
   }
 
-  const { status: epiCurrentStatus } = getValidityStatus(
+  const { status: epiCurrentStatus, daysRemaining } = getValidityStatus(
     epi.validity,
     epi.quantity,
     epi.minimumStock
   );
+
+  let validityDisplay = isValid(new Date(epi.validity))
+  ? format(new Date(epi.validity), 'dd/MM/yyyy', { locale: ptBR })
+  : 'N/A';
+
+  if (daysRemaining !== null && daysRemaining >=0 && (epiCurrentStatus === 'Próximo Validade' || epiCurrentStatus === 'Validade Crítica')) {
+    validityDisplay += ` (${daysRemaining}d restantes)`;
+  } else if (epiCurrentStatus === 'Expirado' && isValid(new Date(epi.validity))) {
+    validityDisplay = `Expirou em ${format(new Date(epi.validity), 'dd/MM/yyyy', { locale: ptBR })}`;
+  }
+
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -75,8 +86,9 @@ export function EpiDetailDrawer({
         side={isMobile ? 'bottom' : 'right'}
         className={cn(
           "flex flex-col p-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-          isMobile ? "h-[90vh] rounded-t-lg data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom" 
-                   : "w-full sm:max-w-md lg:max-w-lg data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
+          isMobile 
+            ? "h-[90vh] rounded-t-lg data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom" 
+            : "w-full sm:max-w-[400px] data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right" // Adjusted desktop width
         )}
       >
         <SheetHeader className="p-4 sm:p-6 border-b">
@@ -91,6 +103,7 @@ export function EpiDetailDrawer({
 
         <ScrollArea className="flex-1">
           <div className="p-4 sm:p-6 space-y-6">
+            {/* TODO: Implement tab cross-fade animation (200ms) as per spec if feasible without major lib changes */}
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-4">
                 <TabsTrigger value="overview">
@@ -107,7 +120,7 @@ export function EpiDetailDrawer({
               <TabsContent value="overview" className="mt-0 space-y-4">
                 <Card className="shadow-md">
                   <CardHeader className="pb-3 pt-4">
-                    <CardTitle className="text-lg font-medium">Informações Principais</CardTitle>
+                    <UiCardTitle className="text-lg font-medium">Informações Principais</UiCardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2.5 text-sm">
                     <div className="flex items-center">
@@ -130,9 +143,7 @@ export function EpiDetailDrawer({
                     <p className="flex items-center">
                       <CalendarClock className="inline h-4 w-4 mr-1.5 text-muted-foreground flex-shrink-0" />
                       <strong>Validade:</strong>&nbsp;
-                      {isValid(new Date(epi.validity))
-                        ? format(new Date(epi.validity), 'dd/MM/yyyy', { locale: ptBR })
-                        : 'N/A'}
+                      {validityDisplay}
                     </p>
                     <p className="flex items-center">
                       <MapPin className="inline h-4 w-4 mr-1.5 text-muted-foreground flex-shrink-0" />
@@ -156,7 +167,7 @@ export function EpiDetailDrawer({
                 {epi.photoUrls && epi.photoUrls.length > 0 && (
                   <Card className="shadow-md">
                      <CardHeader className="pb-3 pt-4">
-                        <CardTitle className="text-lg font-medium">Fotos do Item</CardTitle>
+                        <UiCardTitle className="text-lg font-medium">Fotos do Item</UiCardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -180,7 +191,7 @@ export function EpiDetailDrawer({
               <TabsContent value="history" className="mt-0">
                 <Card className="shadow-md">
                    <CardHeader className="pb-3 pt-4">
-                        <CardTitle className="text-lg font-medium">Histórico de Uso e Distribuição</CardTitle>
+                        <UiCardTitle className="text-lg font-medium">Histórico de Uso e Distribuição</UiCardTitle>
                     </CardHeader>
                   <CardContent>
                     <div className="p-6 border rounded-lg bg-muted/30 text-center text-muted-foreground">
@@ -196,7 +207,7 @@ export function EpiDetailDrawer({
               <TabsContent value="attachments" className="mt-0">
                 <Card className="shadow-md">
                    <CardHeader className="pb-3 pt-4">
-                        <CardTitle className="text-lg font-medium">Anexos e Documentos do EPI</CardTitle>
+                        <UiCardTitle className="text-lg font-medium">Anexos e Documentos do EPI</UiCardTitle>
                     </CardHeader>
                   <CardContent>
                      <div className="p-6 border rounded-lg bg-muted/30 text-center text-muted-foreground">
@@ -223,3 +234,5 @@ export function EpiDetailDrawer({
     </Sheet>
   );
 }
+
+    
