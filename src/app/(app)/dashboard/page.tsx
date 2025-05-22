@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator'; // Added for visual separation in alerts
+import { Input } from "@/components/ui/input"; // Added Input import
 
 // Placeholder for Reports List
 function RecentReportsListPlaceholder() {
@@ -221,3 +222,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
