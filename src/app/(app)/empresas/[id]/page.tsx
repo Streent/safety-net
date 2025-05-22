@@ -3,12 +3,12 @@
 
 import { useParams } from 'next/navigation';
 import { PageHeader } from '@/components/common/page-header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'; // Correctly import CardDescription
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2, CalendarIcon as CalendarIconLucide } from 'lucide-react'; // Renamed CalendarIcon to CalendarIconLucide
+import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2, CalendarIcon as CalendarIconLucide, View } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'; // UiDialogDescription is for Dialog
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -120,7 +120,7 @@ export default function CompanyDetailPage() {
 
   const handleAddColaborador = () => {
     setEditingColaborador(null);
-    form.reset({ // Ensure form is reset for new entry
+    form.reset({ 
         nome: '',
         cpf: '',
         funcao: '',
@@ -163,6 +163,13 @@ export default function CompanyDetailPage() {
     return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9, 11)}`;
   };
 
+  const handleViewDocumentDetails = (docId: string, docName: string) => {
+    toast({
+      title: 'Detalhes do Documento',
+      description: `Visualizar detalhes para: "${docName}" (ID: ${docId}). Funcionalidade a ser implementada.`,
+    });
+  };
+
   return (
     <>
       <PageHeader
@@ -197,12 +204,12 @@ export default function CompanyDetailPage() {
 
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+            <div className="flex-1">
               <CardTitle className="flex items-center text-xl">
                 <UserPlus className="mr-3 h-6 w-6 text-primary" />
                 Colaboradores da Empresa
               </CardTitle>
-              <CardDescription> {/* Corrected to CardDescription */}
+              <CardDescription>
                 Gerencie os funcionários vinculados a esta empresa.
               </CardDescription>
             </div>
@@ -254,7 +261,7 @@ export default function CompanyDetailPage() {
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{editingColaborador ? 'Editar Colaborador' : 'Adicionar Novo Colaborador'}</DialogTitle>
-              <UiDialogDescription> {/* This is UiDialogDescription, from ui/dialog, correct here */}
+              <UiDialogDescription>
                 Preencha os dados do colaborador abaixo.
               </UiDialogDescription>
             </DialogHeader>
@@ -389,7 +396,7 @@ export default function CompanyDetailPage() {
               <Users className="mr-3 h-6 w-6 text-primary" />
               Pessoas Relacionadas (Contatos Chave)
             </CardTitle>
-            <CardDescription> {/* Corrected to CardDescription */}
+            <CardDescription>
                 Técnicos, responsáveis e outros contatos importantes.
             </CardDescription>
           </CardHeader>
@@ -417,7 +424,7 @@ export default function CompanyDetailPage() {
               <FileText className="mr-3 h-6 w-6 text-primary" />
               Documentos da Empresa
             </CardTitle>
-            <CardDescription> {/* Corrected to CardDescription */}
+            <CardDescription>
                 PGR, PCMSO, Relatórios de Auditoria e outros documentos relevantes.
             </CardDescription>
           </CardHeader>
@@ -425,10 +432,22 @@ export default function CompanyDetailPage() {
             {mockDocumentos.length > 0 ? (
               <ul className="space-y-3">
                 {mockDocumentos.map(doc => (
-                  <li key={doc.id} className="p-3 border rounded-md bg-muted/40">
-                    <p className="font-semibold">{doc.nome}</p>
-                    <p className="text-xs text-muted-foreground">Tipo: {doc.tipo} | Validade: {doc.validade}</p>
-                    {/* TODO: Botões para Ver/Download do documento */}
+                  <li 
+                    key={doc.id} 
+                    className="p-3 border rounded-md bg-muted/40 hover:bg-muted/60 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    onClick={() => handleViewDocumentDetails(doc.id, doc.nome)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleViewDocumentDetails(doc.id, doc.nome); }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Visualizar detalhes do documento ${doc.nome}`}
+                  >
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <p className="font-semibold">{doc.nome}</p>
+                            <p className="text-xs text-muted-foreground">Tipo: {doc.tipo} | Validade: {doc.validade}</p>
+                        </div>
+                        <View className="h-4 w-4 text-muted-foreground opacity-70 group-hover:opacity-100" />
+                    </div>
                   </li>
                 ))}
               </ul>
