@@ -2,10 +2,11 @@
 // src/app/(app)/settings/page.tsx
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button'; // Added import
-import { Settings as SettingsIcon, User, Palette, Bell, Languages, Lock, UsersRound, MapPinned, PackageSearch } from 'lucide-react';
+import { Button } from '@/components/ui/button'; 
+import { Settings as SettingsIcon, User, Palette, Bell, Languages, Lock, UsersRound, MapPinned, PackageSearch, FileCog } from 'lucide-react'; // Added FileCog
 import { ReminderSettings } from '@/components/settings/ReminderSettings'; 
 import { Separator } from '@/components/ui/separator';
+import Link from 'next/link'; // Added Link
 
 export default function SettingsPage() {
   return (
@@ -82,6 +83,10 @@ export default function SettingsPage() {
                     <h3 className="font-medium mb-1 flex items-center"><PackageSearch className="mr-2 h-4 w-4 text-muted-foreground"/>Tipos de EPIs</h3>
                     <p className="text-xs text-muted-foreground">Configurar categorias e tipos padrão de EPIs.</p>
                 </div>
+                <Link href="/settings/templates" className="block p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors md:col-span-1">
+                  <h3 className="font-medium mb-1 flex items-center"><FileCog className="mr-2 h-4 w-4 text-muted-foreground"/>Modelos de Relatório</h3>
+                  <p className="text-xs text-muted-foreground">Gerenciar templates de documentos (.docx, .pptx).</p>
+                </Link>
             </CardContent>
         </Card>
 

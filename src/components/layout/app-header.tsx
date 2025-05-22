@@ -42,7 +42,7 @@ function generateBreadcrumbs(pathname: string) {
     }
     if (label === "Predictive-analysis") label = "Análise Preditiva";
     if (label === "Reports") label = "Relatórios";
-    if (label === "Trainings") label = "Agenda"; // Atualizado para Agenda de Eventos
+    if (label === "Trainings") label = "Agenda";
     
     if (label === "Fleet") {
         label = "Frota";
@@ -56,9 +56,8 @@ function generateBreadcrumbs(pathname: string) {
     }
     if (label === "Empresas") {
         label = "Empresas";
-        // Check if the segment is likely an ID and the previous was "empresas"
         if (i > 0 && pathSegments[i-1] === "empresas" && (segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/) && !isNaN(Number(segment.slice(-3))))) ) {
-            label = `Detalhes Empresa`; // Mais específico
+            label = `Detalhes Empresa`; 
         }
     }
     if (label === "Campanhas") label = "Campanhas";
@@ -78,14 +77,22 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Cipa") label = "CIPA";
     if (label === "Iot") label = "IOT"; 
     if (label === "Esocial") label = "eSocial"; 
-    if (label === "Settings") label = "Configurações";
+    if (label === "Settings") {
+        label = "Configurações";
+        if (pathSegments.includes('templates') && segment === 'templates') label = "Modelos de Relatório";
+    }
     
-    if ((segment === "new" || segment.match(/^(V|RPT|EPI|TRN|CAMP|PROG|AUD)\d+/i)) && 
+    // Avoid adding "new" or ID-like segments if the parent is already specific enough
+    // unless it's for a very specific sub-page like an editor or detail.
+    if ( (segment === "new" || segment.match(/^(V|RPT|EPI|TRN|CAMP|PROG|AUD|EMP|COLAB)\d*/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/) && !isNaN(Number(segment.slice(-3))))) &&
         breadcrumbs.length > 1 && 
         !["Empresas", "Frota", "EPIs", "Programas", "Auditorias"].includes(breadcrumbs[breadcrumbs.length-1].label) && 
-        !breadcrumbs[breadcrumbs.length-1].label.startsWith("Detalhes")) { 
+        !breadcrumbs[breadcrumbs.length-1].label.startsWith("Detalhes") &&
+        !["Editor", "Checklist de Veículo", "Registrar Abastecimento", "Distribuição de EPIs", "Modelos de Relatório"].includes(label) // Keep these specific labels
+      ) { 
       return; 
     }
+
     if (currentPath === "/dashboard") return;
 
     breadcrumbs.push({ href: currentPath, label });
@@ -103,20 +110,26 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
   let mobileDisplayTitle = "Painel"; 
   if (breadcrumbs.length > 0) {
     const lastCrumb = breadcrumbs[breadcrumbs.length - 1];
-    const secondLastCrumb = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length - 2] : null;
     
     mobileDisplayTitle = lastCrumb.label;
     
-    if (["Solicitar Veículo", "Checklist de Veículo", "Registrar Abastecimento", "Distribuição de EPIs", "Editor", "Checklist de Auditoria"].includes(lastCrumb.label)) {
-      // Use full label for specific actions
-    } else if (lastCrumb.label === "Detalhes Empresa" && secondLastCrumb) { // Ajustado para "Detalhes Empresa"
-        mobileDisplayTitle = `Detalhes Empresa`; 
+    // Specific short titles for mobile
+    if (["Solicitar Veículo", "Checklist de Veículo", "Registrar Abastecimento", "Distribuição de EPIs", "Editor de Programa", "Checklist de Auditoria", "Modelos de Relatório"].includes(lastCrumb.label)) {
+      // Use full label for these specific actions
+    } else if (mobileDisplayTitle === "Detalhes Empresa") {
+        mobileDisplayTitle = "Detalhes Emp.";
     } else if (mobileDisplayTitle === "Análise Preditiva") {
         mobileDisplayTitle = "Análise Pred.";
+    } else if (mobileDisplayTitle === "Gerenciamento de EPIs") {
+        mobileDisplayTitle = "EPIs";
+    } else if (mobileDisplayTitle === "Gerenciamento de Campanhas") {
+        mobileDisplayTitle = "Campanhas";
     } else if (pathname === "/dashboard") {
        mobileDisplayTitle = "Painel";
     } else if (mobileDisplayTitle === "Agenda" && pathname.startsWith("/trainings")) { 
         mobileDisplayTitle = "Agenda";
+    } else if (mobileDisplayTitle === "Configurações") {
+        mobileDisplayTitle = "Ajustes";
     }
   }
 
@@ -197,13 +210,13 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <Link href="/settings" passHref legacyBehavior>
+                <Link href="/settings" passHref>
                     <DropdownMenuItem>
                         <UserCircle className="mr-2 h-4 w-4" />
                         <span>Perfil</span> 
                     </DropdownMenuItem>
                 </Link>
-                <Link href="/settings" passHref legacyBehavior>
+                <Link href="/settings" passHref>
                   <DropdownMenuItem>
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Configurações</span> 
@@ -222,5 +235,4 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
     </header>
   );
 }
-
     
