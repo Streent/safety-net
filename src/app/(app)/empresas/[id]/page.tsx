@@ -637,7 +637,7 @@ export default function CompanyDetailPage() {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
-              <XSquare className="mr-3 h-6 w-6 text-primary" /> {/* Using XSquare as a generic placeholder for trainings */}
+              <ShieldCheckIcon className="mr-3 h-6 w-6 text-primary" /> 
               Treinamentos Associados (Placeholder)
             </CardTitle>
             <CardDescription>
