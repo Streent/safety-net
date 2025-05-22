@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
@@ -15,19 +15,25 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Building, MoreHorizontal, Eye, Edit2, Search, PlusCircle } from 'lucide-react';
+import { Building, MoreHorizontal, Eye, Edit2, Search, PlusCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { cn } from '@/lib/utils';
 
-// Mock data for companies
-// @TODO: Fetch real company data from an API or data source.
-const mockEmpresas = [
-  { id: 'EMP001', nome: 'Construtora Segura Ltda.', cnpj: '12.345.678/0001-99', status: 'Ativo', cidade: 'São Paulo, SP' },
-  { id: 'EMP002', nome: 'Indústria Forte S.A.', cnpj: '98.765.432/0001-11', status: 'Inativo', cidade: 'Rio de Janeiro, RJ' },
-  { id: 'EMP003', nome: 'Serviços Ágeis EIRELI', cnpj: '11.222.333/0001-44', status: 'Ativo', cidade: 'Belo Horizonte, MG' },
-  { id: 'EMP004', nome: 'Tecnologia Inovadora ME', cnpj: '44.555.666/0001-77', status: 'Pendente', cidade: 'Curitiba, PR' },
-  { id: 'EMP005', nome: 'Agropecuária Campos Verdes', cnpj: '77.888.999/0001-00', status: 'Ativo', cidade: 'Goiânia, GO' },
+const mockEmpresasData = [
+  { id: 'EMP001', nome: 'Construtora Segura Ltda.', cnpj: '12.345.678/0001-99', status: 'Ativo', cidade: 'São Paulo, SP', endereco: 'Rua das Palmeiras, 123', email: 'contato@construtorasegura.com.br', telefone: '(11) 98765-4321', responsavel: 'João da Silva' },
+  { id: 'EMP002', nome: 'Indústria Forte S.A.', cnpj: '98.765.432/0001-11', status: 'Inativo', cidade: 'Rio de Janeiro, RJ', endereco: 'Av. Principal, 456', email: 'financeiro@fortesa.com', telefone: '(21) 12345-6789', responsavel: 'Maria Costa' },
+  { id: 'EMP003', nome: 'Serviços Ágeis EIRELI', cnpj: '11.222.333/0001-44', status: 'Ativo', cidade: 'Belo Horizonte, MG', endereco: 'Alameda dos Anjos, 789', email: 'comercial@servicosageis.com.br', telefone: '(31) 99887-7665', responsavel: 'Carlos Magno' },
+  { id: 'EMP004', nome: 'Tecnologia Inovadora ME', cnpj: '44.555.666/0001-77', status: 'Pendente', cidade: 'Curitiba, PR', endereco: 'Rua da Tecnologia, 101', email: 'suporte@tecinovadora.dev', telefone: '(41) 3030-4040', responsavel: 'Ana Pereira' },
+  { id: 'EMP005', nome: 'Agropecuária Campos Verdes', cnpj: '77.888.999/0001-00', status: 'Ativo', cidade: 'Goiânia, GO', endereco: 'Fazenda Boa Esperança, S/N', email: 'agro@camposverdes.com.br', telefone: '(62) 98000-0001', responsavel: 'José Oliveira' },
 ];
 
 interface Empresa {
@@ -36,7 +42,24 @@ interface Empresa {
   cnpj: string;
   status: 'Ativo' | 'Inativo' | 'Pendente';
   cidade: string;
+  endereco?: string;
+  email?: string;
+  telefone?: string;
+  responsavel?: string;
 }
+
+const empresaFormSchema = z.object({
+  nome: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
+  cnpj: z.string().regex(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/, { message: 'CNPJ inválido. Use o formato XX.XXX.XXX/XXXX-XX.' }),
+  endereco: z.string().optional(),
+  email: z.string().email({ message: 'E-mail inválido.' }).optional().or(z.literal('')),
+  telefone: z.string().optional(),
+  status: z.enum(['Ativo', 'Inativo', 'Pendente'], { required_error: 'O status é obrigatório.' }),
+  responsavel: z.string().optional(),
+  cidade: z.string().min(2, { message: 'A cidade deve ter pelo menos 2 caracteres.'}),
+});
+
+type EmpresaFormValues = z.infer<typeof empresaFormSchema>;
 
 const getStatusBadgeClass = (status: Empresa['status']) => {
   switch (status) {
@@ -54,28 +77,89 @@ const getStatusBadgeClass = (status: Empresa['status']) => {
 export default function EmpresasPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const [empresas, setEmpresas] = useState<Empresa[]>(mockEmpresas);
+  const [empresas, setEmpresas] = useState<Empresa[]>(mockEmpresasData);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isEmpresaModalOpen, setIsEmpresaModalOpen] = useState(false);
+  const [editingEmpresa, setEditingEmpresa] = useState<Empresa | null>(null);
+
+  const form = useForm<EmpresaFormValues>({
+    resolver: zodResolver(empresaFormSchema),
+    defaultValues: {
+      nome: '',
+      cnpj: '',
+      endereco: '',
+      email: '',
+      telefone: '',
+      status: 'Ativo',
+      responsavel: '',
+      cidade: '',
+    },
+  });
+
+  useEffect(() => {
+    if (isEmpresaModalOpen) {
+      if (editingEmpresa) {
+        form.reset(editingEmpresa);
+      } else {
+        form.reset({
+          nome: '',
+          cnpj: '',
+          endereco: '',
+          email: '',
+          telefone: '',
+          status: 'Ativo',
+          responsavel: '',
+          cidade: '',
+        });
+      }
+    }
+  }, [editingEmpresa, form, isEmpresaModalOpen]);
 
   const handleViewDetails = (empresaId: string) => {
     router.push(`/empresas/${empresaId}`);
   };
 
-  const handleEditItem = (empresaId: string) => {
-    toast({
-      title: 'Editar Empresa',
-      description: `Funcionalidade para editar empresa ${empresaId} será implementada.`,
-    });
-    // Placeholder: router.push(`/empresas/${empresaId}/edit`);
+  const handleOpenModal = (empresa: Empresa | null = null) => {
+    setEditingEmpresa(empresa);
+    setIsEmpresaModalOpen(true);
   };
   
-  const handleAddItem = () => {
-    toast({
-      title: 'Adicionar Nova Empresa',
-      description: 'Funcionalidade de modal/página para adicionar nova empresa será implementada aqui.',
-    });
-    // Placeholder: router.push('/empresas/nova');
+  const handleDeleteEmpresa = (empresaId: string) => {
+    setEmpresas(prev => prev.filter(e => e.id !== empresaId));
+    toast({ title: "Empresa Removida", description: "A empresa foi removida da lista (localmente)." });
   };
+
+  const formatCnpj = (value: string) => {
+    const cnpj = value.replace(/\D/g, '');
+    if (cnpj.length <= 2) return cnpj;
+    if (cnpj.length <= 5) return `${cnpj.slice(0, 2)}.${cnpj.slice(2)}`;
+    if (cnpj.length <= 8) return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5)}`;
+    if (cnpj.length <= 12) return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8)}`;
+    return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8, 12)}-${cnpj.slice(12, 14)}`;
+  };
+
+  const formatTelefone = (value: string) => {
+    const tel = value.replace(/\D/g, '');
+    if (tel.length <= 2) return `(${tel}`;
+    if (tel.length <= 6) return `(${tel.slice(0,2)}) ${tel.slice(2)}`;
+    if (tel.length <= 10) return `(${tel.slice(0,2)}) ${tel.slice(2,6)}-${tel.slice(6)}`;
+    return `(${tel.slice(0,2)}) ${tel.slice(2,3)} ${tel.slice(3,7)}-${tel.slice(7,11)}`;
+  };
+
+  async function onEmpresaSubmit(data: EmpresaFormValues) {
+    if (editingEmpresa) {
+      setEmpresas(prev => prev.map(e => e.id === editingEmpresa.id ? { ...editingEmpresa, ...data } : e));
+      toast({ title: "Empresa Atualizada!", description: `Os dados de ${data.nome} foram atualizados.` });
+    } else {
+      const newEmpresa: Empresa = {
+        id: `EMP-${Date.now()}`,
+        ...data,
+      };
+      setEmpresas(prev => [newEmpresa, ...prev]);
+      toast({ title: "Empresa Adicionada!", description: `${data.nome} foi adicionada.` });
+    }
+    setIsEmpresaModalOpen(false);
+  }
 
   const filteredEmpresas = empresas.filter(empresa => 
     empresa.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -88,7 +172,7 @@ export default function EmpresasPage() {
         title="Gestão de Empresas"
         description="Visualize e gerencie as informações das empresas clientes e parceiras."
         actions={
-          <Button onClick={handleAddItem}>
+          <Button onClick={() => handleOpenModal(null)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Adicionar Empresa
           </Button>
@@ -157,11 +241,14 @@ export default function EmpresasPage() {
                                 <Eye className="mr-2 h-4 w-4" />
                                 <span>Ver Detalhes</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditItem(empresa.id)}>
+                            <DropdownMenuItem onClick={() => handleOpenModal(empresa)}>
                                 <Edit2 className="mr-2 h-4 w-4" />
                                 <span>Editar</span>
                             </DropdownMenuItem>
-                            {/* Adicionar mais ações conforme necessário, ex: "Portal do Cliente" */}
+                            <DropdownMenuItem onClick={() => handleDeleteEmpresa(empresa.id)} className="text-destructive focus:text-destructive-foreground focus:bg-destructive/90 hover:text-destructive-foreground hover:!bg-destructive/90">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                <span>Excluir</span>
+                            </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                         </TableCell>
@@ -186,6 +273,150 @@ export default function EmpresasPage() {
           Próximo
         </Button>
       </div>
+
+      <Dialog open={isEmpresaModalOpen} onOpenChange={setIsEmpresaModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingEmpresa ? 'Editar Empresa' : 'Adicionar Nova Empresa'}</DialogTitle>
+            <UiDialogDescription>
+              Preencha os dados da empresa abaixo.
+            </UiDialogDescription>
+          </DialogHeader>
+          <FormProvider {...form}>
+            <form onSubmit={form.handleSubmit(onEmpresaSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+              <FormField
+                control={form.control}
+                name="nome"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome da Empresa</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome da empresa" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="cnpj"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CNPJ</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="00.000.000/0000-00" 
+                        {...field}
+                        onChange={(e) => field.onChange(formatCnpj(e.target.value))}
+                        maxLength={18}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="endereco"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Endereço (Opcional)</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Rua, Número, Bairro..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="cidade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cidade</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Cidade, UF" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>E-mail (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="contato@empresa.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="telefone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="(00) 00000-0000" 
+                        {...field}
+                        onChange={(e) => field.onChange(formatTelefone(e.target.value))}
+                        maxLength={16} // Considera (XX) X XXXX-XXXX
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="responsavel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Responsável Principal (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome do responsável" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Ativo">Ativo</SelectItem>
+                        <SelectItem value="Inativo">Inativo</SelectItem>
+                        <SelectItem value="Pendente">Pendente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">Cancelar</Button>
+                </DialogClose>
+                <Button type="submit">{editingEmpresa ? 'Salvar Alterações' : 'Adicionar Empresa'}</Button>
+              </DialogFooter>
+            </form>
+          </FormProvider>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
