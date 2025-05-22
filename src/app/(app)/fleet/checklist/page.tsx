@@ -16,148 +16,221 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { Camera, Save, Send, FileText, Construction, Droplets, CircleEllipsis, AlertTriangle, CheckCircle, UploadCloud, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Car, CheckCircle, CircleEllipsis, Construction, Droplets, FileText, ImagePlus, ListChecks, Save, Send, ShieldAlert, Sparkles, Trash2, UploadCloud, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-interface ChecklistItem {
+interface ChecklistItem { // For checkbox items
   id: string;
   label: string;
   checked: boolean;
   observation: string;
-  requiresPhoto?: boolean;
-  photo?: File | null;
-  photoPreview?: string | null;
+}
+
+interface DocumentFile {
+  id: string;
+  file: File;
+  previewUrl?: string; // For image previews if applicable
 }
 
 interface ChecklistSection {
   id: string;
   title: string;
   icon: React.ElementType;
-  items: ChecklistItem[];
+  type: 'checkbox' | 'document_upload';
+  items?: ChecklistItem[];
+  uploadedDocuments?: DocumentFile[]; // Only for 'document_upload' type
+  isCompleted?: boolean; // To track step completion for progress bar
 }
 
-const initialChecklistData: ChecklistSection[] = [
+const initialStepsData: ChecklistSection[] = [
   {
-    id: 'docs',
-    title: 'Documentação do Veículo',
+    id: 'exterior',
+    title: 'Passo 1: Verificações Externas',
+    icon: Car,
+    type: 'checkbox',
+    items: [
+      { id: 'ext1', label: 'Luzes (faróis, setas, freio, ré)', checked: false, observation: '' },
+      { id: 'ext2', label: 'Pneus (calibragem e estado geral)', checked: false, observation: '' },
+      { id: 'ext3', label: 'Retrovisores (limpos e ajustados)', checked: false, observation: '' },
+      { id: 'ext4', label: 'Lataria (avarias visíveis)', checked: false, observation: '' },
+      { id: 'ext5', label: 'Placas (legíveis e fixadas)', checked: false, observation: '' },
+    ],
+    isCompleted: false,
+  },
+  {
+    id: 'interior',
+    title: 'Passo 2: Verificações Internas',
+    icon: ShieldAlert, // Using ShieldAlert for general interior safety checks
+    type: 'checkbox',
+    items: [
+      { id: 'int1', label: 'Buzina funcionando', checked: false, observation: '' },
+      { id: 'int2', label: 'Luzes do painel (indicadores OK)', checked: false, observation: '' },
+      { id: 'int3', label: 'Cintos de segurança (todos)', checked: false, observation: '' },
+      { id: 'int4', label: 'Nível de combustível', checked: false, observation: '' },
+      { id: 'int5', label: 'Freio de estacionamento', checked: false, observation: '' },
+    ],
+    isCompleted: false,
+  },
+  {
+    id: 'documentos',
+    title: 'Passo 3: Documentação e Itens Obrigatórios',
     icon: FileText,
-    items: [
-      { id: 'doc1', label: 'CRLV válido e no veículo', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'doc2', label: 'Seguro obrigatório (DPVAT) em dia', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'doc3', label: 'Manual do proprietário', checked: false, observation: '', photo: null, photoPreview: null },
-    ],
-  },
-  {
-    id: 'tires',
-    title: 'Pneus e Rodas',
-    icon: CircleEllipsis, // Usando um ícone genérico para "rodas" ou "pneus"
-    items: [
-      { id: 'tire1', label: 'Calibragem dos pneus (conforme manual)', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'tire2', label: 'Estado de conservação dos pneus (sem cortes/bolhas)', checked: false, observation: '', requiresPhoto: true, photo: null, photoPreview: null },
-      { id: 'tire3', label: 'Estepe em condições de uso', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'tire4', label: 'Apertos das porcas das rodas', checked: false, observation: '', photo: null, photoPreview: null },
-    ],
-  },
-  {
-    id: 'fluids',
-    title: 'Níveis de Fluido',
-    icon: Droplets,
-    items: [
-      { id: 'fluid1', label: 'Nível do óleo do motor', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'fluid2', label: 'Nível do fluido de arrefecimento', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'fluid3', label: 'Nível do fluido de freio', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'fluid4', label: 'Nível do fluido da direção hidráulica (se aplicável)', checked: false, observation: '', photo: null, photoPreview: null },
-    ],
-  },
-  {
-    id: 'lights',
-    title: 'Luzes e Sinalização',
-    icon: AlertTriangle, // Ícone sugestivo para "alertas" ou "luzes"
-    items: [
-      { id: 'light1', label: 'Faróis (baixo e alto)', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'light2', label: 'Lanternas dianteiras e traseiras', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'light3', label: 'Luzes de freio', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'light4', label: 'Setas (dianteiras, traseiras, laterais)', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'light5', label: 'Luz de ré', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'light6', label: 'Pisca-alerta', checked: false, observation: '', photo: null, photoPreview: null },
-    ],
-  },
-  {
-    id: 'safety_items',
-    title: 'Itens de Segurança Obrigatórios',
-    icon: Construction, // Ícone para "construção" ou "ferramentas", adaptável
-    items: [
-      { id: 'safety1', label: 'Triângulo de sinalização', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'safety2', label: 'Macaco e chave de roda', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'safety3', label: 'Cintos de segurança (todos os assentos)', checked: false, observation: '', photo: null, photoPreview: null },
-      { id: 'safety4', label: 'Extintor de incêndio (validade e carga)', checked: false, observation: '', requiresPhoto: true, photo: null, photoPreview: null },
-    ],
+    type: 'document_upload',
+    uploadedDocuments: [],
+    isCompleted: false,
+    items: [ // Add a dummy item for consistency if needed for observation field, or handle observation differently for this step
+        {id: 'doc_obs', label: 'Observações Gerais sobre Documentos/Itens', checked: false, observation: ''} // 'checked' is irrelevant here
+    ]
   },
 ];
 
-export default function VehicleChecklistPage() {
+
+export default function VehicleChecklistWizardPage() {
   const { toast } = useToast();
-  const [checklistData, setChecklistData] = useState<ChecklistSection[]>(() => 
-    JSON.parse(JSON.stringify(initialChecklistData)) // Deep copy for initial state
+  const [stepsData, setStepsData] = useState<ChecklistSection[]>(() =>
+    JSON.parse(JSON.stringify(initialStepsData)) // Deep copy
   );
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>(initialChecklistData[0]?.id);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [currentTargetPhotoInfo, setCurrentTargetPhotoInfo] = useState<{ sectionId: string; itemId: string } | null>(null);
-
-  const totalItems = checklistData.reduce((acc, section) => acc + section.items.length, 0);
-
-  const updateProgress = useCallback(() => {
-    const checkedItemsCount = checklistData.reduce((acc, section) => 
-      acc + section.items.filter(item => item.checked).length, 0
-    );
-    setProgress(totalItems > 0 ? Math.round((checkedItemsCount / totalItems) * 100) : 0);
-  }, [checklistData, totalItems]);
   
+  const documentFileInputRef = useRef<HTMLInputElement>(null);
+
+  const activeStepId = stepsData[currentStepIndex]?.id;
+
+  const updateStepCompletion = useCallback(() => {
+    const newStepsData = stepsData.map((step, index) => {
+      let completed = false;
+      if (step.type === 'checkbox' && step.items) {
+        completed = step.items.every(item => item.checked);
+      } else if (step.type === 'document_upload') {
+        completed = (step.uploadedDocuments?.length || 0) > 0;
+      }
+      return { ...step, isCompleted: completed };
+    });
+    setStepsData(newStepsData);
+  }, [stepsData]);
+
+
   useEffect(() => {
-    updateProgress();
-  }, [updateProgress]); 
+    updateStepCompletion();
+  }, [stepsData.flatMap(s => s.items?.map(i => i.checked) ?? []), stepsData.find(s => s.type === 'document_upload')?.uploadedDocuments?.length, updateStepCompletion]);
 
-  // Cleanup Object URLs on component unmount
+
   useEffect(() => {
-    return () => {
-      checklistData.forEach(section => {
-        section.items.forEach(item => {
-          if (item.photoPreview) {
-            URL.revokeObjectURL(item.photoPreview);
-          }
-        });
-      });
-    };
-  }, [checklistData]);
+    const completedStepsCount = stepsData.filter(step => step.isCompleted).length;
+    const newProgress = totalSteps > 0 ? Math.round((completedStepsCount / totalSteps) * 100) : 0;
+    setProgress(newProgress);
+  }, [stepsData]);
 
+  const totalSteps = stepsData.length;
 
-  const handleItemChange = (sectionId: string, itemId: string, field: 'checked' | 'observation', value: string | boolean) => {
-    setChecklistData(prevData =>
-      prevData.map(section =>
-        section.id === sectionId
+  const handleCheckboxItemChange = (stepIndex: number, itemId: string, field: 'checked' | 'observation', value: string | boolean) => {
+    setStepsData(prevData =>
+      prevData.map((step, sIndex) =>
+        sIndex === stepIndex && step.items
           ? {
-              ...section,
-              items: section.items.map(item =>
+              ...step,
+              items: step.items.map(item =>
                 item.id === itemId ? { ...item, [field]: value } : item
               ),
             }
-          : section
+          : step
       )
     );
   };
+  
+  const handleDocumentObservationChange = (stepIndex: number, value: string) => {
+     setStepsData(prevData =>
+      prevData.map((step, sIndex) =>
+        sIndex === stepIndex && step.type === 'document_upload' && step.items && step.items.length > 0
+          ? {
+              ...step,
+              items: [{...step.items[0], observation: value}]
+            }
+          : step
+      )
+    );
+  }
 
-  const handleAccordionChange = (value: string | string[]) => {
-    setActiveAccordionItem(typeof value === 'string' ? value : value[0]);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0 && stepsData[currentStepIndex]?.type === 'document_upload') {
+      const newFiles: DocumentFile[] = Array.from(files).map(file => ({
+        id: `${file.name}-${Date.now()}`, // Simple unique ID
+        file: file,
+        previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+      }));
+
+      setStepsData(prevData =>
+        prevData.map((step, index) =>
+          index === currentStepIndex
+            ? {
+                ...step,
+                uploadedDocuments: [...(step.uploadedDocuments || []), ...newFiles],
+              }
+            : step
+        )
+      );
+    }
+    if (documentFileInputRef.current) {
+      documentFileInputRef.current.value = ""; // Reset file input
+    }
   };
 
+  const removeDocument = (stepIndex: number, documentId: string) => {
+    setStepsData(prevData =>
+      prevData.map((step, index) => {
+        if (index === stepIndex && step.uploadedDocuments) {
+          const docToRemove = step.uploadedDocuments.find(doc => doc.id === documentId);
+          if (docToRemove?.previewUrl) {
+            URL.revokeObjectURL(docToRemove.previewUrl);
+          }
+          return {
+            ...step,
+            uploadedDocuments: step.uploadedDocuments.filter(doc => doc.id !== documentId),
+          };
+        }
+        return step;
+      })
+    );
+  };
+  
+  // Cleanup Object URLs on component unmount
+  useEffect(() => {
+    return () => {
+      stepsData.forEach(section => {
+        if (section.type === 'document_upload' && section.uploadedDocuments) {
+          section.uploadedDocuments.forEach(doc => {
+            if (doc.previewUrl) {
+              URL.revokeObjectURL(doc.previewUrl);
+            }
+          });
+        }
+      });
+    };
+  }, [stepsData]);
+
+
+  const handleNextStep = () => {
+    if (currentStepIndex < totalSteps - 1) {
+      setCurrentStepIndex(currentStepIndex + 1);
+    }
+  };
+
+  const handlePreviousStep = () => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(currentStepIndex - 1);
+    }
+  };
+  
   const handleSaveDraft = () => {
     toast({
       title: 'Rascunho Salvo!',
-      description: 'Seu progresso no checklist foi salvo como rascunho. (Funcionalidade de persistência a ser implementada).',
+      description: 'Seu progresso no checklist foi salvo localmente como rascunho. (Funcionalidade de persistência a ser implementada).',
     });
   };
 
@@ -165,107 +238,36 @@ export default function VehicleChecklistPage() {
     toast({
       title: 'Checklist Enviado com Sucesso!',
       description: 'O checklist do veículo foi enviado e registrado. (Funcionalidade de processamento a ser implementada).',
+      action: <Button variant="outline" size="sm" onClick={() => { /* Confetti logic here or redirect */ }}><Sparkles className="mr-2 h-4 w-4 text-yellow-400"/>Ver Confirmação</Button>
     });
-    // Aqui você adicionaria a lógica para enviar os dados, fotos, etc.
   };
 
-  const triggerPhotoUpload = (sectionId: string, itemId: string) => {
-    setCurrentTargetPhotoInfo({ sectionId, itemId });
-    fileInputRef.current?.click();
-  };
-
-  const handlePhotoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0 && currentTargetPhotoInfo) {
-      const file = event.target.files[0];
-      const { sectionId, itemId } = currentTargetPhotoInfo;
-
-      setChecklistData(prevData =>
-        prevData.map(section => {
-          if (section.id === sectionId) {
-            return {
-              ...section,
-              items: section.items.map(item => {
-                if (item.id === itemId) {
-                  // Revoke old preview if exists
-                  if (item.photoPreview) {
-                    URL.revokeObjectURL(item.photoPreview);
-                  }
-                  return {
-                    ...item,
-                    photo: file,
-                    photoPreview: URL.createObjectURL(file),
-                  };
-                }
-                return item;
-              }),
-            };
-          }
-          return section;
-        })
-      );
-      setCurrentTargetPhotoInfo(null); // Reset target
-    }
-    // Reset file input value to allow selecting the same file again if needed
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const removePhoto = (sectionId: string, itemId: string) => {
-    setChecklistData(prevData =>
-      prevData.map(section => {
-        if (section.id === sectionId) {
-          return {
-            ...section,
-            items: section.items.map(item => {
-              if (item.id === itemId) {
-                if (item.photoPreview) {
-                  URL.revokeObjectURL(item.photoPreview);
-                }
-                return { ...item, photo: null, photoPreview: null };
-              }
-              return item;
-            }),
-          };
-        }
-        return section;
-      })
-    );
-  };
-
-  const goToNextSection = (currentIndex: number) => {
-    if (currentIndex < checklistData.length - 1) {
-      setActiveAccordionItem(checklistData[currentIndex + 1]?.id);
-    }
-  };
-
-  const isSectionCompleted = (section: ChecklistSection): boolean => {
-    return section.items.every(item => item.checked);
-  };
+  const currentStepIsCompleted = stepsData[currentStepIndex]?.isCompleted || false;
 
   return (
     <>
       <PageHeader
-        title="Checklist de Veículo"
-        description="Preencha todos os itens do checklist antes de iniciar ou após concluir o uso do veículo."
+        title="Checklist de Veículo (Wizard)"
+        description="Siga o passo a passo para completar a inspeção do veículo."
       />
       
       <input 
         type="file" 
-        accept="image/*" 
-        ref={fileInputRef} 
-        onChange={handlePhotoFileChange} 
+        accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" 
+        ref={documentFileInputRef} 
+        onChange={handleFileSelect} 
         style={{ display: 'none' }} 
+        multiple
       />
 
       <Card className="mb-6 shadow-md">
         <CardHeader>
-            <CardTitle>Progresso do Checklist</CardTitle>
-            <CardDescription>Complete todas as seções para finalizar.</CardDescription>
+            <CardTitle>Progresso do Checklist: Passo {currentStepIndex + 1} de {totalSteps}</CardTitle>
+            <CardDescription>{stepsData[currentStepIndex]?.title}</CardDescription>
         </CardHeader>
         <CardContent>
             <Progress value={progress} className="w-full h-3" aria-label={`Progresso do checklist: ${progress}%`} />
-            <p className="text-sm text-muted-foreground mt-2 text-center">{progress}% concluído</p>
+            <p className="text-sm text-muted-foreground mt-2 text-center">{progress}% concluído ({stepsData.filter(s => s.isCompleted).length}/{totalSteps} passos)</p>
         </CardContent>
       </Card>
 
@@ -273,113 +275,129 @@ export default function VehicleChecklistPage() {
         type="single" 
         collapsible 
         className="w-full space-y-2" 
-        value={activeAccordionItem}
-        onValueChange={handleAccordionChange}
+        value={activeStepId}
+        onValueChange={(value) => {
+            const newIndex = stepsData.findIndex(step => step.id === value);
+            if (newIndex !== -1) setCurrentStepIndex(newIndex);
+        }}
       >
-        {checklistData.map((section, sectionIndex) => {
-          const completed = isSectionCompleted(section);
-          return (
-            <AccordionItem key={section.id} value={section.id} className="border rounded-lg bg-card shadow-sm">
+        {stepsData.map((step, stepIndex) => (
+            <AccordionItem key={step.id} value={step.id} className="border rounded-lg bg-card shadow-sm">
               <AccordionTrigger className="px-4 py-3 hover:bg-muted/50 rounded-t-lg text-base sm:text-lg">
                 <div className="flex items-center flex-1">
-                  <section.icon className={cn("mr-3 h-5 w-5 text-primary", completed && "text-green-500")} />
-                  <span className={cn(completed && "line-through text-muted-foreground")}>{section.title}</span>
-                  {completed && <CheckCircle className="ml-2 h-5 w-5 text-green-500" />}
+                  <step.icon className={cn("mr-3 h-5 w-5 text-primary", step.isCompleted && "text-green-500")} />
+                  <span className={cn(step.isCompleted && "line-through text-muted-foreground")}>{step.title}</span>
+                  {step.isCompleted && <CheckCircle className="ml-2 h-5 w-5 text-green-500" />}
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pt-2 pb-4 border-t">
-                <div className="space-y-4">
-                  {section.items.map(item => (
-                    <div key={item.id} className="p-3 border rounded-md bg-background space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor={`${section.id}-${item.id}-check`} className="text-sm font-medium flex-1">
-                          {item.label}
-                        </Label>
-                        <Checkbox
-                          id={`${section.id}-${item.id}-check`}
-                          checked={item.checked}
-                          onCheckedChange={checked => handleItemChange(section.id, item.id, 'checked', !!checked)}
-                          className="ml-4"
+                {step.type === 'checkbox' && step.items && (
+                  <div className="space-y-4">
+                    {step.items.map(item => (
+                      <div key={item.id} className="p-3 border rounded-md bg-background space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor={`${step.id}-${item.id}-check`} className="text-sm font-medium flex-1">
+                            {item.label}
+                          </Label>
+                          <Checkbox
+                            id={`${step.id}-${item.id}-check`}
+                            checked={item.checked}
+                            onCheckedChange={checked => handleCheckboxItemChange(stepIndex, item.id, 'checked', !!checked)}
+                            className="ml-4"
+                          />
+                        </div>
+                        <Textarea
+                          id={`${step.id}-${item.id}-obs`}
+                          placeholder="Observações (opcional)"
+                          value={item.observation}
+                          onChange={e => handleCheckboxItemChange(stepIndex, item.id, 'observation', e.target.value)}
+                          rows={2}
+                          className="text-sm"
                         />
                       </div>
-                      <Textarea
-                        id={`${section.id}-${item.id}-obs`}
-                        placeholder="Observações (opcional)"
-                        value={item.observation}
-                        onChange={e => handleItemChange(section.id, item.id, 'observation', e.target.value)}
-                        rows={2}
-                        className="text-sm"
-                      />
-                      {(item.requiresPhoto || item.photoPreview) && (
-                        <div className="space-y-2">
-                          {item.photoPreview ? (
-                            <div className="relative group w-32 h-32 border rounded-md overflow-hidden">
-                              <Image 
-                                src={item.photoPreview} 
-                                alt={`Pré-visualização para ${item.label}`} 
-                                layout="fill" 
-                                objectFit="cover" 
-                              />
-                              <Button 
-                                variant="destructive" 
-                                size="icon" 
-                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => removePhoto(section.id, item.id)}
-                              >
-                                <X className="h-4 w-4" />
-                                <span className="sr-only">Remover Foto</span>
+                    ))}
+                  </div>
+                )}
+                {step.type === 'document_upload' && (
+                  <div className="space-y-4">
+                    <Button 
+                        variant="outline" 
+                        onClick={() => documentFileInputRef.current?.click()}
+                        className="w-full"
+                    >
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                        Anexar Documentos (CRLV, Seguro, etc.)
+                    </Button>
+                    {step.uploadedDocuments && step.uploadedDocuments.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <h4 className="text-sm font-medium">Documentos Anexados:</h4>
+                        <ul className="space-y-2">
+                          {step.uploadedDocuments.map(docFile => (
+                            <li key={docFile.id} className="flex items-center justify-between p-2 border rounded-md bg-muted/50">
+                              <div className="flex items-center space-x-2 overflow-hidden">
+                                {docFile.previewUrl ? (
+                                    <Image src={docFile.previewUrl} alt={docFile.file.name} width={32} height={32} className="rounded object-cover h-8 w-8"/>
+                                ) : (
+                                    <FileText className="h-6 w-6 text-muted-foreground"/>
+                                )}
+                                <span className="text-xs truncate">{docFile.file.name}</span>
+                              </div>
+                              <Button variant="ghost" size="icon" onClick={() => removeDocument(stepIndex, docFile.id)} className="h-7 w-7">
+                                <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
-                            </div>
-                          ) : (
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => triggerPhotoUpload(section.id, item.id)}
-                                className="w-full sm:w-auto"
-                            >
-                                <UploadCloud className="mr-2 h-4 w-4" />
-                                {item.requiresPhoto ? "Anexar Foto Obrigatória" : "Anexar Foto"}
-                            </Button>
-                          )}
-                          {item.photo && <p className="text-xs text-muted-foreground">Arquivo: {item.photo.name}</p>}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {sectionIndex < checklistData.length - 1 && (
-                    <div className="flex justify-end mt-4">
-                      <Button 
-                        variant="secondary" 
-                        onClick={() => goToNextSection(sectionIndex)}
-                      >
-                        Próxima Seção &rarr;
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {step.items && step.items.length > 0 && ( // For general observations for this step
+                         <Textarea
+                          placeholder="Observações gerais sobre documentos/itens obrigatórios"
+                          value={step.items[0].observation}
+                          onChange={e => handleDocumentObservationChange(stepIndex, e.target.value)}
+                          rows={3}
+                          className="text-sm mt-4"
+                        />
+                    )}
+                  </div>
+                )}
               </AccordionContent>
             </AccordionItem>
-          );
-        })}
+          ))}
       </Accordion>
 
-      <div className="mt-8 flex flex-col sm:flex-row justify-end gap-3">
-        <Button variant="outline" onClick={handleSaveDraft}>
-          <Save className="mr-2 h-4 w-4" />
-          Salvar Rascunho
+      <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <Button 
+            variant="outline" 
+            onClick={handlePreviousStep} 
+            disabled={currentStepIndex === 0}
+        >
+          &larr; Voltar
         </Button>
-        <Button onClick={handleSubmitChecklist} disabled={progress < 100}>
-          <Send className="mr-2 h-4 w-4" />
-          Enviar Checklist
-        </Button>
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+            <Button variant="outline" onClick={handleSaveDraft}>
+            <Save className="mr-2 h-4 w-4" />
+            Salvar Rascunho
+            </Button>
+            {currentStepIndex === totalSteps - 1 ? (
+            <Button onClick={handleSubmitChecklist} disabled={progress < 100}>
+                <Send className="mr-2 h-4 w-4" />
+                Enviar Checklist
+            </Button>
+            ) : (
+            <Button onClick={handleNextStep} disabled={!currentStepIsCompleted && stepsData[currentStepIndex]?.type === 'checkbox'}> 
+            {/* For document step, allow next even if no docs, rely on overall progress for final submit */}
+                Próximo Passo &rarr;
+            </Button>
+            )}
+        </div>
       </div>
        <p className="text-xs text-muted-foreground text-center mt-4">
-        Após o envio, o checklist ficará registrado no histórico do veículo e da solicitação.
+        Complete todos os passos para habilitar o envio do checklist.
       </p>
     </>
   );
 }
-
-    
 
     
