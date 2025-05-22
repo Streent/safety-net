@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Check, CloudUpload, ImageIcon, Loader2, Car } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CalendarIcon, Check, CloudUpload, ImageIcon, Loader2, Car, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { cn } from '@/lib/utils';
@@ -21,7 +22,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 
 
 const requestVehicleFormSchema = z.object({
-  startLocation: z.string().min(3, { message: 'O local de partida deve ter pelo menos 3 caracteres.' }),
+  startLocation: z.string().min(1, { message: 'Por favor, selecione o local de partida.' }),
   destination: z.string().min(3, { message: 'O destino deve ter pelo menos 3 caracteres.' }),
   startDate: z.date({ required_error: 'A data de início é obrigatória.' }),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Hora de início inválida (HH:MM).' }),
@@ -43,11 +44,18 @@ const requestVehicleFormSchema = z.object({
     return endDateTime > startDateTime;
 }, {
     message: 'A data/hora de fim deve ser posterior à data/hora de início.',
-    path: ['endDate'], // Ou path: ['endTime'] se preferir destacar o campo de hora
+    path: ['endDate'], 
 });
 
 
 type RequestVehicleFormValues = z.infer<typeof requestVehicleFormSchema>;
+
+const pickupLocationOptions = [
+  { id: 'sede', label: 'Sede da Empresa' },
+  { id: 'garagem_a', label: 'Garagem Filial A' },
+  { id: 'obra_y', label: 'Obra Cliente Y' },
+  { id: 'outro', label: 'Outro (especificar no motivo)' },
+];
 
 export function RequestVehicleForm() {
   const { toast } = useToast();
@@ -95,7 +103,6 @@ export function RequestVehicleForm() {
     setIsLoading(true);
     console.log('Dados da Solicitação de Veículo:', { ...data, photoFileNames: photoFiles.map(f => f.name) });
     
-    // Simular chamada de API
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     toast({
@@ -114,10 +121,9 @@ export function RequestVehicleForm() {
       endTime: '17:00',
       reason: '',
       photos: undefined,
-      vehicleId: '',
+      vehicleId: '', 
     });
     setPhotoFiles([]);
-    // router.push('/fleet'); // Opcional: Redirecionar após sucesso
   }
 
   return (
@@ -157,10 +163,21 @@ export function RequestVehicleForm() {
                 name="startLocation"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Local de Partida</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Sede da Empresa" {...field} disabled={isLoading} />
-                    </FormControl>
+                    <FormLabel className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground" />Local de Partida</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o local de partida" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {pickupLocationOptions.map(option => (
+                          <SelectItem key={option.id} value={option.label}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -170,7 +187,7 @@ export function RequestVehicleForm() {
                 name="destination"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Destino</FormLabel>
+                    <FormLabel className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground" />Destino</FormLabel>
                     <FormControl>
                       <Input placeholder="Ex: Cliente X / Obra Y" {...field} disabled={isLoading} />
                     </FormControl>
@@ -192,7 +209,7 @@ export function RequestVehicleForm() {
                         <FormControl>
                           <Button
                             variant={"outline"}
-                            className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                            className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
                             disabled={isLoading}
                           >
                             {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
@@ -235,7 +252,7 @@ export function RequestVehicleForm() {
                         <FormControl>
                           <Button
                             variant={"outline"}
-                            className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                            className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
                             disabled={isLoading}
                           >
                             {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
@@ -293,7 +310,8 @@ export function RequestVehicleForm() {
                     <Input 
                         type="file" 
                         multiple 
-                        accept="image/*"
+                        accept="image/*" // Hints at gallery access
+                        // capture="environment" // Hints at using the back camera
                         disabled={isLoading}
                         onChange={handlePhotoChange}
                         className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
@@ -314,7 +332,11 @@ export function RequestVehicleForm() {
             />
 
             <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={isLoading || !form.formState.isValid} className="min-w-[150px]">
+              <Button 
+                type="submit" 
+                disabled={isLoading || !form.formState.isValid} 
+                className="min-w-[150px]"
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
@@ -331,3 +353,4 @@ export function RequestVehicleForm() {
     </Card>
   );
 }
+
