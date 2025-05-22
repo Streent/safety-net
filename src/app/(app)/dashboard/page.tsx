@@ -1,3 +1,5 @@
+// This line makes the component a Client Component
+'use client';
 
 import { BarChart3, FileText, AlertTriangle, ShieldCheck, Info, Bell } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -12,8 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator'; // Added for visual separation in alerts
-import { Input } from "@/components/ui/input"; // Added Input import
+import { Separator } from '@/components/ui/separator'; 
+import { Input } from "@/components/ui/input";
 
 // Placeholder for Reports List
 function RecentReportsListPlaceholder() {
@@ -154,7 +156,7 @@ function AlertsList() {
 export default function DashboardPage() {
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="Painel Principal" description="Bem-vindo ao SafetyNet. Aqui está sua visão geral de segurança." />
+      <PageHeader title="Painel Principal" description="Bem-vindo(a) ao SafetyNet. Aqui está sua visão geral de segurança." />
       
       <div className="flex-grow overflow-y-auto pb-4 space-y-6">
         {/* Stats Cards */}
@@ -222,4 +224,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
