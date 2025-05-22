@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next'; // Import Viewport
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/layout/theme-provider';
@@ -19,7 +19,11 @@ export const metadata: Metadata = {
   description: 'Safety Solutions Platform by Firebase Studio',
   manifest: '/manifest.json', // For PWA
   icons: { apple: '/icon.png' }, // For PWA
-  themeColor: '#63B5A5', // Primary color for PWA
+};
+
+// Add the viewport export
+export const viewport: Viewport = {
+  themeColor: '#63B5A5', // Add themeColor here
 };
 
 export default function RootLayout({
@@ -28,16 +32,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}>
+    <html lang="en">
+      <body>{/* Opening body tag - removed accidental whitespace that might have been here */}
         <ThemeProvider
           defaultTheme="light"
-          storageKey="safetynet-theme"
         >
           {children}
-          <Toaster />
         </ThemeProvider>
-      </body>
+        <Toaster />
+      </body> {/* Closing body tag */}
     </html>
   );
 }

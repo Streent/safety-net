@@ -109,6 +109,7 @@ export function QuickActionsFAB({ onToggleChat }: QuickActionsFABProps) {
                 width={48}
                 height={48}
                 className="rounded-full object-contain"
+                style={{ width: 'auto', height: 'auto' }} // Added style here
               />
             )}
           </div>
