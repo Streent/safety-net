@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // Asegúrate de que DATABASE_URL esté configurada en tu .env
+}
+
+// Modelo de Usuário - Exemplo básico
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?   // Para autenticação por email/senha
+  perfil        String?   // tecnico, admin, financeiro, master, cliente
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relações
+  requestedVehicles VehicleRequest[] @relation("RequestedByUser")
+  approvedRequests  VehicleRequest[] @relation("ApprovedByManager")
+  // Adicionar outras relações conforme necessário (ex: relatórios, EPIs, etc.)
+}
+
+model Vehicle {
+  id            String    @id @default(cuid())
+  model         String
+  plate         String    @unique
+  type          String    // Utilitário Leve, Caminhonete, etc.
+  status        String    // Disponível, Em Manutenção, Em Uso
+  location      String?
+  imageUrl      String?
+  dataAiHint    String?   // Para hints de imagem (Unsplash)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  requests      VehicleRequest[]
+  // Adicionar relações para checklists, manutenções, abastecimentos
+}
+
+model VehicleRequest {
+  id              String     @id @default(cuid())
+  pickupLocation  String
+  destination     String
+  startDate       DateTime
+  startTime       String     // Formato HH:MM
+  endDate         DateTime
+  endTime         String     // Formato HH:MM
+  purpose         String
+  status          String     @default("Pendente") // Pendente, Aprovada, Recusada, Concluída
+  
+  requestedById   String
+  requestedBy     User       @relation("RequestedByUser", fields: [requestedById], references: [id])
+  
+  vehicleId       String?    // Opcional, se um veículo específico for solicitado
+  vehicle         Vehicle?   @relation(fields: [vehicleId], references: [id])
+
+  approvedById    String?
+  approvedBy      User?      @relation("ApprovedByManager", fields: [approvedById], references: [id])
+  rejectionReason String?
+  
+  // Fotos podem ser armazenadas como URLs para um serviço de storage (ex: Firebase Storage, S3)
+  // photoUrls       String[]   @default([]) // Se você armazenar as URLs aqui
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+// Adicionar outros modelos conforme os módulos do sistema
+// Ex: Checklist, FuelLog, Maintenance, Report, TrainingSession, EPI, Company, Collaborator, etc.

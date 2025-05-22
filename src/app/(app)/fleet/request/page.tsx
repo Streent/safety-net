@@ -10,7 +10,7 @@ function VehicleRequestPageContents() {
     <>
       <PageHeader
         title="Solicitar Veículo da Frota"
-        description="Preencha os detalhes abaixo para solicitar um veículo."
+        description="Preencha os detalhes abaixo para solicitar um veículo. Sua solicitação será enviada para aprovação."
       />
       <RequestVehicleForm />
     </>
@@ -20,7 +20,7 @@ function VehicleRequestPageContents() {
 
 export default function RequestVehiclePage() {
   return (
-    <Suspense fallback={<div>Carregando formulário...</div>}>
+    <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/> Carregando formulário...</div>}>
       <VehicleRequestPageContents />
     </Suspense>
   );

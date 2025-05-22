@@ -10,9 +10,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, Check, CloudUpload, ImageIcon, Loader2, Car, MapPin } from 'lucide-react';
+import { CalendarIcon, Check, CloudUpload, ImageIcon, Loader2, Car, MapPin, FileUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as UiFormDescription } from "@/components/ui/form";
 import { cn } from '@/lib/utils';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -20,15 +20,15 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-
+// Schema Zod atualizado conforme especificação (mais detalhado)
 const requestVehicleFormSchema = z.object({
-  startLocation: z.string().min(1, { message: 'Por favor, selecione o local de partida.' }),
+  pickupLocation: z.string().min(1, { message: 'O local de partida é obrigatório.' }),
   destination: z.string().min(3, { message: 'O destino deve ter pelo menos 3 caracteres.' }),
   startDate: z.date({ required_error: 'A data de início é obrigatória.' }),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Hora de início inválida (HH:MM).' }),
-  endDate: z.date({ required_error: 'A data de fim é obrigatória.' }),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Hora de fim inválida (HH:MM).' }),
-  reason: z.string().min(10, { message: 'O motivo deve ter pelo menos 10 caracteres.' }),
+  endDate: z.date({ required_error: 'A data de término é obrigatória.' }),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Hora de término inválida (HH:MM).' }),
+  purpose: z.string().min(10, { message: 'O motivo deve ter pelo menos 10 caracteres.' }),
   photos: z.any().optional().describe('Fotos adicionais para a solicitação (opcional)'),
   vehicleId: z.string().optional().describe('ID do veículo, se a solicitação for para um específico'),
 })
@@ -43,17 +43,22 @@ const requestVehicleFormSchema = z.object({
     
     return endDateTime > startDateTime;
 }, {
-    message: 'A data/hora de fim deve ser posterior à data/hora de início.',
+    message: 'A data/hora de término deve ser posterior à data/hora de início.',
     path: ['endDate'], 
+})
+.refine(data => new Date(data.startDate) >= new Date(new Date().setHours(0,0,0,0)), {
+    message: 'A data de início não pode ser no passado.',
+    path: ['startDate'],
 });
-
 
 type RequestVehicleFormValues = z.infer<typeof requestVehicleFormSchema>;
 
+// Opções de local de partida (exemplo)
 const pickupLocationOptions = [
   { id: 'sede', label: 'Sede da Empresa' },
-  { id: 'garagem_a', label: 'Garagem Filial A' },
-  { id: 'obra_y', label: 'Obra Cliente Y' },
+  { id: 'garagem_a', label: 'Garagem Filial A - Logística' },
+  { id: 'obra_cliente_y', label: 'Obra Cliente Y - Centro' },
+  { id: 'almoxarifado_central', label: 'Almoxarifado Central SST' },
   { id: 'outro', label: 'Outro (especificar no motivo)' },
 ];
 
@@ -63,6 +68,7 @@ export function RequestVehicleForm() {
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
 
   const vehicleIdFromParams = searchParams.get('vehicleId');
   const vehicleModelFromParams = searchParams.get('vehicleModel');
@@ -70,13 +76,13 @@ export function RequestVehicleForm() {
   const form = useForm<RequestVehicleFormValues>({
     resolver: zodResolver(requestVehicleFormSchema),
     defaultValues: {
-      startLocation: '',
+      pickupLocation: '',
       destination: '',
       startDate: undefined,
       startTime: '09:00',
       endDate: undefined,
       endTime: '17:00',
-      reason: '',
+      purpose: '',
       photos: undefined,
       vehicleId: vehicleIdFromParams || '',
     },
@@ -90,48 +96,91 @@ export function RequestVehicleForm() {
 
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Limpar previews antigos
+    photoPreviews.forEach(url => URL.revokeObjectURL(url));
+    setPhotoPreviews([]);
+
     if (event.target.files) {
-      setPhotoFiles(Array.from(event.target.files));
+      const filesArray = Array.from(event.target.files);
+      setPhotoFiles(filesArray);
       form.setValue('photos', event.target.files, { shouldValidate: true });
+
+      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
+      setPhotoPreviews(newPreviews);
     } else {
       setPhotoFiles([]);
       form.setValue('photos', undefined, { shouldValidate: true });
     }
   };
 
+  useEffect(() => {
+    // Cleanup object URLs on component unmount
+    return () => {
+      photoPreviews.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [photoPreviews]);
+
   async function onSubmit(data: RequestVehicleFormValues) {
     setIsLoading(true);
     console.log('Dados da Solicitação de Veículo:', { ...data, photoFileNames: photoFiles.map(f => f.name) });
     
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // TODO: Adicionar lógica para salvar em IndexedDB se offline
+    // Ex: if (!navigator.onLine) { saveToIndexedDB(data); return; }
+
+    try {
+      // Simulação de chamada de API
+      // Em um cenário real:
+      // const formData = new FormData();
+      // Object.entries(data).forEach(([key, value]) => {
+      //   if (key === 'photos') return; // Handled separately
+      //   if (value instanceof Date) formData.append(key, value.toISOString());
+      //   else if (value !== undefined) formData.append(key, String(value));
+      // });
+      // photoFiles.forEach(file => formData.append('photos', file));
+      // const response = await fetch('/api/fleet/requests', { method: 'POST', body: formData });
+      // if (!response.ok) throw new Error('Falha ao enviar solicitação');
+      
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simula delay da API
     
-    toast({
-      title: 'Solicitação Enviada!',
-      description: `Sua solicitação para ${vehicleModelFromParams ? `o veículo ${vehicleModelFromParams}` : 'um veículo'} foi enviada com sucesso.`,
-      action: <Button variant="outline" size="sm" onClick={() => router.push('/fleet')}><Check className="mr-2 h-4 w-4" />OK</Button>,
-    });
-    
-    setIsLoading(false);
-    form.reset({
-      startLocation: '',
-      destination: '',
-      startDate: undefined,
-      startTime: '09:00',
-      endDate: undefined,
-      endTime: '17:00',
-      reason: '',
-      photos: undefined,
-      vehicleId: '', 
-    });
-    setPhotoFiles([]);
+      toast({
+        title: 'Solicitação Enviada!',
+        description: `Sua solicitação para ${vehicleModelFromParams ? `o veículo ${vehicleModelFromParams}` : 'um veículo'} foi enviada com sucesso e aguarda aprovação.`,
+        className: "bg-green-100 border-green-300 text-green-700 dark:bg-green-700 dark:text-white dark:border-green-900",
+      });
+      
+      setIsLoading(false);
+      form.reset({
+        pickupLocation: '',
+        destination: '',
+        startDate: undefined,
+        startTime: '09:00',
+        endDate: undefined,
+        endTime: '17:00',
+        purpose: '',
+        photos: undefined,
+        vehicleId: '', 
+      });
+      setPhotoFiles([]);
+      setPhotoPreviews([]);
+      // TODO: Implementar "pulse the vehicle card" - requer comunicação entre componentes ou estado global
+      // router.push('/fleet'); // Opcional: Redirecionar
+
+    } catch (error) {
+        setIsLoading(false);
+        toast({
+            variant: "destructive",
+            title: "Erro ao Enviar Solicitação",
+            description: error instanceof Error ? error.message : "Ocorreu um problema ao enviar sua solicitação."
+        });
+    }
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-xl">
+    <Card className="w-full max-w-2xl mx-auto shadow-xl animate-fadeInLayout">
       <CardHeader>
         <CardTitle className="text-xl flex items-center">
           <Car className="mr-3 h-6 w-6 text-primary" />
-          Detalhes da Solicitação
+          Detalhes da Solicitação de Veículo
         </CardTitle>
         {vehicleModelFromParams && (
           <UiCardDescription>
@@ -156,11 +205,11 @@ export function RequestVehicleForm() {
                     )}
                 />
             )}
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
-                name="startLocation"
+                name="pickupLocation"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground" />Local de Partida</FormLabel>
@@ -212,8 +261,8 @@ export function RequestVehicleForm() {
                             className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
                             disabled={isLoading}
                           >
+                            <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
                             {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
@@ -232,7 +281,7 @@ export function RequestVehicleForm() {
                   <FormItem>
                     <FormLabel>Hora de Início</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} disabled={isLoading} />
+                      <Input type="time" {...field} disabled={isLoading} className="appearance-none" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -246,7 +295,7 @@ export function RequestVehicleForm() {
                 name="endDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Data de Fim</FormLabel>
+                    <FormLabel>Data de Término</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -255,8 +304,8 @@ export function RequestVehicleForm() {
                             className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
                             disabled={isLoading}
                           >
+                             <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
                             {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
@@ -273,9 +322,9 @@ export function RequestVehicleForm() {
                 name="endTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hora de Fim</FormLabel>
+                    <FormLabel>Hora de Término</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} disabled={isLoading} />
+                      <Input type="time" {...field} disabled={isLoading} className="appearance-none"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -285,7 +334,7 @@ export function RequestVehicleForm() {
 
             <FormField
               control={form.control}
-              name="reason"
+              name="purpose"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Motivo da Solicitação</FormLabel>
@@ -303,29 +352,33 @@ export function RequestVehicleForm() {
                 render={({ field }) => ( 
                 <FormItem>
                     <FormLabel className="flex items-center">
-                        <CloudUpload className="h-4 w-4 mr-2 text-muted-foreground"/>
-                        Fotos Adicionais (Opcional)
+                        <FileUp className="h-4 w-4 mr-2 text-muted-foreground"/>
+                        Anexar Fotos (Opcional)
                     </FormLabel>
                     <FormControl>
                     <Input 
                         type="file" 
                         multiple 
-                        accept="image/*" // Hints at gallery access
-                        // capture="environment" // Hints at using the back camera
+                        accept="image/*"
                         disabled={isLoading}
                         onChange={handlePhotoChange}
                         className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                     />
                     </FormControl>
-                    {photoFiles.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                        <p className="text-xs font-medium">Arquivos Selecionados:</p>
-                        <ul className="list-disc list-inside text-xs text-muted-foreground max-h-20 overflow-y-auto">
-                        {photoFiles.map(file => <li key={file.name}>{file.name} ({(file.size / 1024).toFixed(1)} KB)</li>)}
-                        </ul>
-                    </div>
+                    {photoPreviews.length > 0 && (
+                        <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                            {photoPreviews.map((url, index) => (
+                            <div key={index} className="relative group aspect-square">
+                                <img 
+                                    src={url} 
+                                    alt={`Pré-visualização ${index + 1}`} 
+                                    className="object-cover w-full h-full rounded-md border"
+                                />
+                            </div>
+                            ))}
+                        </div>
                     )}
-                    <FormDescription className="text-xs">Anexe fotos se necessário (ex: local específico da obra).</FormDescription>
+                    <UiFormDescription className="text-xs">Anexe fotos relevantes à solicitação (ex: local específico, condição de carga).</UiFormDescription>
                     <FormMessage />
                 </FormItem>
                 )}
@@ -334,8 +387,8 @@ export function RequestVehicleForm() {
             <div className="flex justify-end pt-4">
               <Button 
                 type="submit" 
-                disabled={isLoading || !form.formState.isValid} 
-                className="min-w-[150px]"
+                disabled={isLoading || !form.formState.isDirty || !form.formState.isValid} 
+                className="min-w-[180px] transition-all active:scale-95"
               >
                 {isLoading ? (
                   <>
@@ -353,4 +406,3 @@ export function RequestVehicleForm() {
     </Card>
   );
 }
-
