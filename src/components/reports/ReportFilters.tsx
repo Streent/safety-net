@@ -9,11 +9,12 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { CalendarDays, Search, Download } from 'lucide-react'; // Added Download
+import { CalendarDays, Search } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { ReportStatus } from '@/app/(app)/reports/page';
+import { Combobox } from '@/components/ui/combobox'; // Importar o novo Combobox
 
 interface ReportFiltersProps {
   searchTerm: string;
@@ -22,13 +23,12 @@ interface ReportFiltersProps {
   setDateRange: (dateRange: DateRange | undefined) => void;
   statusFilter: ReportStatus | 'Todos';
   setStatusFilter: (status: ReportStatus | 'Todos') => void;
-  technicianFilter: string;
-  setTechnicianFilter: (tech: string) => void;
+  technicianFilter: string; // Mantém string, pois o Combobox lida com 'undefined' para "Todos"
+  setTechnicianFilter: (tech: string | undefined) => void; // Ajustado para aceitar undefined
   uniqueTechnicians: string[];
   selectedReportTypes: string[];
   handleReportTypeChange: (type: string) => void;
   allReportTypes: string[];
-  // Removed onExport from here as it's better placed with the table actions
 }
 
 export function ReportFilters({
@@ -45,6 +45,12 @@ export function ReportFilters({
   handleReportTypeChange,
   allReportTypes,
 }: ReportFiltersProps) {
+
+  const technicianOptions = uniqueTechnicians.map(tech => ({
+    value: tech, // O valor 'Todos' será tratado pelo Combobox para passar undefined
+    label: tech,
+  }));
+
   return (
     <div className="space-y-4">
       <div>
@@ -101,17 +107,20 @@ export function ReportFilters({
       </div>
 
       <div>
-        <Label htmlFor="technician-filter" className="text-sm font-medium text-muted-foreground">Técnico</Label>
-        <Select value={technicianFilter} onValueChange={setTechnicianFilter}>
-          <SelectTrigger id="technician-filter" className="mt-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {uniqueTechnicians.map(tech => (
-              <SelectItem key={tech} value={tech}>{tech}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label htmlFor="technician-filter-combobox" className="text-sm font-medium text-muted-foreground">Técnico</Label>
+        <Combobox
+          options={technicianOptions}
+          value={technicianFilter || "Todos"} // Se technicianFilter for undefined, mostra 'Todos'
+          onValueChange={(value) => {
+            // O Combobox passará undefined se "Todos" for selecionado
+            setTechnicianFilter(value);
+          }}
+          placeholder="Selecione um técnico"
+          searchPlaceholder="Buscar técnico..."
+          notFoundText="Nenhum técnico encontrado."
+          className="mt-1"
+          // Passar `disabled` se necessário a partir da página principal
+        />
       </div>
 
       <div>

@@ -1,7 +1,7 @@
 
 'use client';
 import Link from 'next/link';
-import { PlusCircle, Download, Eye, MoreHorizontal, SlidersHorizontal, Filter as FilterIcon } from 'lucide-react'; // FilterIcon for desktop
+import { PlusCircle, Download, Eye, MoreHorizontal, SlidersHorizontal, Filter as FilterIcon, X as XIcon, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/common/page-header';
 import {
@@ -21,17 +21,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format, isValid } from 'date-fns';
+import { format, isValid, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { X as XIcon } from 'lucide-react';
 import { IncidentForm, type IncidentFormValues } from '@/components/reports/incident-form';
 import { useToast } from '@/hooks/use-toast';
 import { ReportFilters } from '@/components/reports/ReportFilters';
-import { Card, CardContent, CardHeader, CardTitle as UiCardTitle } from '@/components/ui/card'; // Renamed for clarity
+import { Card, CardContent, CardHeader, CardTitle as UiCardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 
 export interface Report {
   id: string;
@@ -42,10 +44,11 @@ export interface Report {
   description?: string;
   location?: string;
   geolocation?: string;
+  // Potentially add more fields like companyId, etc.
 }
 
 const initialMockReports: Report[] = [
-  { id: 'RPT001', date: new Date(2024, 5, 10), technician: 'Alice Silva', type: 'Quase Acidente', status: 'Aberto', description: 'Escada escorregadia no armazém B.', location: 'Armazém B' },
+  { id: 'RPT001', date: new Date(2024, 5, 10), technician: 'Alice Silva', type: 'Quase Acidente', status: 'Aberto', description: 'Escada escorregadia no armazém B.', location: 'Armazém B', geolocation: '-23.5505, -46.6333' },
   { id: 'RPT002', date: new Date(2024, 5, 12), technician: 'Roberto Costa', type: 'Observação de Segurança', status: 'Fechado', description: 'Equipamento de proteção individual (EPI) não utilizado corretamente na linha de montagem 3.', location: 'Linha de Montagem 3' },
   { id: 'RPT003', date: new Date(2024, 5, 15), technician: 'Alice Silva', type: 'Primeiros Socorros', status: 'Em Progresso', description: 'Corte leve no dedo do colaborador Mário Santos ao manusear ferramenta.', location: 'Oficina Mecânica' },
   { id: 'RPT004', date: new Date(2024, 5, 18), technician: 'Carlos Neves', type: 'Dano à Propriedade', status: 'Aberto', description: 'Empilhadeira colidiu com prateleira, causando danos menores.', location: 'Corredor 5, Armazém A' },
@@ -75,7 +78,7 @@ export default function ReportsListPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [statusFilter, setStatusFilter] = useState<ReportStatus | 'Todos'>('Todos');
-  const [technicianFilter, setTechnicianFilter] = useState<string>('Todos');
+  const [technicianFilter, setTechnicianFilter] = useState<string | undefined>(undefined); // Alterado para undefined para "Todos"
   const [selectedReportTypes, setSelectedReportTypes] = useState<string[]>([]);
   
   const [isLoading, setIsLoading] = useState(false);
@@ -96,10 +99,11 @@ export default function ReportsListPage() {
     
     debounceTimerRef.current = setTimeout(() => {
       setIsLoading(true);
+      // Simulate data fetching delay
       setTimeout(() => {
         setIsLoading(false);
       }, 500);
-    }, 300);
+    }, 300); // 300ms debounce
 
     return () => {
       if (debounceTimerRef.current) {
@@ -108,8 +112,10 @@ export default function ReportsListPage() {
     };
   }, [searchTerm, dateRange, statusFilter, technicianFilter, selectedReportTypes, isMounted]);
 
+
   const uniqueTechnicians = useMemo(() => {
     const techs = new Set(reports.map(report => report.technician));
+    // Adiciona "Todos" como primeira opção para o Combobox
     return ['Todos', ...Array.from(techs).sort()];
   }, [reports]);
 
@@ -124,28 +130,24 @@ export default function ReportsListPage() {
       const dateFrom = dateRange?.from;
       const dateTo = dateRange?.to;
       let dateMatch = true;
-      if (dateFrom && isValid(report.date)) {
-        const reportDate = new Date(report.date);
-        reportDate.setHours(0,0,0,0); 
-        dateMatch = reportDate >= new Date(new Date(dateFrom).setHours(0,0,0,0));
+      if (isValid(report.date)) {
+        const reportDateOnly = startOfDay(report.date);
+        if (dateFrom) {
+          dateMatch = reportDateOnly >= startOfDay(dateFrom);
+        }
+        if (dateTo && dateMatch) {
+          dateMatch = reportDateOnly <= endOfDay(dateTo);
+        }
+        if (dateFrom && !dateTo && dateMatch){ 
+          dateMatch = reportDateOnly.getTime() === startOfDay(dateFrom).getTime();
+        }
+      } else {
+        dateMatch = false; // Or handle invalid dates as per requirement
       }
-      if (dateTo && isValid(report.date) && dateMatch) {
-        const reportDate = new Date(report.date);
-        reportDate.setHours(0,0,0,0);
-        const toEndOfDay = new Date(dateTo);
-        toEndOfDay.setHours(23, 59, 59, 999);
-        dateMatch = reportDate <= toEndOfDay;
-      }
-      if (dateFrom && !dateTo && isValid(report.date)){ 
-         const reportDate = new Date(report.date);
-         reportDate.setHours(0,0,0,0);
-         const fromDateOnly = new Date(dateFrom);
-         fromDateOnly.setHours(0,0,0,0);
-         dateMatch = reportDate.getTime() === fromDateOnly.getTime();
-      }
-
+      
       const statusMatch = statusFilter === 'Todos' || report.status === statusFilter;
-      const technicianMatch = technicianFilter === 'Todos' || report.technician === technicianFilter;
+      // Se technicianFilter for undefined (ou "Todos"), não filtra por técnico
+      const technicianMatch = !technicianFilter || technicianFilter === 'Todos' || report.technician === technicianFilter;
       const typeMatch = selectedReportTypes.length === 0 || selectedReportTypes.includes(report.type);
       
       return searchMatch && dateMatch && statusMatch && technicianMatch && typeMatch;
@@ -170,10 +172,10 @@ export default function ReportsListPage() {
     setIsNewReport(false);
   };
 
-  const handleFormSubmitSuccess = (submittedData: IncidentFormValues) => {
-    const reportData: Omit<Report, 'id' | 'status'> = {
+  const handleFormSubmitSuccess = useCallback((submittedData: IncidentFormValues) => {
+    const reportData: Omit<Report, 'id' | 'status' | 'date'> & { date: Date } = {
       date: submittedData.date,
-      technician: editingReport?.technician || 'Usuário Atual',
+      technician: editingReport?.technician || 'Usuário Atual (Definir)', // Placeholder
       type: submittedData.incidentType,
       description: submittedData.description,
       location: submittedData.location,
@@ -184,7 +186,7 @@ export default function ReportsListPage() {
       const newReportEntry: Report = {
         id: `RPT${Math.random().toString(36).substr(2, 3).toUpperCase()}${Date.now() % 1000}`,
         ...reportData,
-        status: 'Aberto',
+        status: 'Aberto', // Default status for new reports
       };
       setReports(prevReports => [newReportEntry, ...prevReports]);
       toast({ title: "Relatório Criado", description: "Novo relatório de incidente adicionado com sucesso." });
@@ -195,6 +197,7 @@ export default function ReportsListPage() {
             ? { 
                 ...editingReport, 
                 ...reportData,
+                // Manter o status original ou permitir alteração no formulário
                 status: editingReport.status 
               } 
             : r
@@ -203,7 +206,7 @@ export default function ReportsListPage() {
       toast({ title: "Relatório Atualizado", description: `Relatório ${editingReport.id} atualizado com sucesso.` });
     }
     handleCloseReportModal();
-  };
+  }, [editingReport, isNewReport, toast]); // handleCloseReportModal não precisa ser dependência aqui
 
   const handleReportTypeChange = (type: string) => {
     setSelectedReportTypes(prev => 
@@ -252,7 +255,7 @@ export default function ReportsListPage() {
                   setDateRange={setDateRange}
                   statusFilter={statusFilter}
                   setStatusFilter={setStatusFilter}
-                  technicianFilter={technicianFilter}
+                  technicianFilter={technicianFilter || 'Todos'}
                   setTechnicianFilter={setTechnicianFilter}
                   uniqueTechnicians={uniqueTechnicians}
                   selectedReportTypes={selectedReportTypes}
@@ -264,7 +267,7 @@ export default function ReportsListPage() {
           </Accordion>
         </div>
 
-        {/* Desktop: Static Filter Panel (Sidebar-like) */}
+        {/* Desktop: Static Filter Panel */}
         <aside className="hidden md:block md:w-72 lg:w-80 xl:w-96 md:sticky md:top-[calc(4rem+1rem)] md:h-[calc(100vh-5rem-2rem)] md:overflow-y-auto md:pr-2">
            <Card className="shadow-md">
             <CardHeader className="border-b py-4">
@@ -280,7 +283,7 @@ export default function ReportsListPage() {
                   setDateRange={setDateRange}
                   statusFilter={statusFilter}
                   setStatusFilter={setStatusFilter}
-                  technicianFilter={technicianFilter}
+                  technicianFilter={technicianFilter || 'Todos'}
                   setTechnicianFilter={setTechnicianFilter}
                   uniqueTechnicians={uniqueTechnicians}
                   selectedReportTypes={selectedReportTypes}
@@ -402,6 +405,7 @@ export default function ReportsListPage() {
             <DialogDescription>
               {isNewReport ? 'Forneça informações detalhadas sobre o incidente.' : 'Atualize os detalhes deste relatório de incidente.'}
             </DialogDescription>
+            {/* Botão de fechar explícito removido conforme solicitado anteriormente */}
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-6">
             <IncidentForm 
@@ -411,19 +415,19 @@ export default function ReportsListPage() {
                 location: editingReport?.location || '',
                 geolocation: editingReport?.geolocation || '',
                 date: editingReport?.date ? new Date(editingReport.date) : new Date(),
+                // media: undefined, // Media é tratado separadamente no IncidentForm
               }} 
               onSubmitSuccess={handleFormSubmitSuccess} 
               isModalMode={true}
             />
           </div>
-           <DialogClose asChild className="absolute right-4 top-4">
-            <Button variant="ghost" size="icon">
-              <XIcon className="h-5 w-5" />
-              <span className="sr-only">Fechar</span>
-            </Button>
-          </DialogClose>
+          <DialogFooter className="p-6 border-t">
+            <Button variant="outline" onClick={handleCloseReportModal}>Cancelar</Button>
+            {/* O botão de submit principal está dentro do IncidentForm agora */}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
   );
 }
+
