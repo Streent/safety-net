@@ -2,6 +2,7 @@
 // src/app/(app)/settings/page.tsx
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button'; // Added import
 import { Settings as SettingsIcon, User, Palette, Bell, Languages, Lock, UsersRound, MapPinned, PackageSearch } from 'lucide-react';
 import { ReminderSettings } from '@/components/settings/ReminderSettings'; 
 import { Separator } from '@/components/ui/separator';
