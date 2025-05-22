@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2, CalendarIcon as CalendarIconLucide, View, FileIcon, Building, Mail, Phone, UserCircle2, CheckSquare, XSquare, UserCheck, UserX, MapPin } from 'lucide-react';
+import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2, CalendarIcon as CalendarIconLucide, View, FileIcon, Building, Mail, Phone, UserCircle2, CheckSquare, XSquare, UserCheck, UserX, MapPin, History as HistoryIcon, BookOpen, ShieldCheckIcon, Activity } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -107,6 +107,10 @@ export default function CompanyDetailPage() {
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<Documento | null>(null);
 
+  const [isColaboradorHistoryModalOpen, setIsColaboradorHistoryModalOpen] = useState(false);
+  const [selectedColaboradorForHistory, setSelectedColaboradorForHistory] = useState<Colaborador | null>(null);
+
+
   const form = useForm<ColaboradorFormValues>({
     resolver: zodResolver(colaboradorFormSchema),
     defaultValues: {
@@ -121,12 +125,20 @@ export default function CompanyDetailPage() {
 
   useEffect(() => {
     if (companyId) {
-        const foundCompany = mockCompanyData;
+        const foundCompany = mockCompanyData; // In a real app, fetch by companyId
         if (foundCompany && foundCompany.id === companyId) {
             setCompanyData(foundCompany);
         } else {
+            // Fallback if specific company not found in mock, or just use the mock
             setCompanyData({ ...mockCompanyData, id: companyId, nomeFantasia: `Empresa ${companyId}` });
-            setColaboradores([]);
+            setColaboradores([]); // Reset collaborators if it's a different company context
+        }
+        // Mock some collaborators for EMP001 for demonstration
+        if (companyId === 'EMP001') {
+          setColaboradores([
+            { id: 'C001', nome: 'José Carlos', cpf: '111.222.333-44', funcao: 'Eletricista Chefe', dataAdmissao: new Date(2020, 0, 15), status: 'Ativo' },
+            { id: 'C002', nome: 'Fernanda Souza', cpf: '444.555.666-77', funcao: 'Técnica de Segurança', dataAdmissao: new Date(2021, 5, 1), status: 'Ativo' },
+          ]);
         }
     }
   }, [companyId]);
@@ -211,6 +223,11 @@ export default function CompanyDetailPage() {
         description: "Documento não encontrado.",
       });
     }
+  };
+
+  const handleViewColaboradorHistory = (colaborador: Colaborador) => {
+    setSelectedColaboradorForHistory(colaborador);
+    setIsColaboradorHistoryModalOpen(true);
   };
 
   const getColaboradorStatusBadgeClass = (status: Colaborador['status']) => {
@@ -307,8 +324,11 @@ export default function CompanyDetailPage() {
                             {colaborador.status}
                           </Badge>
                         </td>
-                        <td className="p-2 text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 mr-1" onClick={() => handleEditColaborador(colaborador)} aria-label={`Editar ${colaborador.nome}`}>
+                        <td className="p-2 text-right space-x-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewColaboradorHistory(colaborador)} aria-label={`Ver histórico de ${colaborador.nome}`}>
+                            <HistoryIcon className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditColaborador(colaborador)} aria-label={`Editar ${colaborador.nome}`}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteColaborador(colaborador.id)} aria-label={`Excluir ${colaborador.nome}`}>
@@ -480,6 +500,59 @@ export default function CompanyDetailPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Modal para Histórico do Colaborador */}
+        <Dialog open={isColaboradorHistoryModalOpen} onOpenChange={setIsColaboradorHistoryModalOpen}>
+          <DialogContent className="sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <HistoryIcon className="mr-2 h-5 w-5 text-primary" />
+                Histórico de: {selectedColaboradorForHistory?.nome}
+              </DialogTitle>
+              <UiDialogDescription>
+                Informações e histórico do colaborador selecionado.
+              </UiDialogDescription>
+            </DialogHeader>
+            {selectedColaboradorForHistory && (
+              <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2 text-sm">
+                <div>
+                  <strong className="font-medium">Nome:</strong> <p className="text-muted-foreground">{selectedColaboradorForHistory.nome}</p>
+                  <strong className="font-medium">CPF:</strong> <p className="text-muted-foreground">{selectedColaboradorForHistory.cpf}</p>
+                  <strong className="font-medium">Função:</strong> <p className="text-muted-foreground">{selectedColaboradorForHistory.funcao}</p>
+                  <strong className="font-medium">Status:</strong> <Badge variant="outline" className={`ml-1 text-xs ${getColaboradorStatusBadgeClass(selectedColaboradorForHistory.status)}`}>{selectedColaboradorForHistory.status}</Badge>
+                </div>
+                <Separator />
+                
+                <div className="space-y-3">
+                  <h4 className="font-semibold flex items-center"><BookOpen className="mr-2 h-4 w-4 text-primary" />Treinamentos Realizados (Placeholder)</h4>
+                  <div className="p-3 border rounded-md bg-muted/30 text-center text-muted-foreground text-xs italic">
+                    Lista de treinamentos e certificados será exibida aqui.
+                  </div>
+
+                  <h4 className="font-semibold flex items-center"><CheckSquare className="mr-2 h-4 w-4 text-primary" />Inspeções e Vistorias (Placeholder)</h4>
+                   <div className="p-3 border rounded-md bg-muted/30 text-center text-muted-foreground text-xs italic">
+                    Histórico de participação em inspeções/vistorias.
+                  </div>
+
+                  <h4 className="font-semibold flex items-center"><ShieldCheckIcon className="mr-2 h-4 w-4 text-primary" />ASOs e EPIs Entregues (Placeholder)</h4>
+                   <div className="p-3 border rounded-md bg-muted/30 text-center text-muted-foreground text-xs italic">
+                    Registros de Atestados de Saúde Ocupacional e entregas de EPIs.
+                  </div>
+                   <h4 className="font-semibold flex items-center"><Activity className="mr-2 h-4 w-4 text-primary" />Outras Atividades (Placeholder)</h4>
+                   <div className="p-3 border rounded-md bg-muted/30 text-center text-muted-foreground text-xs italic">
+                    Log de outras atividades relevantes.
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">Fechar</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
@@ -644,3 +717,4 @@ export default function CompanyDetailPage() {
     </>
   );
 }
+
