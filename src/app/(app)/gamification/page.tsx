@@ -1,17 +1,46 @@
 
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Gem, Award, BarChartHorizontalBig, TrendingUp, ShieldHalf, Star } from 'lucide-react';
+import { Gem, Award, BarChartHorizontalBig, TrendingUp, ShieldHalf, Star, Eye, ShieldCheck as ShieldCheckIconLucide, Users as UsersIconLucide, Car as CarIconLucide } from 'lucide-react'; // Renomeado para evitar conflito
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+
+// Ícones para conquistas
+const achievementIcons = {
+  ShieldHalf,
+  Eye,
+  ShieldCheck: ShieldCheckIconLucide, // Usando o alias
+  Users: UsersIconLucide,             // Usando o alias
+  Star,
+  Car: CarIconLucide,                 // Usando o alias
+};
 
 export default function GamificationPage() {
+  // Mock data for demonstration
+  const currentXP = 750;
+  const nextLevelXP = 1000;
+  const currentLevel = 5;
+  const progressPercentage = (currentXP / nextLevelXP) * 100;
+
+  const mockAchievements = [
+    { title: "Primeiro Relatório", iconName: "ShieldHalf", color: "text-green-500" },
+    { title: "Observador Atento", iconName: "Eye", color: "text-blue-500" },
+    { title: "Mestre dos EPIs", iconName: "ShieldCheck", color: "text-yellow-500" },
+    { title: "Participativo", iconName: "Users", color: "text-purple-500" },
+    { title: "Semana Perfeita", iconName: "Star", color: "text-red-500" },
+    { title: "Guardião da Frota", iconName: "Car", color: "text-teal-500" },
+    // Adicione mais conquistas fictícias se desejar
+  ];
+
+
   return (
     <>
       <PageHeader 
-        title="Gamificação" 
-        description="Acompanhe seu XP, conquistas e veja sua posição no ranking." 
+        title="Gamificação e Performance" 
+        description="Acompanhe seu XP, conquistas e veja sua posição no ranking de engajamento." 
       />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
               <Gem className="mr-3 h-7 w-7 text-primary" />
@@ -22,16 +51,13 @@ export default function GamificationPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Placeholder para animação da barra de XP e badge de nível */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm font-medium">
-                <span>Nível Atual: <span className="text-primary font-bold">5</span></span>
-                <span>XP: <span className="text-primary font-bold">750 / 1000</span></span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm font-medium">
+                <Badge variant="secondary" className="text-base px-3 py-1">Nível: <span className="text-primary font-bold ml-1">{currentLevel}</span></Badge>
+                <span className="text-muted-foreground">XP: <span className="text-primary font-bold">{currentXP.toLocaleString()} / {nextLevelXP.toLocaleString()}</span></span>
               </div>
-              <div className="w-full bg-muted rounded-full h-4">
-                <div className="bg-primary h-4 rounded-full" style={{ width: '75%' }} aria-label="Progresso de XP: 75%"></div>
-              </div>
-              <p className="text-xs text-muted-foreground text-center mt-1">Mais 250 XP para o próximo nível!</p>
+              <Progress value={progressPercentage} aria-label={`Progresso de XP: ${progressPercentage.toFixed(0)}%`} className="h-3.5" />
+              <p className="text-xs text-muted-foreground text-center mt-1">Faltam { (nextLevelXP - currentXP).toLocaleString() } XP para o próximo nível!</p>
             </div>
           </CardContent>
         </Card>
@@ -40,31 +66,34 @@ export default function GamificationPage() {
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
               <Award className="mr-3 h-7 w-7 text-accent" />
-              Conquistas Recentes
+              Conquistas Desbloqueadas
             </CardTitle>
             <CardDescription>
-              Seus últimos feitos e medalhas conquistadas.
+              Seus últimos feitos e medalhas conquistadas no sistema.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Placeholder para grid de badges de conquista */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {[
-                { title: "Primeiro Relatório", icon: ShieldHalf, color: "text-green-500" },
-                { title: "Observador Atento", icon: Eye, color: "text-blue-500" },
-                { title: "Mestre dos EPIs", icon: ShieldCheck, color: "text-yellow-500" },
-                { title: "Participativo", icon: Users, color: "text-purple-500" },
-                { title: "Semana Perfeita", icon: Star, color: "text-red-500" },
-                { title: "Guardião da Frota", icon: Car, color: "text-teal-500" }
-              ].map(achievement => (
-                <div key={achievement.title} className="flex flex-col items-center p-3 border rounded-lg bg-muted/50 text-center">
-                  <achievement.icon className={`h-8 w-8 mb-2 ${achievement.color}`} />
-                  <p className="text-xs font-medium">{achievement.title}</p>
-                  {/* Placeholder para animação de desbloqueio */}
-                </div>
-              ))}
-            </div>
-             <p className="text-xs text-muted-foreground text-center mt-3">Mais conquistas serão desbloqueadas ao interagir com o sistema!</p>
+            {mockAchievements.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {mockAchievements.map(achievement => {
+                  const IconComponent = achievementIcons[achievement.iconName as keyof typeof achievementIcons] || Star;
+                  return (
+                    <div 
+                      key={achievement.title} 
+                      className="flex flex-col items-center p-3 border rounded-lg bg-muted/50 text-center hover:bg-muted/70 transition-colors cursor-pointer group"
+                      title={achievement.title}
+                    >
+                      <IconComponent className={`h-10 w-10 mb-2 ${achievement.color} transition-transform duration-300 ease-out group-hover:scale-110`} />
+                      <p className="text-xs font-medium truncate w-full">{achievement.title}</p>
+                      {/* Placeholder para animação de desbloqueio/flip */}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+                <p className="text-sm text-muted-foreground italic text-center py-4">Nenhuma conquista desbloqueada ainda.</p>
+            )}
+             <p className="text-xs text-muted-foreground text-center mt-4">Mais conquistas serão desbloqueadas ao interagir com o sistema!</p>
           </CardContent>
         </Card>
       </div>
@@ -73,20 +102,21 @@ export default function GamificationPage() {
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
             <BarChartHorizontalBig className="mr-3 h-7 w-7 text-primary" />
-            Leaderboard
+            Leaderboard Geral
           </CardTitle>
           <CardDescription>
-            Veja sua posição em relação aos outros usuários.
+            Veja sua posição em relação aos outros usuários. Filtre por período.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {/* Placeholder para leaderboard com abas (semanal/mensal) */}
           <div className="border rounded-lg p-4">
-            <p className="text-sm text-muted-foreground">
-              Um leaderboard com abas (Semanal/Mensal) será exibido aqui, destacando o usuário atual na lista.
-              A lista mostrará ranking, nome do usuário, XP total e talvez a última conquista.
+            <p className="text-sm text-muted-foreground mb-2">
+              Uma tabela ou carrossel (para mobile) com o ranking (Semanal/Mensal) será exibido aqui.
+              A lista mostrará: Posição, Nome do Usuário, XP Total e talvez a última conquista.
+              Seu nome será destacado na lista.
             </p>
-            <div className="mt-4 h-40 bg-muted rounded flex items-center justify-center">
+            <div className="mt-4 h-60 bg-muted rounded flex items-center justify-center">
               <p className="text-muted-foreground italic">Visualização do Leaderboard (Placeholder)</p>
             </div>
           </div>
@@ -95,7 +125,3 @@ export default function GamificationPage() {
     </>
   );
 }
-
-// Adicionando alguns ícones que podem ser úteis para conquistas, se não estiverem já importados.
-// Import Eye, ShieldCheck, Users, Car from lucide-react
-import { Eye, ShieldCheck, Users, Car } from 'lucide-react';
