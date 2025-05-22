@@ -1,6 +1,7 @@
+
 'use client'; 
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react'; // Added useCallback here as well
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,41 +50,43 @@ export default function TrainingsAndAppointmentsPage() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  const scheduledDays = useMemo(() => mockSessions.map(s => s.date), []);
+  const scheduledDays = useMemo(() => mockSessions.map(s => startOfDay(s.date)), []);
 
-  const sessionsForSelectedDate = selectedDate
-    ? mockSessions.filter(session => 
+  const sessionsForSelectedDate = useMemo(() => {
+    if (!selectedDate) return [];
+    return mockSessions.filter(session => 
         isEqual(startOfDay(session.date), startOfDay(selectedDate))
-      ).sort((a, b) => a.startTime.localeCompare(b.startTime)) // Sort by start time
-    : [];
+      ).sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [selectedDate]);
 
-  const handleDateSelect = (date: Date | undefined) => {
+
+  const handleDateSelect = useCallback((date: Date | undefined) => {
     setSelectedDate(date);
-    if (date) { // Open sheet regardless of whether there are sessions, to allow creating new ones
+    if (date) { 
       setIsSheetOpen(true);
     }
-  };
+  }, []);
   
-  const handleCheckIn = (sessionId: string) => {
+  const handleCheckIn = useCallback((sessionId: string) => {
     toast({
       title: 'Check-in via Selfie (Placeholder)',
       description: `Funcionalidade de check-in com selfie e validação por IA para a sessão ${sessionId} será implementada aqui.`,
     });
-  };
+  }, [toast]);
 
-  const handleGenerateCertificate = (sessionId: string) => {
+  const handleGenerateCertificate = useCallback((sessionId: string) => {
      toast({
       title: 'Gerar Certificado (Placeholder)',
       description: `Funcionalidade para gerar certificado em PDF com QR code para a sessão ${sessionId} será implementada aqui.`,
     });
-  };
+  }, [toast]);
 
-  const handleNewAppointment = () => {
+  const handleNewAppointment = useCallback(() => {
     toast({
         title: "Novo Agendamento",
         description: "Funcionalidade para criar um novo agendamento (treinamento, consultoria, etc.) será implementada aqui, provavelmente em um formulário ou modal."
     });
-  }
+  }, [toast]);
 
   const getEventTypeColor = (type: TrainingSession['type']) => {
     switch(type) {
@@ -113,7 +116,7 @@ export default function TrainingsAndAppointmentsPage() {
                 Calendário de Eventos
               </CardTitle>
               <CardDescription>
-                Selecione uma data para ver os eventos agendados. Dias com eventos são marcados.
+                Selecione uma data para ver os eventos agendados. Dias com eventos são marcados com um ponto.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
@@ -127,7 +130,7 @@ export default function TrainingsAndAppointmentsPage() {
                   scheduled: scheduledDays 
                 }}
                 modifiersClassNames={{
-                  scheduled: 'day-scheduled', // Custom class for scheduled days
+                  scheduled: 'day-scheduled', 
                 }}
                  captionLayout="dropdown-buttons" 
                  fromYear={new Date().getFullYear() -1} 
@@ -197,7 +200,7 @@ export default function TrainingsAndAppointmentsPage() {
                             <UsersRound className="mr-1.5 h-4 w-4 text-muted-foreground" />
                             <strong className="font-medium">Vagas:</strong>&nbsp;
                             {availableSlots !== undefined 
-                              ? `${availableSlots > 0 ? availableSlots : 'Lotado'} (${session.bookedSlots}/${session.capacity})` 
+                              ? `${availableSlots > 0 ? `${availableSlots} de ${session.capacity}` : `Lotado (${session.bookedSlots}/${session.capacity})`}` 
                               : 'N/D'}
                           </p>
                         )}
@@ -258,12 +261,4 @@ export default function TrainingsAndAppointmentsPage() {
       </Sheet>
     </>
   );
-}
-
-// Helper function to calculate difference in days
-// Renamed to fnsDifferenceInDays to avoid potential conflicts if defined elsewhere
-function differenceInDays(dateLeft: Date, dateRight: Date): number {
-  const utc1 = Date.UTC(dateLeft.getFullYear(), dateLeft.getMonth(), dateLeft.getDate());
-  const utc2 = Date.UTC(dateRight.getFullYear(), dateRight.getMonth(), dateRight.getDate());
-  return Math.floor((utc1 - utc2) / (1000 * 60 * 60 * 24));
 }
