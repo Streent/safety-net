@@ -3,17 +3,16 @@
 
 import { useParams } from 'next/navigation';
 import { PageHeader } from '@/components/common/page-header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'; // Correctly import CardDescription
 import { Button } from '@/components/ui/button';
-import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2 } from 'lucide-react';
+import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2, CalendarIcon as CalendarIconLucide } from 'lucide-react'; // Renamed CalendarIcon to CalendarIconLucide
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'; // UiDialogDescription is for Dialog
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon } from 'lucide-react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -121,6 +120,13 @@ export default function CompanyDetailPage() {
 
   const handleAddColaborador = () => {
     setEditingColaborador(null);
+    form.reset({ // Ensure form is reset for new entry
+        nome: '',
+        cpf: '',
+        funcao: '',
+        dataNascimento: undefined,
+        dataAdmissao: undefined,
+    });
     setIsColaboradorModalOpen(true);
   };
 
@@ -196,7 +202,9 @@ export default function CompanyDetailPage() {
                 <UserPlus className="mr-3 h-6 w-6 text-primary" />
                 Colaboradores da Empresa
               </CardTitle>
-              <UiDialogDescription>Gerencie os funcionários vinculados a esta empresa.</UiDialogDescription>
+              <CardDescription> {/* Corrected to CardDescription */}
+                Gerencie os funcionários vinculados a esta empresa.
+              </CardDescription>
             </div>
             <Button onClick={handleAddColaborador} size="sm">
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -246,7 +254,7 @@ export default function CompanyDetailPage() {
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{editingColaborador ? 'Editar Colaborador' : 'Adicionar Novo Colaborador'}</DialogTitle>
-              <UiDialogDescription>
+              <UiDialogDescription> {/* This is UiDialogDescription, from ui/dialog, correct here */}
                 Preencha os dados do colaborador abaixo.
               </UiDialogDescription>
             </DialogHeader>
@@ -313,7 +321,7 @@ export default function CompanyDetailPage() {
                                 className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                               >
                                 {field.value ? format(new Date(field.value), "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                <CalendarIconLucide className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
@@ -339,7 +347,7 @@ export default function CompanyDetailPage() {
                                 className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                               >
                                 {field.value ? format(new Date(field.value), "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                <CalendarIconLucide className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
@@ -381,7 +389,9 @@ export default function CompanyDetailPage() {
               <Users className="mr-3 h-6 w-6 text-primary" />
               Pessoas Relacionadas (Contatos Chave)
             </CardTitle>
-            <UiDialogDescription>Técnicos, responsáveis e outros contatos importantes.</UiDialogDescription>
+            <CardDescription> {/* Corrected to CardDescription */}
+                Técnicos, responsáveis e outros contatos importantes.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {mockPessoasRelacionadas.length > 0 ? (
@@ -407,7 +417,9 @@ export default function CompanyDetailPage() {
               <FileText className="mr-3 h-6 w-6 text-primary" />
               Documentos da Empresa
             </CardTitle>
-            <UiDialogDescription>PGR, PCMSO, Relatórios de Auditoria e outros documentos relevantes.</UiDialogDescription>
+            <CardDescription> {/* Corrected to CardDescription */}
+                PGR, PCMSO, Relatórios de Auditoria e outros documentos relevantes.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {mockDocumentos.length > 0 ? (
@@ -430,5 +442,3 @@ export default function CompanyDetailPage() {
     </>
   );
 }
-
-    
