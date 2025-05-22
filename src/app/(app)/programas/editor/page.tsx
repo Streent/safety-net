@@ -1,3 +1,4 @@
+
 // src/app/(app)/programas/editor/page.tsx
 'use client';
 
@@ -14,7 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { useState, useEffect } from 'react';
-import { CalendarIcon, TextCursorInput, UploadCloud, ListChecks, Save, Send, Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { CalendarIcon, TextCursorInput, UploadCloud, ListChecks, Save, Send, Loader2, PlusCircle, Trash2, GripVertical, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -39,12 +40,12 @@ export default function ProgramEditorPage() {
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>(undefined);
+  const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>('intro'); // Start with first section open
 
   const [programSections, setProgramSections] = useState<ProgramSection[]>([
-    { id: 'intro', title: 'Introdução', content: 'Conteúdo inicial da introdução...' },
-    { id: 'obj', title: 'Objetivos', content: 'Conteúdo inicial dos objetivos...' },
-    { id: 'resp', title: 'Responsabilidades', content: 'Conteúdo inicial das responsabilidades...' },
+    { id: 'intro', title: 'Introdução', content: '' },
+    { id: 'obj', title: 'Objetivos', content: '' },
+    { id: 'resp', title: 'Responsabilidades', content: '' },
   ]);
 
   const formDetails = useForm<ProgramDetailsFormValues>({
@@ -58,7 +59,7 @@ export default function ProgramEditorPage() {
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 50); // Small delay to ensure initial render
+    const timer = setTimeout(() => setIsMounted(true), 50);
     return () => clearTimeout(timer);
   }, []);
 
@@ -66,7 +67,6 @@ export default function ProgramEditorPage() {
     setIsSubmitting(true);
     console.log('Detalhes Gerais:', data);
     console.log('Seções do Programa:', programSections);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     toast({
       title: "Programa Publicado (Simulado)",
@@ -95,8 +95,8 @@ export default function ProgramEditorPage() {
         content: '',
       };
       setProgramSections(prevSections => [...prevSections, newSection]);
-      setActiveAccordionItem(newSection.id); // Open the new section
-    } else if (newSectionTitle !== null) { // User clicked OK but left it empty
+      setActiveAccordionItem(newSection.id);
+    } else if (newSectionTitle !== null) {
       toast({
         variant: 'destructive',
         title: 'Título Inválido',
@@ -112,18 +112,17 @@ export default function ProgramEditorPage() {
       )
     );
   };
-  
+
   const handleDeleteSection = (sectionId: string, sectionTitle: string) => {
     if (confirm(`Tem certeza que deseja excluir a seção "${sectionTitle}"?`)) {
-        setProgramSections(prevSections => prevSections.filter(section => section.id !== sectionId));
-        toast({
-            title: 'Seção Excluída',
-            description: `A seção "${sectionTitle}" foi removida.`,
-            variant: 'destructive'
-        });
+      setProgramSections(prevSections => prevSections.filter(section => section.id !== sectionId));
+      toast({
+        title: 'Seção Excluída',
+        description: `A seção "${sectionTitle}" foi removida.`,
+        variant: 'destructive'
+      });
     }
   };
-
 
   const formFieldWrapperClass = "opacity-0 translate-y-2 transition-all duration-500";
   const formFieldMountedClass = isMounted ? "opacity-100 translate-y-0" : "";
@@ -138,7 +137,7 @@ export default function ProgramEditorPage() {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
-              <TextCursorInput className="mr-3 h-7 w-7 text-primary" />
+              <FileText className="mr-3 h-7 w-7 text-primary" />
               Detalhes Gerais do Programa
             </CardTitle>
             <CardDescription>
@@ -225,7 +224,6 @@ export default function ProgramEditorPage() {
                     />
                   </div>
                 </div>
-                {/* Os botões de ação para o formulário de Detalhes Gerais estão agora no final da página */}
               </form>
             </Form>
           </CardContent>
@@ -234,7 +232,7 @@ export default function ProgramEditorPage() {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
-              <ListChecks className="mr-3 h-7 w-7 text-primary" />
+              <TextCursorInput className="mr-3 h-7 w-7 text-primary" />
               Editor de Seções do Programa
             </CardTitle>
             <CardDescription>
@@ -243,33 +241,35 @@ export default function ProgramEditorPage() {
           </CardHeader>
           <CardContent>
             {programSections.length > 0 ? (
-              <Accordion 
-                type="single" 
-                collapsible 
+              <Accordion
+                type="single"
+                collapsible
                 className="w-full space-y-2"
                 value={activeAccordionItem}
                 onValueChange={setActiveAccordionItem}
               >
                 {programSections.map((section, index) => (
                   <AccordionItem key={section.id} value={section.id} className="border rounded-lg bg-card shadow-sm data-[state=open]:bg-muted/30">
-                    <AccordionTrigger className="px-4 py-3 hover:bg-muted/50 rounded-t-lg text-base sm:text-lg">
-                      <div className="flex items-center flex-1">
-                        <span className="mr-2 text-primary">{index + 1}.</span> {section.title}
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    <div className="flex items-center justify-between px-4 py-1 border-b data-[state=open]:border-b-0"> {/* Wrapper for trigger and delete button */}
+                      <AccordionTrigger className="flex-1 py-2 hover:no-underline text-left"> {/* Ensure text aligns left */}
+                        <div className="flex items-center">
+                          <span className="mr-2 text-primary">{index + 1}.</span> {section.title}
+                        </div>
+                      </AccordionTrigger>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10 ml-2 shrink-0" // Added shrink-0
                         onClick={(e) => {
-                            e.stopPropagation(); // Prevent accordion from toggling
-                            handleDeleteSection(section.id, section.title);
+                          // e.stopPropagation(); // Not strictly needed if button is sibling of trigger's interactive part
+                          handleDeleteSection(section.id, section.title);
                         }}
                         aria-label={`Excluir seção ${section.title}`}
                       >
-                        <Trash2 className="h-4 w-4"/>
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 pt-2 pb-4 border-t">
+                    </div>
+                    <AccordionContent className="px-4 pt-2 pb-4">
                       <Textarea
                         placeholder={`Digite o conteúdo da seção "${section.title}" aqui... (Placeholder para editor rich text)`}
                         value={section.content}
@@ -282,7 +282,7 @@ export default function ProgramEditorPage() {
                 ))}
               </Accordion>
             ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma seção adicionada ainda. Clique em "Adicionar Nova Seção" para começar.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma seção adicionada ainda. Clique em "Adicionar Nova Seção" para começar.</p>
             )}
             <Button onClick={handleAddSection} variant="outline" className="mt-4 w-full sm:w-auto">
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -329,9 +329,9 @@ export default function ProgramEditorPage() {
             <Save className="mr-2 h-4 w-4" />
             Salvar Rascunho
           </Button>
-          <Button 
-            onClick={formDetails.handleSubmit(handleDetailsSubmit)} 
-            disabled={isSubmitting || !formDetails.formState.isValid && formDetails.formState.isDirty}
+          <Button
+            onClick={formDetails.handleSubmit(handleDetailsSubmit)}
+            disabled={isSubmitting || (!formDetails.formState.isValid && formDetails.formState.isDirty)}
             className="w-full sm:w-auto"
           >
             {isSubmitting ? (
@@ -351,3 +351,5 @@ export default function ProgramEditorPage() {
     </>
   );
 }
+
+    
