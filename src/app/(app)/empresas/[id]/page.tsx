@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -59,8 +59,22 @@ const colaboradorFormSchema = z.object({
   nome: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, { message: 'CPF inválido. Use o formato XXX.XXX.XXX-XX.' }),
   funcao: z.string().min(2, { message: 'A função deve ter pelo menos 2 caracteres.' }),
-  dataNascimento: z.date().optional(),
-  dataAdmissao: z.date().optional(),
+  dataNascimento: z.date({
+    errorMap: (issue, ctx) => {
+      if (issue.code === z.ZodIssueCode.invalid_date) {
+        return { message: "Data de nascimento inválida." };
+      }
+      return { message: ctx.defaultError };
+    }
+  }).optional(),
+  dataAdmissao: z.date({
+     errorMap: (issue, ctx) => {
+      if (issue.code === z.ZodIssueCode.invalid_date) {
+        return { message: "Data de admissão inválida." };
+      }
+      return { message: ctx.defaultError };
+    }
+  }).optional(),
 });
 
 type ColaboradorFormValues = z.infer<typeof colaboradorFormSchema>;
@@ -143,10 +157,6 @@ export default function CompanyDetailPage() {
     return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9, 11)}`;
   };
 
-
-  // Em uma aplicação real, você usaria o companyId para buscar os dados da empresa.
-  // const { data: companyData, isLoading, error } = useFetchCompanyData(companyId);
-
   return (
     <>
       <PageHeader
@@ -186,7 +196,7 @@ export default function CompanyDetailPage() {
                 <UserPlus className="mr-3 h-6 w-6 text-primary" />
                 Colaboradores da Empresa
               </CardTitle>
-              <CardDescription>Gerencie os funcionários vinculados a esta empresa.</CardDescription>
+              <UiDialogDescription>Gerencie os funcionários vinculados a esta empresa.</UiDialogDescription>
             </div>
             <Button onClick={handleAddColaborador} size="sm">
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -236,12 +246,12 @@ export default function CompanyDetailPage() {
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{editingColaborador ? 'Editar Colaborador' : 'Adicionar Novo Colaborador'}</DialogTitle>
-              <DialogDescription>
+              <UiDialogDescription>
                 Preencha os dados do colaborador abaixo.
-              </DialogDescription>
+              </UiDialogDescription>
             </DialogHeader>
             <FormProvider {...form}>
-              <form onSubmit={form.handleSubmit(onColaboradorSubmit)} className="space-y-4 py-4">
+              <form onSubmit={form.handleSubmit(onColaboradorSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
                 <FormField
                   control={form.control}
                   name="nome"
@@ -365,14 +375,13 @@ export default function CompanyDetailPage() {
           </DialogContent>
         </Dialog>
 
-
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
               <Users className="mr-3 h-6 w-6 text-primary" />
               Pessoas Relacionadas (Contatos Chave)
             </CardTitle>
-            <CardDescription>Técnicos, responsáveis e outros contatos importantes.</CardDescription>
+            <UiDialogDescription>Técnicos, responsáveis e outros contatos importantes.</UiDialogDescription>
           </CardHeader>
           <CardContent>
             {mockPessoasRelacionadas.length > 0 ? (
@@ -398,7 +407,7 @@ export default function CompanyDetailPage() {
               <FileText className="mr-3 h-6 w-6 text-primary" />
               Documentos da Empresa
             </CardTitle>
-            <CardDescription>PGR, PCMSO, Relatórios de Auditoria e outros documentos relevantes.</CardDescription>
+            <UiDialogDescription>PGR, PCMSO, Relatórios de Auditoria e outros documentos relevantes.</UiDialogDescription>
           </CardHeader>
           <CardContent>
             {mockDocumentos.length > 0 ? (
