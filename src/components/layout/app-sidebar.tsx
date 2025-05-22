@@ -2,9 +2,9 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
+import {
   Home, FileText, Brain, Users, Car, Gem, ShieldCheck, Building, Megaphone, Library, Landmark, Settings as SettingsIcon, LifeBuoy,
-  ClipboardList, FileSearch, AlertOctagon, Signal, UploadCloud, CalendarDays 
+  ClipboardList, FileSearch, AlertOctagon, Signal, UploadCloud, CalendarDays, Award
 } from 'lucide-react';
 import {
   Sidebar,
@@ -22,23 +22,24 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const mainNavItems = [
-  { href: '/dashboard', label: 'Painel', icon: Home }, 
-  { href: '/reports', label: 'Relatórios', icon: FileText }, 
-  { href: '/predictive-analysis', label: 'Análise Preditiva', icon: Brain }, 
+  { href: '/dashboard', label: 'Painel', icon: Home },
+  { href: '/reports', label: 'Relatórios', icon: FileText },
+  { href: '/predictive-analysis', label: 'Análise Preditiva', icon: Brain },
 ];
 
 const moduleNavItems = [
-  { href: '/trainings', label: 'Agenda', icon: CalendarDays }, 
-  { href: '/fleet', label: 'Frota', icon: Car }, 
-  { href: '/epis', label: 'EPIs', icon: ShieldCheck }, 
-  { href: '/empresas', label: 'Empresas', icon: Building }, 
-  { href: '/campanhas', label: 'Campanhas', icon: Megaphone }, 
-  { href: '/biblioteca', label: 'Biblioteca', icon: Library }, 
+  { href: '/trainings', label: 'Agenda', icon: CalendarDays },
+  { href: '/fleet', label: 'Frota', icon: Car },
+  { href: '/epis', label: 'EPIs', icon: ShieldCheck },
+  { href: '/empresas', label: 'Empresas', icon: Building },
+  { href: '/campanhas', label: 'Campanhas', icon: Megaphone },
+  { href: '/biblioteca', label: 'Biblioteca', icon: Library },
   { href: '/financeiro', label: 'Financeiro', icon: Landmark },
   { href: '/programas', label: 'Programas', icon: ClipboardList },
   { href: '/auditorias', label: 'Auditorias', icon: FileSearch },
+  { href: '/certificados', label: 'Certificados', icon: Award },
   { href: '/riscos', label: 'Riscos', icon: AlertOctagon },
-  { href: '/cipa', label: 'CIPA', icon: Users }, 
+  { href: '/cipa', label: 'CIPA', icon: Users },
   { href: '/iot', label: 'IOT', icon: Signal },
   { href: '/esocial', label: 'eSocial', icon: UploadCloud },
   { href: '/gamification', label: 'Gamificação', icon: Gem },
@@ -48,19 +49,19 @@ const moduleNavItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile } = useSidebar(); 
+  const { isMobile, setOpenMobile } = useSidebar();
 
   const handleLinkClick = () => {
-    if (isMobile) { 
+    if (isMobile) {
       setOpenMobile(false);
     }
   };
 
   return (
-    <Sidebar 
-      variant="sidebar" 
+    <Sidebar
+      variant="sidebar"
       collapsible="icon"
-      side="left" 
+      side="left"
       className={cn(
         "border-r fixed top-0 left-0 h-screen pt-16 z-30"
       )}
@@ -69,7 +70,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarGroup>
             <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
-              Navegação Principal 
+              Navegação Principal
             </SidebarGroupLabel>
             {mainNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
@@ -94,7 +95,7 @@ export function AppSidebar() {
           <SidebarSeparator />
            <SidebarGroup>
              <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
-              Módulos 
+              Módulos
             </SidebarGroupLabel>
             {moduleNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
@@ -122,7 +123,7 @@ export function AppSidebar() {
         <Button asChild variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:p-2" onClick={handleLinkClick}>
             <Link href="/settings">
                 <SettingsIcon className="h-5 w-5"/>
-                <span className="group-data-[collapsible=icon]:hidden ml-2">Configurações</span> 
+                <span className="group-data-[collapsible=icon]:hidden ml-2">Configurações</span>
             </Link>
         </Button>
       </SidebarFooter>

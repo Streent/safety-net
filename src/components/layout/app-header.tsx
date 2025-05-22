@@ -20,7 +20,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { usePathname } from 'next/navigation';
 import {
   useSidebar,
-} from "@/components/ui/sidebar"; 
+} from "@/components/ui/sidebar";
 import { cn } from '@/lib/utils';
 
 interface AppHeaderProps {
@@ -29,21 +29,21 @@ interface AppHeaderProps {
 
 function generateBreadcrumbs(pathname: string) {
   const pathSegments = pathname.split('/').filter(segment => segment);
-  const breadcrumbs = [{ href: '/dashboard', label: 'Painel' }]; 
+  const breadcrumbs = [{ href: '/dashboard', label: 'Painel' }];
 
   let currentPath = '';
   pathSegments.forEach((segment, i) => {
     currentPath += `/${segment}`;
     let label = segment.charAt(0).toUpperCase() + segment.slice(1);
-    
+
     // Specific translations and adjustments
-    if (label === "Dashboard" && breadcrumbs.length === 1 && currentPath === "/dashboard") { 
-        return; 
+    if (label === "Dashboard" && breadcrumbs.length === 1 && currentPath === "/dashboard") {
+        return;
     }
     if (label === "Predictive-analysis") label = "Análise Preditiva";
     if (label === "Reports") label = "Relatórios";
     if (label === "Trainings") label = "Agenda";
-    
+
     if (label === "Fleet") {
         label = "Frota";
         if (pathSegments.includes('request') && segment === 'request') label = "Solicitar Veículo";
@@ -57,7 +57,7 @@ function generateBreadcrumbs(pathname: string) {
     if (label === "Empresas") {
         label = "Empresas";
         if (i > 0 && pathSegments[i-1] === "empresas" && (segment.match(/^(EMP|CON|IND|SERV|TEC|AGRO)/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/) && !isNaN(Number(segment.slice(-3))))) ) {
-            label = `Detalhes Empresa`; 
+            label = `Detalhes Empresa`;
         }
     }
     if (label === "Campanhas") label = "Campanhas";
@@ -73,24 +73,25 @@ function generateBreadcrumbs(pathname: string) {
       label = "Auditorias";
       if (pathSegments.includes('checklist') && segment === 'checklist') label = "Checklist de Auditoria";
     }
+    if (label === "Certificados") label = "Certificados";
     if (label === "Riscos") label = "Riscos";
     if (label === "Cipa") label = "CIPA";
-    if (label === "Iot") label = "IOT"; 
-    if (label === "Esocial") label = "eSocial"; 
+    if (label === "Iot") label = "IOT";
+    if (label === "Esocial") label = "eSocial";
     if (label === "Settings") {
         label = "Configurações";
         if (pathSegments.includes('templates') && segment === 'templates') label = "Modelos de Relatório";
     }
-    
+
     // Avoid adding "new" or ID-like segments if the parent is already specific enough
     // unless it's for a very specific sub-page like an editor or detail.
     if ( (segment === "new" || segment.match(/^(V|RPT|EPI|TRN|CAMP|PROG|AUD|EMP|COLAB)\d*/i) || (segment.length > 5 && segment.match(/[A-Z0-9]{3,}/) && !isNaN(Number(segment.slice(-3))))) &&
-        breadcrumbs.length > 1 && 
-        !["Empresas", "Frota", "EPIs", "Programas", "Auditorias"].includes(breadcrumbs[breadcrumbs.length-1].label) && 
+        breadcrumbs.length > 1 &&
+        !["Empresas", "Frota", "EPIs", "Programas", "Auditorias", "Certificados"].includes(breadcrumbs[breadcrumbs.length-1].label) &&
         !breadcrumbs[breadcrumbs.length-1].label.startsWith("Detalhes") &&
-        !["Editor", "Checklist de Veículo", "Registrar Abastecimento", "Distribuição de EPIs", "Modelos de Relatório"].includes(label) // Keep these specific labels
-      ) { 
-      return; 
+        !["Editor", "Checklist de Veículo", "Registrar Abastecimento", "Distribuição de EPIs", "Modelos de Relatório", "Checklist de Auditoria"].includes(label) // Keep these specific labels
+      ) {
+      return;
     }
 
     if (currentPath === "/dashboard") return;
@@ -101,18 +102,18 @@ function generateBreadcrumbs(pathname: string) {
 }
 
 
-export function AppHeader({ pageTitle }: AppHeaderProps) { 
+export function AppHeader({ pageTitle }: AppHeaderProps) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const breadcrumbs = generateBreadcrumbs(pathname);
-  const { isMobile, toggleSidebar, open } = useSidebar(); 
+  const { isMobile, toggleSidebar, open } = useSidebar();
 
-  let mobileDisplayTitle = "Painel"; 
+  let mobileDisplayTitle = "Painel";
   if (breadcrumbs.length > 0) {
     const lastCrumb = breadcrumbs[breadcrumbs.length - 1];
-    
+
     mobileDisplayTitle = lastCrumb.label;
-    
+
     // Specific short titles for mobile
     if (["Solicitar Veículo", "Checklist de Veículo", "Registrar Abastecimento", "Distribuição de EPIs", "Editor de Programa", "Checklist de Auditoria", "Modelos de Relatório"].includes(lastCrumb.label)) {
       // Use full label for these specific actions
@@ -126,10 +127,14 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
         mobileDisplayTitle = "Campanhas";
     } else if (pathname === "/dashboard") {
        mobileDisplayTitle = "Painel";
-    } else if (mobileDisplayTitle === "Agenda" && pathname.startsWith("/trainings")) { 
+    } else if (mobileDisplayTitle === "Agenda" && pathname.startsWith("/trainings")) {
         mobileDisplayTitle = "Agenda";
+    } else if (mobileDisplayTitle === "Certificados" && pathname.startsWith("/certificados")) {
+        mobileDisplayTitle = "Certificados";
     } else if (mobileDisplayTitle === "Configurações") {
         mobileDisplayTitle = "Ajustes";
+    } else if (mobileDisplayTitle === "Registrar Abastecimento") {
+        mobileDisplayTitle = "Abastecimento";
     }
   }
 
@@ -140,11 +145,11 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
     )}>
       <div className="container flex h-16 items-center justify-between max-w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-1 sm:gap-2">
-          
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleSidebar} 
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
             className={cn(
               "mr-1 sm:mr-2",
             )}
@@ -152,18 +157,18 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
           >
             {isMobile ? <Menu className="h-6 w-6" /> : (open ? <PanelLeft className="h-6 w-6" /> : <Menu className="h-6 w-6" />)}
           </Button>
-          
+
           <Link href="/dashboard" className="mr-2 hidden md:flex items-center" aria-label="Ir para o Painel">
             <Logo className="h-8 w-auto" />
           </Link>
-          
+
            <div className="hidden md:flex items-center text-sm text-muted-foreground">
             {breadcrumbs.map((crumb, index) => (
               <span key={crumb.href} className="flex items-center">
                 {index > 0 && <ChevronLeft className="h-4 w-4 rotate-180 mx-1 text-muted-foreground/70" />}
-                
-                <Link 
-                  href={crumb.href} 
+
+                <Link
+                  href={crumb.href}
                   className={`hover:text-foreground transition-colors ${index === breadcrumbs.length - 1 ? 'text-foreground font-medium pointer-events-none' : ''}
                               ${index === 0 && crumb.label === "Painel" ? 'flex items-center' : ''}`}
                   aria-current={index === breadcrumbs.length - 1 ? "page" : undefined}
@@ -174,7 +179,7 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
               </span>
             ))}
           </div>
-          
+
           <h1 className="text-lg font-semibold md:hidden truncate max-w-[150px] xs:max-w-[200px] sm:max-w-xs">{mobileDisplayTitle}</h1>
         </div>
 
@@ -213,20 +218,20 @@ export function AppHeader({ pageTitle }: AppHeaderProps) {
                 <Link href="/settings" passHref>
                     <DropdownMenuItem>
                         <UserCircle className="mr-2 h-4 w-4" />
-                        <span>Perfil</span> 
+                        <span>Perfil</span>
                     </DropdownMenuItem>
                 </Link>
                 <Link href="/settings" passHref>
                   <DropdownMenuItem>
                     <Settings className="mr-2 h-4 w-4" />
-                    <span>Configurações</span> 
+                    <span>Configurações</span>
                   </DropdownMenuItem>
                 </Link>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Sair</span> 
+                <span>Sair</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
