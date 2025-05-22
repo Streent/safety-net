@@ -43,11 +43,12 @@ const moduleNavItems = [
   { href: '/esocial', label: 'eSocial', icon: UploadCloud },
   { href: '/gamification', label: 'Gamificação', icon: Gem },
   { href: '/suporte', label: 'Suporte', icon: LifeBuoy },
+  { href: '/settings', label: 'Configurações', icon: SettingsIcon },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile, open } = useSidebar(); 
+  const { isMobile, setOpenMobile } = useSidebar(); 
 
   const handleLinkClick = () => {
     if (isMobile) { 
@@ -72,23 +73,21 @@ export function AppSidebar() {
             </SidebarGroupLabel>
             {mainNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
-                <Link href={item.href} passHref legacyBehavior>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
-                    onClick={handleLinkClick}
-                    tooltip={{children: item.label, className: "ml-2"}}
-                    className={cn(
-                      "justify-start",
-                      (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))) && "bg-sidebar-accent text-sidebar-accent-foreground"
-                    )}
-                  >
-                    <a>
-                      <item.icon className="h-5 w-5" />
-                      <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </Link>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
+                  onClick={handleLinkClick}
+                  tooltip={{children: item.label, className: "ml-2"}}
+                  className={cn(
+                    "justify-start",
+                    (pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))) && "bg-sidebar-accent text-sidebar-accent-foreground"
+                  )}
+                >
+                  <Link href={item.href}>
+                    <item.icon className="h-5 w-5" />
+                    <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
           </SidebarGroup>
@@ -99,38 +98,35 @@ export function AppSidebar() {
             </SidebarGroupLabel>
             {moduleNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
-                <Link href={item.href} passHref legacyBehavior>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith(item.href)}
-                    onClick={handleLinkClick}
-                    tooltip={{children: item.label, className: "ml-2"}}
-                     className={cn(
-                      "justify-start",
-                      pathname.startsWith(item.href) && "bg-sidebar-accent text-sidebar-accent-foreground"
-                    )}
-                  >
-                    <a>
-                      <item.icon className="h-5 w-5" />
-                       <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </Link>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith(item.href)}
+                  onClick={handleLinkClick}
+                  tooltip={{children: item.label, className: "ml-2"}}
+                  className={cn(
+                    "justify-start",
+                    pathname.startsWith(item.href) && "bg-sidebar-accent text-sidebar-accent-foreground"
+                  )}
+                >
+                  <Link href={item.href}>
+                    <item.icon className="h-5 w-5" />
+                    <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
           </SidebarGroup>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
-        <Link href="/settings" passHref legacyBehavior>
-          <Button variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:p-2" onClick={handleLinkClick}>
-              <SettingsIcon className="h-5 w-5"/>
-              <span className="group-data-[collapsible=icon]:hidden ml-2">Configurações</span> 
-          </Button>
-        </Link>
+        <Button asChild variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:p-2" onClick={handleLinkClick}>
+            <Link href="/settings">
+                <SettingsIcon className="h-5 w-5"/>
+                <span className="group-data-[collapsible=icon]:hidden ml-2">Configurações</span> 
+            </Link>
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );
 }
-
     
