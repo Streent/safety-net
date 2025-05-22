@@ -1,0 +1,17 @@
+Este é um conteúdo de exemplo para o documento SafetyNet.
+
+Simulação de um documento oficial:
+
+Seção 1: Introdução
+--------------------
+Este documento serve como um exemplo para demonstrar a funcionalidade de visualização de documentos no sistema SafetyNet.
+
+Seção 2: Detalhes Técnicos
+-------------------------
+- Item A
+- Item B
+- Item C
+
+Seção 3: Conclusão
+-----------------
+Fim do documento de exemplo.

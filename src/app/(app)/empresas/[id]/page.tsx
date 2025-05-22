@@ -45,13 +45,13 @@ interface Documento {
   tipo: string;
   validade: string;
   descricao?: string;
-  linkVisualizacao?: string; // Placeholder para futuro link do arquivo
+  linkVisualizacao?: string; 
 }
 
 const mockDocumentos: Documento[] = [
-  { id: 'D001', nome: 'PGR - Programa de Gerenciamento de Riscos', tipo: 'PGR', validade: '31/12/2024', descricao: 'Documento base do Programa de Gerenciamento de Riscos da empresa, conforme NR-01.', linkVisualizacao: '/path/to/pgr.pdf' },
-  { id: 'D002', nome: 'PCMSO - Programa de Controle Médico de Saúde Ocupacional', tipo: 'PCMSO', validade: '15/07/2024', descricao: 'Programa visa a promoção e preservação da saúde dos trabalhadores.', linkVisualizacao: '/path/to/pcmso.pdf' },
-  { id: 'D003', nome: 'Relatório de Auditoria Interna Q3', tipo: 'Auditoria', validade: 'N/A', descricao: 'Resultados da auditoria interna de segurança realizada no terceiro trimestre.', linkVisualizacao: '/path/to/auditoria_q3.pdf' },
+  { id: 'D001', nome: 'PGR - Programa de Gerenciamento de Riscos', tipo: 'PGR', validade: '31/12/2024', descricao: 'Documento base do Programa de Gerenciamento de Riscos da empresa, conforme NR-01. Este é o documento de exemplo principal.', linkVisualizacao: '/documents/exemplo_documento.txt' },
+  { id: 'D002', nome: 'PCMSO - Programa de Controle Médico de Saúde Ocupacional', tipo: 'PCMSO', validade: '15/07/2024', descricao: 'Programa visa a promoção e preservação da saúde dos trabalhadores.', linkVisualizacao: '#' }, // Link de placeholder
+  { id: 'D003', nome: 'Relatório de Auditoria Interna Q3', tipo: 'Auditoria', validade: 'N/A', descricao: 'Resultados da auditoria interna de segurança realizada no terceiro trimestre.', linkVisualizacao: '#' }, // Link de placeholder
 ];
 
 interface Colaborador {
@@ -546,3 +546,4 @@ export default function CompanyDetailPage() {
     </>
   );
 }
+
