@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2, CalendarIcon as CalendarIconLucide, View } from 'lucide-react';
+import { Users, FileText, Briefcase, ExternalLink, PlusCircle, UserPlus, Edit2, Trash2, CalendarIcon as CalendarIconLucide, View, FileIcon } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UiDialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -39,10 +39,19 @@ const mockPessoasRelacionadas = [
   { id: 'P002', nome: 'Mariana Lima', cargo: 'Engenheira de Obra', contato: 'mariana@construtora.com' },
 ];
 
-const mockDocumentos = [
-  { id: 'D001', nome: 'PGR - Programa de Gerenciamento de Riscos', tipo: 'PGR', validade: '31/12/2024' },
-  { id: 'D002', nome: 'PCMSO - Programa de Controle Médico de Saúde Ocupacional', tipo: 'PCMSO', validade: '15/07/2024' },
-  { id: 'D003', nome: 'Relatório de Auditoria Interna Q3', tipo: 'Auditoria', validade: 'N/A' },
+interface Documento {
+  id: string;
+  nome: string;
+  tipo: string;
+  validade: string;
+  descricao?: string;
+  linkVisualizacao?: string; // Placeholder para futuro link do arquivo
+}
+
+const mockDocumentos: Documento[] = [
+  { id: 'D001', nome: 'PGR - Programa de Gerenciamento de Riscos', tipo: 'PGR', validade: '31/12/2024', descricao: 'Documento base do Programa de Gerenciamento de Riscos da empresa, conforme NR-01.', linkVisualizacao: '/path/to/pgr.pdf' },
+  { id: 'D002', nome: 'PCMSO - Programa de Controle Médico de Saúde Ocupacional', tipo: 'PCMSO', validade: '15/07/2024', descricao: 'Programa visa a promoção e preservação da saúde dos trabalhadores.', linkVisualizacao: '/path/to/pcmso.pdf' },
+  { id: 'D003', nome: 'Relatório de Auditoria Interna Q3', tipo: 'Auditoria', validade: 'N/A', descricao: 'Resultados da auditoria interna de segurança realizada no terceiro trimestre.', linkVisualizacao: '/path/to/auditoria_q3.pdf' },
 ];
 
 interface Colaborador {
@@ -86,6 +95,9 @@ export default function CompanyDetailPage() {
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [isColaboradorModalOpen, setIsColaboradorModalOpen] = useState(false);
   const [editingColaborador, setEditingColaborador] = useState<Colaborador | null>(null);
+
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<Documento | null>(null);
 
   const form = useForm<ColaboradorFormValues>({
     resolver: zodResolver(colaboradorFormSchema),
@@ -163,11 +175,18 @@ export default function CompanyDetailPage() {
     return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9, 11)}`;
   };
 
-  const handleViewDocumentDetails = (docId: string, docName: string) => {
-    toast({
-      title: 'Detalhes do Documento',
-      description: `Visualizar detalhes para: "${docName}" (ID: ${docId}). Funcionalidade a ser implementada.`,
-    });
+  const handleViewDocumentDetails = (docId: string) => {
+    const doc = mockDocumentos.find(d => d.id === docId);
+    if (doc) {
+      setSelectedDocument(doc);
+      setIsDocumentModalOpen(true);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Documento não encontrado.",
+      });
+    }
   };
 
   return (
@@ -434,9 +453,9 @@ export default function CompanyDetailPage() {
                 {mockDocumentos.map(doc => (
                   <li 
                     key={doc.id} 
-                    className="p-3 border rounded-md bg-muted/40 hover:bg-muted/60 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    onClick={() => handleViewDocumentDetails(doc.id, doc.nome)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleViewDocumentDetails(doc.id, doc.nome); }}
+                    className="p-3 border rounded-md bg-muted/40 hover:bg-muted/60 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 group"
+                    onClick={() => handleViewDocumentDetails(doc.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleViewDocumentDetails(doc.id); }}
                     role="button"
                     tabIndex={0}
                     aria-label={`Visualizar detalhes do documento ${doc.nome}`}
@@ -446,7 +465,7 @@ export default function CompanyDetailPage() {
                             <p className="font-semibold">{doc.nome}</p>
                             <p className="text-xs text-muted-foreground">Tipo: {doc.tipo} | Validade: {doc.validade}</p>
                         </div>
-                        <View className="h-4 w-4 text-muted-foreground opacity-70 group-hover:opacity-100" />
+                        <View className="h-4 w-4 text-muted-foreground opacity-70 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </li>
                 ))}
@@ -458,6 +477,72 @@ export default function CompanyDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isDocumentModalOpen} onOpenChange={setIsDocumentModalOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+                <FileIcon className="mr-2 h-5 w-5 text-primary" />
+                Detalhes do Documento: {selectedDocument?.nome}
+            </DialogTitle>
+            <UiDialogDescription>
+              Informações sobre o documento selecionado.
+            </UiDialogDescription>
+          </DialogHeader>
+          {selectedDocument && (
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2 text-sm">
+              <div>
+                <strong className="font-medium">Nome:</strong>
+                <p className="text-muted-foreground">{selectedDocument.nome}</p>
+              </div>
+              <div>
+                <strong className="font-medium">Tipo:</strong>
+                <p className="text-muted-foreground">{selectedDocument.tipo}</p>
+              </div>
+              <div>
+                <strong className="font-medium">Validade:</strong>
+                <p className="text-muted-foreground">{selectedDocument.validade}</p>
+              </div>
+              {selectedDocument.descricao && (
+                <div>
+                  <strong className="font-medium">Descrição:</strong>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{selectedDocument.descricao}</p>
+                </div>
+              )}
+              <Separator className="my-4" />
+              <div>
+                <h4 className="font-medium mb-2">Conteúdo do Documento</h4>
+                <div className="p-4 border rounded-md bg-muted/30 text-center text-muted-foreground">
+                  <p className="text-xs italic">
+                    (Visualização do PDF ou conteúdo do documento aqui)
+                  </p>
+                  {selectedDocument.linkVisualizacao && (
+                    <Button variant="link" size="sm" asChild className="mt-2">
+                      <a href={selectedDocument.linkVisualizacao} target="_blank" rel="noopener noreferrer">
+                        Abrir Documento (Exemplo)
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium mb-2">Histórico de Versões</h4>
+                <div className="p-4 border rounded-md bg-muted/30 text-center text-muted-foreground">
+                  <p className="text-xs italic">
+                    (Lista de versões anteriores e alterações aqui)
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Fechar</Button>
+            </DialogClose>
+            {/* Poderia adicionar um botão de Download aqui no futuro */}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
