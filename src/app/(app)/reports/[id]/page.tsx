@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Download, Bot, ListChecks, Loader2, Brain } from 'lucide-react';
+import { Download, Bot, ListChecks, Loader2, Brain, AlertTriangleIcon } from 'lucide-react'; // Added AlertTriangleIcon
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { Report } from '@/app/(app)/reports/page'; // Assuming Report type is exported
 import { summarizeIncidentReport, type SummarizeIncidentReportInput, type SummarizeIncidentReportOutput } from '@/ai/flows/incident-report-summarization';

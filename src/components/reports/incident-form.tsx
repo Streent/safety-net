@@ -1,17 +1,16 @@
 
 'use client';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, FormProvider } from 'react-hook-form'; // Removed FormProvider, not needed directly here
+import { useForm } from 'react-hook-form'; 
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-// Label can be removed if FormLabel from Form is used exclusively
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Check, CloudUpload, MapPin, Edit3, LocateFixed, ImageIcon, Loader2, Save } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // CardDescription removido, usando UiFormDescription
+import { CardHeader, CardTitle } from '@/components/ui/card'; 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as UiFormDescription } from "@/components/ui/form";
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -28,12 +27,12 @@ const incidentFormSchema = z.object({
   media: z.any().optional(),
 });
 
-export type IncidentFormValues = z.infer<typeof incidentFormSchema>; // Export type
+export type IncidentFormValues = z.infer<typeof incidentFormSchema>;
 
 interface IncidentFormProps {
   initialData?: Partial<IncidentFormValues>;
   onSubmitSuccess?: (data: IncidentFormValues) => void;
-  isModalMode?: boolean; // New prop to control button rendering
+  isModalMode?: boolean;
 }
 
 export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false }: IncidentFormProps) {
@@ -43,7 +42,6 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
 
   const form = useForm<IncidentFormValues>({
     resolver: zodResolver(incidentFormSchema),
-    // Use useEffect to reset form when initialData changes or for new entries
   });
 
   useEffect(() => {
@@ -55,14 +53,14 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
       date: new Date(),
       media: undefined,
     });
-    setMediaFiles([]); // Reset media files as well
+    setMediaFiles([]);
   }, [initialData, form]);
 
 
   const handleMediaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       setMediaFiles(Array.from(event.target.files));
-      form.setValue('media', event.target.files); // Store FileList in form
+      form.setValue('media', event.target.files);
     } else {
       setMediaFiles([]);
       form.setValue('media', undefined);
@@ -75,9 +73,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
 
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // No toast here for general case, parent handles it based on context (new/edit)
-    // However, if modalMode is true and it's a new report submission, we might want a generic success toast here.
-    if (isModalMode && !initialData?.description) { // Assuming new report in modal if no initial description
+    if (isModalMode && !initialData?.description) {
         toast({
             title: "Relatório Enviado",
             description: "Seu relatório de incidente foi registrado com sucesso."
@@ -85,16 +81,12 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
     }
     
     setIsLoading(false);
-    // form.reset(); // Reset is now handled by useEffect based on initialData
-    // setMediaFiles([]);
     if (onSubmitSuccess) onSubmitSuccess(data);
   }
   
-  // Determine if it's an edit mode based on initialData having content
-  const isEditMode = !!(initialData && initialData.description); // Check a field that would exist in edit mode
+  const isEditMode = !!(initialData && initialData.description);
 
   return (
-    // Removed Card wrapper if form is in a modal, let the modal provide the card-like structure
     <div className={cn(!isModalMode && "w-full max-w-2xl mx-auto shadow-xl rounded-lg border bg-card")}>
       {!isModalMode && (
         <CardHeader className="pt-6 pb-4">
@@ -207,7 +199,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
                           selected={field.value}
                           onSelect={field.onChange}
                           disabled={(date) =>
-                            date > new Date() || date < new Date("2000-01-01") || isLoading // Adjusted min date
+                            date > new Date() || date < new Date("2000-01-01") || isLoading 
                           }
                           initialFocus
                           locale={ptBR}
@@ -283,9 +275,8 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
               </FormControl>
             </FormItem>
 
-            {/* Submit button is now part of the form, not the modal footer if isModalMode is true */}
             <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
-              {!isModalMode && ( // Only show Save Draft if not in modal mode, as modal has its own close
+              {!isModalMode && ( 
                 <Button type="button" variant="outline" disabled={isLoading}>
                   <Save className="mr-2 h-4 w-4" />
                   Salvar Rascunho (Offline - Placeholder)
@@ -314,4 +305,3 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
   );
 }
 
-    
