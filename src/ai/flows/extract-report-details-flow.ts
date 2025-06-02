@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const ExtractReportDetailsInputSchema = z.object({
+const ExtractReportDetailsInputSchema = z.object({
   incidentDescription: z.string().describe('The detailed textual description of the incident.'),
   photoDataUris: z.array(z.string().url()).optional().describe(
     "Optional array of photos of the incident scene or related items, as data URIs. Each URI must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
@@ -19,7 +19,7 @@ export const ExtractReportDetailsInputSchema = z.object({
 });
 export type ExtractReportDetailsInput = z.infer<typeof ExtractReportDetailsInputSchema>;
 
-export const ExtractedReportDetailsOutputSchema = z.object({
+const ExtractedReportDetailsOutputSchema = z.object({
   oQueAconteceu: z.string().describe('A detailed summary of what happened during the incident. This should be a narrative of the event.'),
   local: z.string().describe('The specific location where the incident occurred (e.g., "Warehouse Section B, near racking 3A", " корпоративный автомобиль по дороге к клиенту X").'),
   setor: z.string().describe('The department, area, or sector involved or where the incident happened (e.g., "Logistics", "Production Line 2", "Maintenance").'),
@@ -76,3 +76,4 @@ const extractReportDetailsFlow = ai.defineFlow(
     return output!;
   }
 );
+
