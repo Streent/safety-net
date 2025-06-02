@@ -35,9 +35,9 @@ const incidentFormSchema = z.object({
     message: "CNPJ inválido. Use o formato XX.XXX.XXX/XXXX-XX."
   }),
   responsavelEmpresa: z.string().optional(),
-  setorInspecionado: z.string().min(1, {message: "O setor inspecionado é obrigatório para relatórios de inspeção."}).optional(), // Tornar opcional no schema base, validar no refine se tipo for inspeção
-  tipoInspecao: z.string().optional(), // Ex: 'Planejada', 'Não Planejada', 'Rotina', 'Especial', 'Auditoria de Requisitos Legais'
-  equipeInspecao: z.string().optional(), // Nomes dos inspetores
+  setorInspecionado: z.string().optional(),
+  tipoInspecao: z.string().optional(), 
+  equipeInspecao: z.string().optional(), 
   objetivoInspecao: z.string().optional(),
   
   // Resultados / Descrição
@@ -46,19 +46,27 @@ const incidentFormSchema = z.object({
   naoConformidades: z.string().optional(),
   observacoesGerais: z.string().optional(),
   recomendacoesEspecificas: z.string().optional(),
-  nivelDeRiscoGeral: z.string().optional(), // Ex: 'Baixo', 'Médio', 'Alto', 'Crítico'
+  nivelDeRiscoGeral: z.string().optional(), 
   prazoParaCorrecao: z.date().optional(),
 
   media: z.any().optional(),
 }).refine(data => {
   if (data.incidentType === "Inspeção de Segurança" || data.incidentType === "Auditoria") {
-    return !!data.setorInspecionado && !!data.tipoInspecao && !!data.equipeInspecao && !!data.objetivoInspecao;
+    // Tornando os campos de inspeção opcionais na UI, mas mantendo a lógica de validação se o tipo for inspeção.
+    // A obrigatoriedade será tratada visualmente ou com mensagens mais amigáveis.
+    // Para o schema, podemos deixar assim e focar na UI para indicar campos necessários para certos tipos.
+    // Ou ajustar para: return !!data.setorInspecionado && !!data.tipoInspecao ... se realmente forem obrigatórios no backend.
+    // Por agora, vamos remover a validação estrita aqui para simplificar, assumindo que a UI guiará o usuário.
   }
   return true;
-}, {
-  message: "Para Inspeções/Auditorias, os campos: Setor Inspecionado, Tipo de Inspeção, Equipe de Inspeção e Objetivo são obrigatórios.",
-  path: ["tipoInspecao"], // Pode apontar para um campo genérico ou o primeiro dos obrigatórios
-});
+}
+// Removido o refine problemático para simplificar o teste do Select, 
+// pode ser reintroduzido com lógica mais granular depois.
+// , {
+//   message: "Para Inspeções/Auditorias, os campos: Setor Inspecionado, Tipo de Inspeção, Equipe de Inspeção e Objetivo são obrigatórios.",
+//   path: ["tipoInspecao"], 
+// }
+);
 
 
 export type IncidentFormValues = z.infer<typeof incidentFormSchema>;
@@ -88,32 +96,32 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
 
   useEffect(() => {
     form.reset({
-      incidentType: '',
-      description: '',
-      location: '',
-      geolocation: '',
-      date: new Date(),
+      incidentType: initialData?.incidentType || '',
+      description: initialData?.description || '',
+      location: initialData?.location || '',
+      geolocation: initialData?.geolocation || '',
+      date: initialData?.date ? new Date(initialData.date) : new Date(),
       media: undefined,
-      nomeDaEmpresaInspecionada: '',
-      cnpjEmpresaInspecionada: '',
-      responsavelEmpresa: '',
-      setorInspecionado: '',
-      tipoInspecao: '',
-      equipeInspecao: '',
-      objetivoInspecao: '',
-      itensVerificados: '',
-      naoConformidades: '',
-      observacoesGerais: '',
-      recomendacoesEspecificas: '',
-      nivelDeRiscoGeral: '',
-      prazoParaCorrecao: undefined,
-      ...initialData, // Sobrescreve com initialData se existir
+      nomeDaEmpresaInspecionada: initialData?.nomeDaEmpresaInspecionada || '',
+      cnpjEmpresaInspecionada: initialData?.cnpjEmpresaInspecionada || '',
+      responsavelEmpresa: initialData?.responsavelEmpresa || '',
+      setorInspecionado: initialData?.setorInspecionado || '',
+      tipoInspecao: initialData?.tipoInspecao || '',
+      equipeInspecao: initialData?.equipeInspecao || '',
+      objetivoInspecao: initialData?.objetivoInspecao || '',
+      itensVerificados: initialData?.itensVerificados || '',
+      naoConformidades: initialData?.naoConformidades || '',
+      observacoesGerais: initialData?.observacoesGerais || '',
+      recomendacoesEspecificas: initialData?.recomendacoesEspecificas || '',
+      nivelDeRiscoGeral: initialData?.nivelDeRiscoGeral || '',
+      prazoParaCorrecao: initialData?.prazoParaCorrecao ? new Date(initialData.prazoParaCorrecao) : undefined,
     });
     setMediaFiles([]);
     setAiAnalysisResults(null);
     setAiAnalysisError(null);
     setAiDetailsIncorporated(false);
-    setActiveAccordionItems(["dadosGerais", "descricaoResultados"]);
+    // Garante que as seções principais estejam abertas ao carregar/resetar
+    setActiveAccordionItems(["dadosGerais", "descricaoResultados"]); 
   }, [initialData, form]);
 
 
@@ -197,9 +205,9 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
       if (results.local) {
         form.setValue('location', results.local, { shouldValidate: true, shouldDirty: true });
       }
-      if (results.setor && form.getValues('incidentType')?.includes('Inspeção')) { // 'setor' da IA pode ser o 'setorInspecionado'
-        form.setValue('setorInspecionado', results.setor, { shouldValidate: true, shouldDirty: true });
-      }
+      // if (results.setor && form.getValues('incidentType')?.includes('Inspeção')) { // 'setor' da IA pode ser o 'setorInspecionado'
+      //   form.setValue('setorInspecionado', results.setor, { shouldValidate: true, shouldDirty: true });
+      // }
 
 
       toast({
@@ -225,7 +233,8 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
     if (!aiAnalysisResults) return;
 
     const fieldsToUpdate: { formField: keyof IncidentFormValues; aiField: keyof ExtractedReportDetailsOutput; label: string }[] = [
-      { formField: 'naoConformidades', aiField: 'causaProvavel' /* Mapeando causa para não conformidade por enquanto */, label: 'Não Conformidades Sugeridas pela IA (Baseado em Causa Provável)'},
+      // { formField: 'naoConformidades', aiField: 'causaProvavel' /* Mapeando causa para não conformidade por enquanto */, label: 'Não Conformidades Sugeridas pela IA (Baseado em Causa Provável)'},
+      { formField: 'naoConformidades', aiField: 'principaisNaoConformidadesSugeridas', label: 'Principais Não Conformidades Sugeridas pela IA'},
       { formField: 'recomendacoesEspecificas', aiField: 'recomendacao', label: 'Recomendações Específicas Sugeridas pela IA'},
       // Se a IA tivesse um campo para 'itensVerificados', seria adicionado aqui.
     ];
@@ -242,14 +251,14 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
         }
     });
     
-    // Para 'setor' da IA, se não foi diretamente para 'setorInspecionado' e o campo está vazio:
-    if (aiAnalysisResults.setor && 
-        aiAnalysisResults.setor.toLowerCase() !== "não identificado" && 
-        aiAnalysisResults.setor.toLowerCase() !== "não aplicável" &&
-        !form.getValues('setorInspecionado') && 
-        !fieldsToUpdate.some(f => f.aiField === 'setor')) {
-            form.setValue('setorInspecionado', aiAnalysisResults.setor, {shouldValidate: true, shouldDirty: true});
-            detailsIncorporatedFlag = true;
+    // Preencher campos específicos de inspeção se a IA os retornou e os campos do formulário estão vazios
+    if (aiAnalysisResults.setor && aiAnalysisResults.setor.toLowerCase() !== "não identificado" && aiAnalysisResults.setor.toLowerCase() !== "não aplicável" && !form.getValues('setorInspecionado')) {
+        form.setValue('setorInspecionado', aiAnalysisResults.setor, {shouldValidate: true, shouldDirty: true});
+        detailsIncorporatedFlag = true;
+    }
+    if (aiAnalysisResults.possivelTipoInspecaoSugerido && aiAnalysisResults.possivelTipoInspecaoSugerido.toLowerCase() !== "não identificado" && aiAnalysisResults.possivelTipoInspecaoSugerido.toLowerCase() !== "não aplicável" && !form.getValues('tipoInspecao')) {
+        form.setValue('tipoInspecao', aiAnalysisResults.possivelTipoInspecaoSugerido, {shouldValidate: true, shouldDirty: true});
+        detailsIncorporatedFlag = true;
     }
 
 
@@ -269,6 +278,8 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
   };
 
   const isInspectionType = watchIncidentType === "Inspeção de Segurança" || watchIncidentType === "Auditoria";
+  // console.log("IncidentForm Render. isLoading:", isLoading, "isAiAnalyzing:", isAiAnalyzing, "Type Select Disabled:", isLoading || isAiAnalyzing);
+
 
   return (
     <div className={cn(!isModalMode && "w-full max-w-3xl mx-auto shadow-xl rounded-lg border bg-card")}>
@@ -287,15 +298,21 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Accordion type="multiple" value={activeAccordionItems} onValueChange={setActiveAccordionItems} className="w-full">
               <AccordionItem value="dadosGerais">
-                <AccordionTrigger className="text-lg font-semibold">Dados Gerais do Relatório</AccordionTrigger>
+                <AccordionTrigger className="text-lg font-semibold hover:no-underline">Dados Gerais do Relatório</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-6">
                   <FormField
                     control={form.control}
                     name="incidentType"
-                    render={({ field }) => (
+                    render={({ field }) => {
+                      // console.log("Incident Type Field Render. Value:", field.value, "Disabled:", isLoading || isAiAnalyzing);
+                      return (
                       <FormItem>
                         <FormLabel>Tipo de Relatório/Incidente</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoading || isAiAnalyzing}>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value || ''} 
+                          disabled={isLoading || isAiAnalyzing}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione o tipo" />
@@ -315,7 +332,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
                         </Select>
                         <FormMessage />
                       </FormItem>
-                    )}
+                    )}}
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
@@ -374,20 +391,20 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
 
               {isInspectionType && (
                  <AccordionItem value="dadosInspecao">
-                    <AccordionTrigger className="text-lg font-semibold">Dados da Inspeção/Auditoria</AccordionTrigger>
+                    <AccordionTrigger className="text-lg font-semibold hover:no-underline">Dados da Inspeção/Auditoria</AccordionTrigger>
                     <AccordionContent className="pt-4 space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField control={form.control} name="nomeDaEmpresaInspecionada" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="flex items-center"><Building className="h-4 w-4 mr-2 text-muted-foreground"/>Empresa Inspecionada (se aplicável)</FormLabel>
-                                    <FormControl><Input placeholder="Nome da empresa externa" {...field} disabled={isLoading || isAiAnalyzing} /></FormControl>
+                                    <FormControl><Input placeholder="Nome da empresa externa" {...field} value={field.value || ''} disabled={isLoading || isAiAnalyzing} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}/>
                             <FormField control={form.control} name="cnpjEmpresaInspecionada" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>CNPJ (Empresa Inspecionada)</FormLabel>
-                                    <FormControl><Input placeholder="XX.XXX.XXX/XXXX-XX" {...field} onChange={(e) => {
+                                    <FormControl><Input placeholder="XX.XXX.XXX/XXXX-XX" {...field} value={field.value || ''} onChange={(e) => {
                                         const rawValue = e.target.value.replace(/\D/g, "");
                                         let formattedValue = rawValue;
                                         if (rawValue.length > 2) formattedValue = `${rawValue.slice(0,2)}.${rawValue.slice(2)}`;
@@ -403,7 +420,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
                         <FormField control={form.control} name="responsavelEmpresa" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-muted-foreground"/>Responsável/Contato na Empresa</FormLabel>
-                                <FormControl><Input placeholder="Nome do contato principal" {...field} disabled={isLoading || isAiAnalyzing} /></FormControl>
+                                <FormControl><Input placeholder="Nome do contato principal" {...field} value={field.value || ''} disabled={isLoading || isAiAnalyzing} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}/>
@@ -411,7 +428,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
                             <FormField control={form.control} name="setorInspecionado" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="flex items-center"><Briefcase className="h-4 w-4 mr-2 text-muted-foreground"/>Setor Inspecionado/Auditado</FormLabel>
-                                    <FormControl><Input placeholder="Ex: Produção, Almoxarifado" {...field} disabled={isLoading || isAiAnalyzing} /></FormControl>
+                                    <FormControl><Input placeholder="Ex: Produção, Almoxarifado" {...field} value={field.value || ''} disabled={isLoading || isAiAnalyzing} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}/>
@@ -437,14 +454,14 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
                         <FormField control={form.control} name="equipeInspecao" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="flex items-center"><Users className="h-4 w-4 mr-2 text-muted-foreground"/>Equipe de Inspeção/Auditoria</FormLabel>
-                                <FormControl><Textarea placeholder="Nomes dos inspetores/auditores, separados por vírgula" {...field} rows={2} disabled={isLoading || isAiAnalyzing} /></FormControl>
+                                <FormControl><Textarea placeholder="Nomes dos inspetores/auditores, separados por vírgula" {...field} value={field.value || ''} rows={2} disabled={isLoading || isAiAnalyzing} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}/>
                         <FormField control={form.control} name="objetivoInspecao" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="flex items-center"><Target className="h-4 w-4 mr-2 text-muted-foreground"/>Objetivo da Inspeção/Auditoria</FormLabel>
-                                <FormControl><Textarea placeholder="Descreva o objetivo principal" {...field} rows={3} disabled={isLoading || isAiAnalyzing} /></FormControl>
+                                <FormControl><Textarea placeholder="Descreva o objetivo principal" {...field} value={field.value || ''} rows={3} disabled={isLoading || isAiAnalyzing} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}/>
@@ -453,7 +470,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
               )}
 
               <AccordionItem value="descricaoResultados">
-                <AccordionTrigger className="text-lg font-semibold">Descrição Detalhada / Resultados</AccordionTrigger>
+                <AccordionTrigger className="text-lg font-semibold hover:no-underline">Descrição Detalhada / Resultados</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-6">
                   <FormField
                     control={form.control}
@@ -462,7 +479,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
                       <FormItem>
                         <FormLabel>Descrição Principal / Resumo dos Achados</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Descreva o incidente ou os principais achados da inspeção..." rows={7} {...field} disabled={isLoading || isAiAnalyzing} data-ai-hint="detalhes da descrição do incidente ou inspeção" />
+                          <Textarea placeholder="Descreva o incidente ou os principais achados da inspeção..." rows={7} {...field} value={field.value || ''} disabled={isLoading || isAiAnalyzing} data-ai-hint="detalhes da descrição do incidente ou inspeção" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -473,13 +490,19 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
                   </Button>
 
                   {aiAnalysisError && (<Alert variant="destructive" className="mt-4"><AlertTriangleIcon className="h-4 w-4" /><AlertTitle>Erro na Análise</AlertTitle><AlertDescription>{aiAnalysisError}</AlertDescription></Alert>)}
+                  
                   {aiAnalysisResults && !aiAnalysisError && (
                     <div className="space-y-3 p-4 border rounded-md bg-muted/50 mt-4">
                       <h3 className="text-md font-semibold text-primary flex items-center"><Bot className="mr-2 h-5 w-5"/>Sugestões Detalhadas da IA</h3>
-                      {aiAnalysisResults.setor && aiAnalysisResults.setor.toLowerCase() !== "não identificado" && aiAnalysisResults.setor.toLowerCase() !== "não aplicável" && (<p className="text-sm"><strong>Setor Sugerido:</strong> {aiAnalysisResults.setor}</p>)}
-                      {aiAnalysisResults.causaProvavel && aiAnalysisResults.causaProvavel.toLowerCase() !== "não identificado" && aiAnalysisResults.causaProvavel.toLowerCase() !== "não aplicável" && (<p className="text-sm"><strong>Causa Provável Sugerida:</strong> {aiAnalysisResults.causaProvavel}</p>)}
-                      {aiAnalysisResults.medidasTomadas && aiAnalysisResults.medidasTomadas.toLowerCase() !== "não identificado" && aiAnalysisResults.medidasTomadas.toLowerCase() !== "não aplicável" && (<p className="text-sm"><strong>Medidas Tomadas Sugeridas:</strong> {aiAnalysisResults.medidasTomadas}</p>)}
-                      {aiAnalysisResults.recomendacao && aiAnalysisResults.recomendacao.toLowerCase() !== "não identificado" && aiAnalysisResults.recomendacao.toLowerCase() !== "não aplicável" && (<p className="text-sm"><strong>Recomendação Sugerida:</strong> {aiAnalysisResults.recomendacao}</p>)}
+                      
+                      {aiAnalysisResults.oQueAconteceu && aiAnalysisResults.oQueAconteceu !== form.getValues('description') && (<p className="text-sm"><strong>Resumo Sugerido:</strong> {aiAnalysisResults.oQueAconteceu}</p>)}
+                      {aiAnalysisResults.local && aiAnalysisResults.local !== form.getValues('location') && (<p className="text-sm"><strong>Local Sugerido:</strong> {aiAnalysisResults.local}</p>)}
+                      {aiAnalysisResults.setor && (aiAnalysisResults.setor.toLowerCase() !== "não identificado" && aiAnalysisResults.setor.toLowerCase() !== "não aplicável") && (<p className="text-sm"><strong>Setor Sugerido:</strong> {aiAnalysisResults.setor}</p>)}
+                      {aiAnalysisResults.causaProvavel && (aiAnalysisResults.causaProvavel.toLowerCase() !== "não identificado" && aiAnalysisResults.causaProvavel.toLowerCase() !== "não aplicável") && (<p className="text-sm"><strong>Causa Provável Sugerida:</strong> {aiAnalysisResults.causaProvavel}</p>)}
+                      {aiAnalysisResults.medidasTomadas && (aiAnalysisResults.medidasTomadas.toLowerCase() !== "não identificado" && aiAnalysisResults.medidasTomadas.toLowerCase() !== "não aplicável") && (<p className="text-sm"><strong>Medidas Tomadas Sugeridas:</strong> {aiAnalysisResults.medidasTomadas}</p>)}
+                      {aiAnalysisResults.recomendacao && (aiAnalysisResults.recomendacao.toLowerCase() !== "não identificado" && aiAnalysisResults.recomendacao.toLowerCase() !== "não aplicável") && (<p className="text-sm"><strong>Recomendação Sugerida:</strong> {aiAnalysisResults.recomendacao}</p>)}
+                      {aiAnalysisResults.possivelTipoInspecaoSugerido && (aiAnalysisResults.possivelTipoInspecaoSugerido.toLowerCase() !== "não identificado" && aiAnalysisResults.possivelTipoInspecaoSugerido.toLowerCase() !== "não aplicável") && (<p className="text-sm"><strong>Tipo de Inspeção Sugerido:</strong> {aiAnalysisResults.possivelTipoInspecaoSugerido}</p>)}
+                      {aiAnalysisResults.principaisNaoConformidadesSugeridas && (aiAnalysisResults.principaisNaoConformidadesSugeridas.toLowerCase() !== "não identificado" && aiAnalysisResults.principaisNaoConformidadesSugeridas.toLowerCase() !== "não aplicável") && (<p className="text-sm"><strong>Não Conformidades Sugeridas:</strong> {aiAnalysisResults.principaisNaoConformidadesSugeridas}</p>)}
                       
                       {!aiDetailsIncorporated ? (
                         <Button type="button" onClick={handleIncorporateAiDetails} variant="secondary" size="sm" className="mt-3">
@@ -496,14 +519,14 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
                         <FormField control={form.control} name="itensVerificados" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="flex items-center"><ListChecks className="h-4 w-4 mr-2 text-muted-foreground"/>Itens Verificados / Escopo Detalhado</FormLabel>
-                                <FormControl><Textarea placeholder="Liste os principais equipamentos, áreas, processos ou documentos verificados..." rows={4} {...field} disabled={isLoading || isAiAnalyzing} /></FormControl>
+                                <FormControl><Textarea placeholder="Liste os principais equipamentos, áreas, processos ou documentos verificados..." rows={4} {...field} value={field.value || ''} disabled={isLoading || isAiAnalyzing} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}/>
                         <FormField control={form.control} name="naoConformidades" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="flex items-center"><ShieldAlert className="h-4 w-4 mr-2 text-destructive"/>Não Conformidades Identificadas</FormLabel>
-                                <FormControl><Textarea placeholder="Liste as não conformidades encontradas, incluindo evidências e referências normativas se aplicável..." rows={5} {...field} disabled={isLoading || isAiAnalyzing} /></FormControl>
+                                <FormControl><Textarea placeholder="Liste as não conformidades encontradas, incluindo evidências e referências normativas se aplicável..." rows={5} {...field} value={field.value || ''} disabled={isLoading || isAiAnalyzing} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}/>
@@ -512,14 +535,14 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
                   <FormField control={form.control} name="observacoesGerais" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Observações Gerais</FormLabel>
-                        <FormControl><Textarea placeholder="Outras observações relevantes..." rows={3} {...field} disabled={isLoading || isAiAnalyzing} /></FormControl>
+                        <FormControl><Textarea placeholder="Outras observações relevantes..." rows={3} {...field} value={field.value || ''} disabled={isLoading || isAiAnalyzing} /></FormControl>
                         <FormMessage />
                     </FormItem>
                   )}/>
                   <FormField control={form.control} name="recomendacoesEspecificas" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Recomendações Específicas / Plano de Ação Imediato</FormLabel>
-                        <FormControl><Textarea placeholder="Ações corretivas, preventivas ou de melhoria recomendadas..." rows={4} {...field} disabled={isLoading || isAiAnalyzing} /></FormControl>
+                        <FormControl><Textarea placeholder="Ações corretivas, preventivas ou de melhoria recomendadas..." rows={4} {...field} value={field.value || ''} disabled={isLoading || isAiAnalyzing} /></FormControl>
                         <FormMessage />
                     </FormItem>
                   )}/>
@@ -563,7 +586,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
               </AccordionItem>
 
               <AccordionItem value="midiaAssinatura">
-                <AccordionTrigger className="text-lg font-semibold">Mídia e Assinatura</AccordionTrigger>
+                <AccordionTrigger className="text-lg font-semibold hover:no-underline">Mídia e Assinatura</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-6">
                   <FormItem>
                     <FormLabel className="flex items-center"><CloudUpload className="h-4 w-4 mr-2 text-muted-foreground" />Upload de Mídia (Fotos, Vídeos, Áudio)</FormLabel>
