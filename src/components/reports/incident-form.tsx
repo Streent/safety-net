@@ -9,16 +9,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Check, CloudUpload, MapPin, Edit3, LocateFixed, ImageIcon, Loader2, Save, Bot, Brain, AlertTriangleIcon } from 'lucide-react'; // Added Bot, Brain, AlertTriangleIcon
-import { CardHeader, CardTitle, CardContent as UiCardContent, CardFooter } from '@/components/ui/card'; // Added CardContent, CardFooter
+import { CalendarIcon, Check, CloudUpload, MapPin, Edit3, LocateFixed, ImageIcon, Loader2, Save, Bot, Brain, AlertTriangleIcon, PlusCircle } from 'lucide-react'; // Added PlusCircle
+import { CardHeader, CardTitle, CardContent as UiCardContent, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as UiFormDescription } from "@/components/ui/form";
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // Added Alert components
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { extractReportDetails, type ExtractedReportDetailsOutput, type ExtractReportDetailsInput } from '@/ai/flows/extract-report-details-flow'; // Import the new flow
+import { extractReportDetails, type ExtractedReportDetailsOutput, type ExtractReportDetailsInput } from '@/ai/flows/extract-report-details-flow';
 import { Separator } from '../ui/separator';
 
 const incidentFormSchema = z.object({
@@ -45,6 +45,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [aiAnalysisResults, setAiAnalysisResults] = useState<ExtractedReportDetailsOutput | null>(null);
   const [aiAnalysisError, setAiAnalysisError] = useState<string | null>(null);
+  const [aiDetailsIncorporated, setAiDetailsIncorporated] = useState(false);
 
 
   const form = useForm<IncidentFormValues>({
@@ -63,6 +64,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
     setMediaFiles([]);
     setAiAnalysisResults(null);
     setAiAnalysisError(null);
+    setAiDetailsIncorporated(false);
   }, [initialData, form]);
 
 
@@ -82,7 +84,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
 
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    if (isModalMode && !initialData?.description) { // Only show generic success if it's a new report in modal
+    if (isModalMode && !initialData?.description) { 
         toast({
             title: "Relatório Enviado",
             description: "Seu relatório de incidente foi registrado com sucesso."
@@ -109,6 +111,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
     setIsAiAnalyzing(true);
     setAiAnalysisResults(null);
     setAiAnalysisError(null);
+    setAiDetailsIncorporated(false);
 
     const photoDataUris: string[] = [];
     if (mediaFiles.length > 0) {
@@ -148,7 +151,7 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
 
       toast({
         title: 'Análise da IA Concluída',
-        description: 'Campos de descrição e localização atualizados. Verifique os detalhes adicionais sugeridos.',
+        description: 'Campos de descrição e localização atualizados. Verifique os detalhes adicionais sugeridos abaixo.',
       });
 
     } catch (error) {
@@ -162,6 +165,39 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
       });
     } finally {
       setIsAiAnalyzing(false);
+    }
+  };
+
+  const handleIncorporateAiDetails = () => {
+    if (!aiAnalysisResults) return;
+
+    let additionalDetailsText = "";
+    const currentDescription = form.getValues('description') || "";
+
+    const appendDetail = (label: string, value: string | undefined) => {
+      if (value && value.toLowerCase() !== "não identificado" && value.toLowerCase() !== "não aplicável") {
+        additionalDetailsText += `\n\n**${label}:** ${value}`;
+      }
+    };
+
+    appendDetail("Setor Sugerido pela IA", aiAnalysisResults.setor);
+    appendDetail("Causa Provável Sugerida pela IA", aiAnalysisResults.causaProvavel);
+    appendDetail("Medidas Tomadas Sugeridas pela IA", aiAnalysisResults.medidasTomadas);
+    appendDetail("Recomendação Sugerida pela IA", aiAnalysisResults.recomendacao);
+
+    if (additionalDetailsText) {
+      form.setValue('description', currentDescription + additionalDetailsText, { shouldValidate: true, shouldDirty: true });
+      toast({
+        title: "Detalhes Incorporados",
+        description: "As sugestões da IA foram adicionadas à descrição principal.",
+      });
+      setAiDetailsIncorporated(true);
+    } else {
+       toast({
+        title: "Nenhum Detalhe Novo",
+        description: "A IA não forneceu detalhes adicionais significativos para incorporar.",
+        variant: "default"
+      });
     }
   };
 
@@ -255,13 +291,22 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
               <div className="space-y-3 p-4 border rounded-md bg-muted/50 mt-4">
                 <h3 className="text-md font-semibold text-primary flex items-center">
                   <Bot className="mr-2 h-5 w-5"/>
-                  Sugestões Adicionais da IA
+                  Sugestões Detalhadas da IA
                 </h3>
                 {(aiAnalysisResults.setor && aiAnalysisResults.setor.toLowerCase() !== "não identificado" && aiAnalysisResults.setor.toLowerCase() !== "não aplicável") && <p className="text-sm"><strong>Setor Sugerido:</strong> {aiAnalysisResults.setor}</p>}
                 {(aiAnalysisResults.causaProvavel && aiAnalysisResults.causaProvavel.toLowerCase() !== "não identificado" && aiAnalysisResults.causaProvavel.toLowerCase() !== "não aplicável") && <p className="text-sm"><strong>Causa Provável Sugerida:</strong> {aiAnalysisResults.causaProvavel}</p>}
                 {(aiAnalysisResults.medidasTomadas && aiAnalysisResults.medidasTomadas.toLowerCase() !== "não identificado" && aiAnalysisResults.medidasTomadas.toLowerCase() !== "não aplicável") && <p className="text-sm"><strong>Medidas Tomadas Sugeridas:</strong> {aiAnalysisResults.medidasTomadas}</p>}
                 {(aiAnalysisResults.recomendacao && aiAnalysisResults.recomendacao.toLowerCase() !== "não identificado" && aiAnalysisResults.recomendacao.toLowerCase() !== "não aplicável") && <p className="text-sm"><strong>Recomendação Sugerida:</strong> {aiAnalysisResults.recomendacao}</p>}
-                <p className="text-xs text-muted-foreground italic">Revise e incorpore estas sugestões ao relatório conforme necessário.</p>
+                
+                {!aiDetailsIncorporated ? (
+                  <Button type="button" onClick={handleIncorporateAiDetails} variant="secondary" size="sm" className="mt-3">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Incorporar Detalhes na Descrição Principal
+                  </Button>
+                ) : (
+                  <p className="text-xs text-green-600 italic mt-3">Detalhes adicionais da IA foram incorporados à descrição.</p>
+                )}
+                 <p className="text-xs text-muted-foreground italic mt-2">Revise e ajuste a descrição principal conforme necessário.</p>
               </div>
             )}
              <Separator className={cn((!aiAnalysisResults && !aiAnalysisError) && "hidden", "my-4")} />
@@ -422,3 +467,4 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
     </div>
   );
 }
+
