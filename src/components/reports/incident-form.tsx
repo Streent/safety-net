@@ -75,7 +75,15 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
 
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // No toast here, will be handled by parent component
+    // No toast here for general case, parent handles it based on context (new/edit)
+    // However, if modalMode is true and it's a new report submission, we might want a generic success toast here.
+    if (isModalMode && !initialData?.description) { // Assuming new report in modal if no initial description
+        toast({
+            title: "Relatório Enviado",
+            description: "Seu relatório de incidente foi registrado com sucesso."
+        });
+    }
+    
     setIsLoading(false);
     // form.reset(); // Reset is now handled by useEffect based on initialData
     // setMediaFiles([]);
@@ -89,16 +97,16 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
     // Removed Card wrapper if form is in a modal, let the modal provide the card-like structure
     <div className={cn(!isModalMode && "w-full max-w-2xl mx-auto shadow-xl rounded-lg border bg-card")}>
       {!isModalMode && (
-        <CardHeader>
+        <CardHeader className="pt-6 pb-4">
           <CardTitle className="text-2xl">
             {isEditMode ? 'Editar Relatório de Incidente' : 'Registrar Novo Incidente'}
           </CardTitle>
-          <UiFormDescription>
+          <UiFormDescription className="!mt-1">
             Forneça informações detalhadas sobre o incidente.
           </UiFormDescription>
         </CardHeader>
       )}
-      <div className={cn(!isModalMode && "p-6")}>
+      <div className={cn(!isModalMode && "p-6 pt-4")}>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -283,14 +291,14 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
                   Salvar Rascunho (Offline - Placeholder)
                 </Button>
               )}
-              <Button type="submit" disabled={isLoading || !form.formState.isDirty && isEditMode && !mediaFiles.length} className="min-w-[180px]">
+              <Button type="submit" disabled={isLoading || (!form.formState.isDirty && isEditMode && !mediaFiles.length)} className="min-w-[180px]">
                 {isLoading ? (
                   <>
                     <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
-                    {isEditMode ? 'Salvando...' : 'Enviando...'}
+                    {isEditMode ? 'Salvando...' : (isModalMode ? 'Registrando...' : 'Enviar Relatório')}
                   </>
                 ) : (
-                  isEditMode ? 'Salvar Alterações' : 'Enviar Relatório'
+                  isEditMode ? 'Salvar Alterações' : (isModalMode ? 'Registrar Incidente' : 'Enviar Relatório')
                 )}
               </Button>
             </div>
@@ -305,3 +313,5 @@ export function IncidentForm({ initialData, onSubmitSuccess, isModalMode = false
     </div>
   );
 }
+
+    
