@@ -1,75 +1,95 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // Asegúrate de que DATABASE_URL esté configurada en tu .env
+  url      = env("DATABASE_URL")
 }
 
-// Modelo de Usuário - Exemplo básico
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  passwordHash  String?   // Para autenticação por email/senha
-  perfil        String?   // tecnico, admin, financeiro, master, cliente
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  // Relações
-  requestedVehicles VehicleRequest[] @relation("RequestedByUser")
-  approvedRequests  VehicleRequest[] @relation("ApprovedByManager")
-  // Adicionar outras relações conforme necessário (ex: relatórios, EPIs, etc.)
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  password  String // Lembre-se de hashear as senhas!
+  profile   String    // 'tecnico', 'cliente', 'admin'
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  reports   Report[]
+  trainings TrainingSessionParticipant[]
+  certificates Certificate[]
 }
 
-model Vehicle {
+model Report {
+  id                String    @id @default(cuid())
+  title             String
+  description       String
+  type              String    // Ex: 'incidente', 'quase_acidente', 'observacao'
+  status            String    // Ex: 'aberto', 'em_andamento', 'concluido'
+  location          String?
+  latitude          Float?
+  longitude         Float?
+  reportedById      String
+  reportedBy        User      @relation(fields: [reportedById], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  // Campo para armazenar o caminho/identificador do arquivo no Nextcloud
+  mediaNextcloudPaths String[] // Array de caminhos ou IDs
+  // Outros campos específicos do relatório
+}
+
+model TrainingSession {
   id            String    @id @default(cuid())
-  model         String
-  plate         String    @unique
-  type          String    // Utilitário Leve, Caminhonete, etc.
-  status        String    // Disponível, Em Manutenção, Em Uso
+  title         String
+  description   String?
+  type          String    // 'Treinamento', 'Consultoria'
   location      String?
-  imageUrl      String?
-  dataAiHint    String?   // Para hints de imagem (Unsplash)
-  
+  startTime     DateTime
+  endTime       DateTime
+  isRecurring   Boolean   @default(false)
+  instructorId  String?   // Pode ser um User ID ou um campo de texto
+  capacity      Int?
+  participants  TrainingSessionParticipant[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-
-  requests      VehicleRequest[]
-  // Adicionar relações para checklists, manutenções, abastecimentos
+  certificates  Certificate[] // Added missing relation for Certificate
 }
 
-model VehicleRequest {
-  id              String     @id @default(cuid())
-  pickupLocation  String
-  destination     String
-  startDate       DateTime
-  startTime       String     // Formato HH:MM
-  endDate         DateTime
-  endTime         String     // Formato HH:MM
-  purpose         String
-  status          String     @default("Pendente") // Pendente, Aprovada, Recusada, Concluída
-  
-  requestedById   String
-  requestedBy     User       @relation("RequestedByUser", fields: [requestedById], references: [id])
-  
-  vehicleId       String?    // Opcional, se um veículo específico for solicitado
-  vehicle         Vehicle?   @relation(fields: [vehicleId], references: [id])
+model TrainingSessionParticipant {
+  id                String   @id @default(cuid())
+  sessionId         String
+  session           TrainingSession @relation(fields: [sessionId], references: [id])
+  participantId     String
+  participant       User     @relation(fields: [participantId], references: [id])
+  attended          Boolean  @default(false)
+  checkInSelfiePath String?  // Caminho para a selfie no Nextcloud
+  approved          Boolean  @default(false) // Se foi aprovado no treinamento
+  createdAt         DateTime @default(now())
 
-  approvedById    String?
-  approvedBy      User?      @relation("ApprovedByManager", fields: [approvedById], references: [id])
-  rejectionReason String?
-  
-  // Fotos podem ser armazenadas como URLs para um serviço de storage (ex: Firebase Storage, S3)
-  // photoUrls       String[]   @default([]) // Se você armazenar as URLs aqui
-
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  @@unique([sessionId, participantId]) // Garante que um usuário não seja adicionado duas vezes na mesma sessão
 }
 
-// Adicionar outros modelos conforme os módulos do sistema
-// Ex: Checklist, FuelLog, Maintenance, Report, TrainingSession, EPI, Company, Collaborator, etc.
+model Certificate {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  trainingSessionId String?   // Opcional, se o certificado for de um treinamento específico
+  trainingSession   TrainingSession? @relation(fields: [trainingSessionId], references: [id])
+  trainingName      String    // Nome do treinamento ou qualificação
+  templateId        String    // ID do template usado (pode ser um nome/caminho)
+  issueDate         DateTime  @default(now())
+  expiryDate        DateTime?
+  certificatePdfPath String   // Caminho para o PDF do certificado no Nextcloud
+  createdAt         DateTime  @default(now())
+}
+
+// Você também precisará de um modelo para templates de certificados
+// model CertificateTemplate {
+//   id        String @id @default(cuid())
+//   name      String @unique
+//   type      String // ex: 'docx', 'pptx'
+//   nextcloudPath String // Caminho para o arquivo de template no Nextcloud
+//   description String?
+//   createdAt DateTime @default(now())
+// }
