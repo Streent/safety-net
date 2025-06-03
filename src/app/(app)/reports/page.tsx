@@ -1,7 +1,7 @@
 
 'use client';
 import Link from 'next/link';
-import { PlusCircle, Download, Eye, MoreHorizontal, SlidersHorizontal, Filter as FilterIcon, X as XIcon, Search, CalendarDays as CalendarIconLucide } from 'lucide-react';
+import { PlusCircle, Download, Eye, MoreHorizontal, SlidersHorizontal, Filter as FilterIcon, X as XIcon, Search, CalendarDays as CalendarIconLucide, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/common/page-header';
 import {
@@ -31,9 +31,7 @@ import { IncidentForm, type IncidentFormValues } from '@/components/reports/inci
 import { useToast } from '@/hooks/use-toast';
 import { ReportFilters } from '@/components/reports/ReportFilters';
 import { Card, CardContent, CardHeader, CardTitle as UiCardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-
+import { ReportViewModal } from '@/components/reports/ReportViewModal'; // Import the new view modal
 
 export interface Report {
   id: string;
@@ -48,22 +46,21 @@ export interface Report {
 }
 
 const initialMockReports: Report[] = [
-  { id: 'RPT001', date: new Date(2024, 5, 10), technician: 'Alice Silva', type: 'Quase Acidente', status: 'Aberto', description: 'Escada escorregadia no armazém B.', location: 'Armazém B', geolocation: '-23.5505, -46.6333' },
-  { id: 'RPT002', date: new Date(2024, 5, 12), technician: 'Roberto Costa', type: 'Observação de Segurança', status: 'Fechado', description: 'Equipamento de proteção individual (EPI) não utilizado corretamente na linha de montagem 3.', location: 'Linha de Montagem 3' },
-  { id: 'RPT003', date: new Date(2024, 5, 15), technician: 'Alice Silva', type: 'Primeiros Socorros', status: 'Em Progresso', description: 'Corte leve no dedo do colaborador Mário Santos ao manusear ferramenta.', location: 'Oficina Mecânica' },
-  { id: 'RPT004', date: new Date(2024, 5, 18), technician: 'Carlos Neves', type: 'Dano à Propriedade', status: 'Aberto', description: 'Empilhadeira colidiu com prateleira, causando danos menores.', location: 'Corredor 5, Armazém A' },
-  { id: 'RPT005', date: new Date(2024, 5, 20), technician: 'Roberto Costa', type: 'Ambiental', status: 'Fechado', description: 'Vazamento de óleo contido próximo ao gerador G-02.', location: 'Área Externa - Geradores' },
-  { id: 'RPT006', date: new Date(2024, 4, 28), technician: 'Juliana Lima', type: 'Inspeção', status: 'Fechado', description: 'Inspeção de segurança da área de solda completa.', location: 'Área de Solda' },
-  { id: 'RPT007', date: new Date(2024, 4, 5), technician: 'Alice Silva', type: 'Auditoria', status: 'Em Progresso', description: 'Auditoria interna do sistema de gestão de SST.', location: 'Escritório Central' },
-  { id: 'RPT008', date: new Date(2024, 3, 20), technician: 'Carlos Neves', type: 'DDS', status: 'Fechado', description: 'DDS sobre uso de óculos de proteção.', location: 'Canteiro de Obras Z' },
-  // Add more mock data for pagination
-  { id: 'RPT009', date: new Date(2024, 6, 1), technician: 'Fernanda Dias', type: 'Quase Acidente', status: 'Aberto', description: 'Material quase caiu de prateleira alta.', location: 'Depósito Central' },
-  { id: 'RPT010', date: new Date(2024, 6, 2), technician: 'Lucas Martins', type: 'Observação de Segurança', status: 'Em Progresso', description: 'Falta de sinalização em área de risco.', location: 'Pátio Externo' },
-  { id: 'RPT011', date: new Date(2024, 6, 3), technician: 'Alice Silva', type: 'Inspeção', status: 'Fechado', description: 'Inspeção dos extintores da Ala Sul.', location: 'Ala Sul' },
-  { id: 'RPT012', date: new Date(2024, 6, 4), technician: 'Roberto Costa', type: 'Primeiros Socorros', status: 'Aberto', description: 'Pequena queimadura em colaborador.', location: 'Cozinha Industrial' },
-  { id: 'RPT013', date: new Date(2024, 6, 5), technician: 'Carlos Neves', type: 'Dano à Propriedade', status: 'Fechado', description: 'Vidro de janela quebrado por impacto.', location: 'Escritório 203' },
-  { id: 'RPT014', date: new Date(2024, 6, 6), technician: 'Juliana Lima', type: 'Ambiental', status: 'Em Progresso', description: 'Descarte inadequado de resíduos observado.', location: 'Área de Descarte' },
-  { id: 'RPT015', date: new Date(2024, 6, 7), technician: 'Fernanda Dias', type: 'Auditoria', status: 'Aberto', description: 'Auditoria de conformidade NR-12 em máquinas.', location: 'Linha de Produção Alfa' },
+  { id: 'RPT001', date: new Date(2024, 5, 10, 10, 30), technician: 'Alice Silva', type: 'Quase Acidente', status: 'Aberto', description: 'Escada escorregadia no armazém B. Foi observado que a escada estava molhada devido a um vazamento no teto não reportado anteriormente. Ninguém se machucou, mas o risco era iminente.', location: 'Armazém B', geolocation: '-23.5505, -46.6333' },
+  { id: 'RPT002', date: new Date(2024, 5, 12, 14, 0), technician: 'Roberto Costa', type: 'Observação de Segurança', status: 'Fechado', description: 'Equipamento de proteção individual (EPI) não utilizado corretamente na linha de montagem 3. O colaborador em questão foi orientado.', location: 'Linha de Montagem 3' },
+  { id: 'RPT003', date: new Date(2024, 5, 15, 9, 15), technician: 'Alice Silva', type: 'Primeiros Socorros', status: 'Em Progresso', description: 'Corte leve no dedo do colaborador Mário Santos ao manusear ferramenta sem luva apropriada. Foi feito curativo no local.', location: 'Oficina Mecânica' },
+  { id: 'RPT004', date: new Date(2024, 5, 18, 16, 45), technician: 'Carlos Neves', type: 'Dano à Propriedade', status: 'Aberto', description: 'Empilhadeira colidiu com prateleira, causando danos menores.', location: 'Corredor 5, Armazém A' },
+  { id: 'RPT005', date: new Date(2024, 5, 20, 11, 0), technician: 'Roberto Costa', type: 'Ambiental', status: 'Fechado', description: 'Vazamento de óleo contido próximo ao gerador G-02.', location: 'Área Externa - Geradores' },
+  { id: 'RPT006', date: new Date(2024, 4, 28, 13, 30), technician: 'Juliana Lima', type: 'Inspeção', status: 'Fechado', description: 'Inspeção de segurança da área de solda completa.', location: 'Área de Solda' },
+  { id: 'RPT007', date: new Date(2024, 4, 5, 10, 0), technician: 'Alice Silva', type: 'Auditoria', status: 'Em Progresso', description: 'Auditoria interna do sistema de gestão de SST.', location: 'Escritório Central' },
+  { id: 'RPT008', date: new Date(2024, 3, 20, 8, 0), technician: 'Carlos Neves', type: 'DDS', status: 'Fechado', description: 'DDS sobre uso de óculos de proteção.', location: 'Canteiro de Obras Z' },
+  { id: 'RPT009', date: new Date(2024, 6, 1, 15, 20), technician: 'Fernanda Dias', type: 'Quase Acidente', status: 'Aberto', description: 'Material quase caiu de prateleira alta.', location: 'Depósito Central' },
+  { id: 'RPT010', date: new Date(2024, 6, 2, 9, 50), technician: 'Lucas Martins', type: 'Observação de Segurança', status: 'Em Progresso', description: 'Falta de sinalização em área de risco.', location: 'Pátio Externo' },
+  { id: 'RPT011', date: new Date(2024, 6, 3, 14, 10), technician: 'Alice Silva', type: 'Inspeção', status: 'Fechado', description: 'Inspeção dos extintores da Ala Sul.', location: 'Ala Sul' },
+  { id: 'RPT012', date: new Date(2024, 6, 4, 11, 5), technician: 'Roberto Costa', type: 'Primeiros Socorros', status: 'Aberto', description: 'Pequena queimadura em colaborador.', location: 'Cozinha Industrial' },
+  { id: 'RPT013', date: new Date(2024, 6, 5, 17, 30), technician: 'Carlos Neves', type: 'Dano à Propriedade', status: 'Fechado', description: 'Vidro de janela quebrado por impacto.', location: 'Escritório 203' },
+  { id: 'RPT014', date: new Date(2024, 6, 6, 8, 45), technician: 'Juliana Lima', type: 'Ambiental', status: 'Em Progresso', description: 'Descarte inadequado de resíduos observado.', location: 'Área de Descarte' },
+  { id: 'RPT015', date: new Date(2024, 6, 7, 10, 0), technician: 'Fernanda Dias', type: 'Auditoria', status: 'Aberto', description: 'Auditoria de conformidade NR-12 em máquinas.', location: 'Linha de Produção Alfa' },
 ];
 
 export type ReportStatus = 'Aberto' | 'Em Progresso' | 'Fechado';
@@ -84,6 +81,9 @@ export default function ReportsListPage() {
   const [editingReport, setEditingReport] = useState<Report | null>(null);
   const [isNewReport, setIsNewReport] = useState(false);
   const { toast } = useToast();
+
+  const [isReportViewModalOpen, setIsReportViewModalOpen] = useState(false);
+  const [selectedReportForView, setSelectedReportForView] = useState<Report | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -111,7 +111,7 @@ export default function ReportsListPage() {
     
     debounceTimerRef.current = setTimeout(() => {
       setIsLoading(true);
-      setCurrentPage(1); // Reset to first page on filter change
+      setCurrentPage(1); 
       setTimeout(() => {
         setIsLoading(false);
       }, 500);
@@ -162,7 +162,7 @@ export default function ReportsListPage() {
       const typeMatch = selectedReportTypes.length === 0 || selectedReportTypes.includes(report.type);
       
       return searchMatch && dateMatch && statusMatch && technicianMatch && typeMatch;
-    });
+    }).sort((a,b) => b.date.getTime() - a.date.getTime()); // Sort by date descending
   }, [reports, searchTerm, dateRange, statusFilter, technicianFilter, selectedReportTypes]);
 
   const totalPages = Math.ceil(filteredReports.length / ITEMS_PER_PAGE);
@@ -203,9 +203,19 @@ export default function ReportsListPage() {
     setIsNewReport(false);
   };
 
+  const handleOpenReportViewModal = (report: Report) => {
+    setSelectedReportForView(report);
+    setIsReportViewModalOpen(true);
+  };
+
+  const handleEditFromViewModal = (reportToEdit: Report) => {
+    setIsReportViewModalOpen(false); // Close view modal
+    handleOpenEditReportModal(reportToEdit); // Open edit modal
+  };
+
   const handleFormSubmitSuccess = useCallback((submittedData: IncidentFormValues) => {
-    const reportData: Omit<Report, 'id' | 'status' | 'date'> & { date: Date } = {
-      date: submittedData.date,
+    const reportData: Omit<Report, 'id' | 'status'> & { date: Date } = {
+      date: submittedData.date, // Assume date now includes time from form if applicable
       technician: editingReport?.technician || 'Usuário Atual (TBD)', 
       type: submittedData.incidentType,
       description: submittedData.description,
@@ -228,7 +238,7 @@ export default function ReportsListPage() {
             ? { 
                 ...editingReport, 
                 ...reportData,
-                status: editingReport.status 
+                status: editingReport.status // Status is not changed by this form directly
               } 
             : r
         )
@@ -360,10 +370,10 @@ export default function ReportsListPage() {
                       <TableRow
                         key={report.id}
                         className="hover:bg-muted/50 cursor-pointer"
-                        onClick={() => handleOpenEditReportModal(report)}
+                        onClick={() => handleOpenReportViewModal(report)} // Changed to open view modal
                       >
                         <TableCell className="font-medium">{report.id}</TableCell>
-                        <TableCell>{format(report.date, "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                        <TableCell>{format(report.date, "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
                         <TableCell>{report.technician}</TableCell>
                         <TableCell>{report.type}</TableCell>
                         <TableCell className="text-center">
@@ -387,9 +397,13 @@ export default function ReportsListPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenEditReportModal(report); }}>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenReportViewModal(report); }}>
                                 <Eye className="mr-2 h-4 w-4" />
-                                <span>Visualizar / Editar</span>
+                                <span>Visualizar Relatório</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenEditReportModal(report); }}>
+                                <Edit2 className="mr-2 h-4 w-4" />
+                                <span>Editar</span>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={(e) => {e.stopPropagation(); toast({title: "Exportar PDF (Placeholder)", description: `Funcionalidade para exportar relatório ${report.id} como PDF.`})}}>
@@ -440,7 +454,6 @@ export default function ReportsListPage() {
 
       <Dialog open={isReportModalOpen} onOpenChange={handleCloseReportModal}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
-           {/* Botão de fechar explícito removido conforme solicitado anteriormente */}
           <DialogHeader className="p-6 pb-4 border-b">
             <DialogTitle className="text-2xl">
               {isNewReport ? 'Registrar Novo Incidente' : `Editar Relatório #${editingReport?.id}`}
@@ -449,7 +462,7 @@ export default function ReportsListPage() {
               {isNewReport ? 'Forneça informações detalhadas sobre o incidente.' : 'Atualize os detalhes deste relatório de incidente.'}
             </UiDialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto p-6"> {/* Padding movido para cá */}
+          <div className="flex-1 overflow-y-auto p-6"> 
             <IncidentForm 
               initialData={isNewReport ? undefined : {
                 incidentType: editingReport?.type || '',
@@ -457,14 +470,34 @@ export default function ReportsListPage() {
                 location: editingReport?.location || '',
                 geolocation: editingReport?.geolocation || '',
                 date: editingReport?.date ? new Date(editingReport.date) : new Date(),
+                // Passar outros campos de inspeção se existirem em `editingReport`
+                 nomeDaEmpresaInspecionada: (editingReport as any)?.nomeDaEmpresaInspecionada || '',
+                 cnpjEmpresaInspecionada: (editingReport as any)?.cnpjEmpresaInspecionada || '',
+                 responsavelEmpresa: (editingReport as any)?.responsavelEmpresa || '',
+                 setorInspecionado: (editingReport as any)?.setorInspecionado || '',
+                 tipoInspecao: (editingReport as any)?.tipoInspecao || '',
+                 equipeInspecao: (editingReport as any)?.equipeInspecao || '',
+                 objetivoInspecao: (editingReport as any)?.objetivoInspecao || '',
+                 itensVerificados: (editingReport as any)?.itensVerificados || '',
+                 naoConformidades: (editingReport as any)?.naoConformidades || '',
+                 observacoesGerais: (editingReport as any)?.observacoesGerais || '',
+                 recomendacoesEspecificas: (editingReport as any)?.recomendacoesEspecificas || '',
+                 nivelDeRiscoGeral: (editingReport as any)?.nivelDeRiscoGeral || '',
+                 prazoParaCorrecao: (editingReport as any)?.prazoParaCorrecao ? new Date((editingReport as any).prazoParaCorrecao) : undefined,
               }} 
               onSubmitSuccess={handleFormSubmitSuccess} 
               isModalMode={true}
             />
           </div>
-          {/* Footer removido daqui pois os botões de ação estão no IncidentForm */}
         </DialogContent>
       </Dialog>
+
+      <ReportViewModal
+        report={selectedReportForView}
+        isOpen={isReportViewModalOpen}
+        onOpenChange={setIsReportViewModalOpen}
+        onEditRequest={handleEditFromViewModal}
+      />
     </>
   );
 }
