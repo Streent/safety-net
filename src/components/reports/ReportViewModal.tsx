@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -15,12 +14,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Logo } from '@/components/common/logo';
 import type { Report, ReportStatus } from '@/app/(app)/reports/page';
-import Image from 'next/image'; // Placeholder, not used yet for Report type
-import { Download, Printer, Edit2, CalendarDays, User, Tag, MapPin, ShieldAlert, Info } from 'lucide-react';
+import Image from 'next/image';
+import { Download, Printer, Edit2, CalendarDays, User, Tag, MapPin, ShieldAlert, Info, Camera, EyeSlash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface ReportViewModalProps {
   report: Report | null;
@@ -34,6 +34,13 @@ const statusColors: Record<ReportStatus, string> = {
   'Em Progresso': 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30',
   Fechado: 'bg-green-500/20 text-green-700 border-green-500/30',
 };
+
+// Simulação de dados de fotos para o modal, já que o tipo Report não os possui ainda
+const mockPhotoEvidence = [
+  { id: 'photo1', url: 'https://placehold.co/600x400.png', description: 'Vista geral da área de carga onde o quase acidente ocorreu. Notar a proximidade de equipamentos e pessoal.', dataAiHint: 'industrial area night' },
+  { id: 'photo2', url: 'https://placehold.co/600x400.png', description: 'Detalhe da escada escorregadia no Armazém B, causa do incidente RPT001.', dataAiHint: 'wet floor caution' },
+  { id: 'photo3', url: 'https://placehold.co/600x400.png', description: 'Colaborador utilizando equipamento de forma inadequada na linha de produção.', dataAiHint: 'safety violation' },
+];
 
 
 export function ReportViewModal({
@@ -75,57 +82,87 @@ export function ReportViewModal({
                 <Logo className="h-10 w-auto text-black dark:text-white" />
               </div>
               <div className="w-1/2 text-center">
-                <h1 className="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-200 uppercase">
+                <h1 className="text-xs sm:text-sm md:text-base font-bold text-gray-800 dark:text-gray-200 uppercase">
                   Relatório de Incidente / Observação
                 </h1>
               </div>
               <div className="w-1/4 text-right">
-                <span className="text-lg font-semibold text-red-600 dark:text-red-500">PLANGEFF</span>
+                <span className="text-sm sm:text-base md:text-lg font-semibold text-red-600 dark:text-red-500">PLANGEFF</span>
               </div>
             </div>
 
             {/* Report Content */}
-            <div className="space-y-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mb-4 p-3 border rounded-md bg-gray-50 dark:bg-gray-800/50">
-                <p className="flex items-center"><Info className="w-4 h-4 mr-2 text-primary" /><strong>ID do Relatório:</strong> {report.id}</p>
-                <p className="flex items-center"><CalendarDays className="w-4 h-4 mr-2 text-primary" /><strong>Data:</strong> {format(new Date(report.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
-                <p className="flex items-center"><User className="w-4 h-4 mr-2 text-primary" /><strong>Técnico:</strong> {report.technician}</p>
-                <p className="flex items-center"><Tag className="w-4 h-4 mr-2 text-primary" /><strong>Tipo:</strong> {report.type}</p>
-                <p className="flex items-center md:col-span-2"><MapPin className="w-4 h-4 mr-2 text-primary" /><strong>Local:</strong> {report.location || 'Não informado'}</p>
-                {report.geolocation && <p className="flex items-center md:col-span-2"><MapPin className="w-4 h-4 mr-2 text-primary" /><strong>Geolocalização:</strong> {report.geolocation}</p>}
-                 <div className="flex items-center md:col-span-2">
-                    <ShieldAlert className="w-4 h-4 mr-2 text-primary" /><strong>Status:</strong>&nbsp;
-                    <Badge variant="outline" className={`text-xs ${statusColors[report.status]}`}>
-                        {report.status}
-                    </Badge>
-                </div>
-              </div>
+            <div className="space-y-3 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+              <Card className="mb-4 bg-gray-50 dark:bg-gray-800/50">
+                <CardContent className="p-3 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1.5">
+                    <p className="flex items-center col-span-1 md:col-span-2"><Info className="w-3.5 h-3.5 mr-1.5 text-primary flex-shrink-0" /><strong>ID do Relatório:</strong> {report.id}</p>
+                    <p className="flex items-center"><CalendarDays className="w-3.5 h-3.5 mr-1.5 text-primary flex-shrink-0" /><strong>Data:</strong> {format(new Date(report.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                    <p className="flex items-center"><User className="w-3.5 h-3.5 mr-1.5 text-primary flex-shrink-0" /><strong>Técnico:</strong> {report.technician}</p>
+                    <p className="flex items-center"><Tag className="w-3.5 h-3.5 mr-1.5 text-primary flex-shrink-0" /><strong>Tipo:</strong> {report.type}</p>
+                    <div className="flex items-center">
+                        <ShieldAlert className="w-3.5 h-3.5 mr-1.5 text-primary flex-shrink-0" /><strong>Status:</strong>&nbsp;
+                        <Badge variant="outline" className={`text-xs py-0.5 px-1.5 ${statusColors[report.status]}`}>
+                            {report.status}
+                        </Badge>
+                    </div>
+                    <p className="flex items-center col-span-1 md:col-span-2"><MapPin className="w-3.5 h-3.5 mr-1.5 text-primary flex-shrink-0" /><strong>Local:</strong> {report.location || 'Não informado'}</p>
+                    {report.geolocation && <p className="flex items-center col-span-1 md:col-span-2"><MapPin className="w-3.5 h-3.5 mr-1.5 text-primary flex-shrink-0" /><strong>Geolocalização:</strong> {report.geolocation}</p>}
+                </CardContent>
+              </Card>
               
-              <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 border-b pb-1 mb-2">Descrição do Evento/Observação</h2>
-              <p className="whitespace-pre-wrap p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md min-h-[100px]">
+              <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200 border-b pb-1 mb-1.5">1. Descrição do Evento/Observação</h2>
+              <p className="whitespace-pre-wrap p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md min-h-[80px]">
                 {report.description || 'Nenhuma descrição fornecida.'}
               </p>
-              
-              {/* Placeholder for potential future fields from Report type (e.g. inspection details, photos) */}
-              {/* 
-              <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 border-b pb-1 mb-2">Evidências Fotográficas (Exemplo)</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[1,2].map(i => (
-                    <div key={i} className="border p-2 rounded-md bg-gray-50 dark:bg-gray-800/50">
-                        <Image
-                          src={`https://placehold.co/600x400.png?text=Foto+Exemplo+${i}`}
-                          alt={`Foto Exemplo ${i}`}
-                          width={300}
-                          height={200}
-                          className="w-full h-auto object-cover rounded mb-1"
-                        />
-                        <p className="text-center text-xs italic">Descrição da foto exemplo {i}</p>
-                    </div>
-                ))}
-              </div>
-              */}
 
-              <Separator className="my-6" />
+              <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200 border-b pb-1 mb-1.5 mt-3">2. Achados Técnicos / Não Conformidades (Exemplo)</h2>
+              <p className="whitespace-pre-wrap p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md min-h-[60px] italic text-gray-500 dark:text-gray-400">
+                (Esta seção seria preenchida com detalhes estruturados se o relatório fosse uma inspeção formal ou tivesse essa informação. Ex: Item 2.1: Extintor vencido. Risco: Incêndio não combatido. Recomendação: Substituir extintor.)
+              </p>
+
+              <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200 border-b pb-1 mb-1.5 mt-3">3. Recomendações (Exemplo)</h2>
+              <p className="whitespace-pre-wrap p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md min-h-[60px] italic text-gray-500 dark:text-gray-400">
+                (Esta seção listaria as ações corretivas e preventivas sugeridas. Ex: Realizar treinamento de reciclagem sobre uso de EPIs para a equipe do Setor X.)
+              </p>
+              
+              <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200 border-b pb-1 mb-1.5 mt-3">4. EVIDÊNCIAS FOTOGRÁFICAS</h2>
+              {mockPhotoEvidence.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {mockPhotoEvidence.map((photo, index) => (
+                      <Card key={photo.id} className="overflow-hidden shadow-sm">
+                        <div className="relative w-full aspect-[4/3]">
+                          <Image
+                            src={photo.url}
+                            alt={photo.description || `Evidência Fotográfica ${index + 1}`}
+                            layout="fill"
+                            objectFit="cover"
+                            data-ai-hint={photo.dataAiHint}
+                          />
+                        </div>
+                        <CardContent className="p-2">
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            <strong>Foto {index + 1}:</strong> {photo.description || 'N/A'}
+                          </p>
+                           <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-0.5 italic">
+                            Detalhes e observações adicionais sobre esta imagem seriam listados aqui.
+                          </p>
+                        </CardContent>
+                      </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/50 text-center text-gray-500 dark:text-gray-400 italic">
+                  <Camera className="mx-auto h-8 w-8 mb-1 text-gray-400 dark:text-gray-500" />
+                  Nenhuma evidência fotográfica anexada a este relatório (simulado).
+                </div>
+              )}
+
+              <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200 border-b pb-1 mb-1.5 mt-3">5. Conclusão (Exemplo)</h2>
+              <p className="whitespace-pre-wrap p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md min-h-[60px] italic text-gray-500 dark:text-gray-400">
+                (Resumo técnico das condições gerais e reforço das ações corretivas/preventivas. Ex: A inspeção revelou X não conformidades que necessitam de ação imediata para mitigar os riscos identificados. Recomenda-se o acompanhamento das ações propostas.)
+              </p>
+
+              <Separator className="my-4" />
               <p className="italic text-center text-xs">Relatório gerado pelo sistema SafetyNet.</p>
             </div>
 
@@ -158,4 +195,3 @@ export function ReportViewModal({
     </Dialog>
   );
 }
-
