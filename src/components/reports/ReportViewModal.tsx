@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -37,9 +38,9 @@ const statusColors: Record<ReportStatus, string> = {
 
 // Simulação de dados de fotos para o modal, já que o tipo Report não os possui ainda
 const mockPhotoEvidence = [
-  { id: 'photo1', url: 'https://placehold.co/600x400.png', description: 'Vista geral da área de carga onde o quase acidente ocorreu. Notar a proximidade de equipamentos e pessoal.', dataAiHint: 'industrial area night' },
-  { id: 'photo2', url: 'https://placehold.co/600x400.png', description: 'Detalhe da escada escorregadia no Armazém B, causa do incidente RPT001.', dataAiHint: 'wet floor caution' },
-  { id: 'photo3', url: 'https://placehold.co/600x400.png', description: 'Colaborador utilizando equipamento de forma inadequada na linha de produção.', dataAiHint: 'safety violation' },
+  { id: 'photo1', url: 'https://images.unsplash.com/photo-1505322022379-7c3353ee6291?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxpbmR1c3RyaWFsJTIwYXJlYSUyMG5pZ2h0fGVufDB8fHx8MTc0ODk2MDcyNnww&ixlib=rb-4.1.0&q=80&w=1080', description: 'Vista geral da área de carga onde o quase acidente ocorreu. Notar a proximidade de equipamentos e pessoal.', dataAiHint: 'industrial area night' },
+  { id: 'photo2', url: 'https://images.unsplash.com/photo-1516200034618-a7d7a3383ec7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx3ZXQlMjBmbG9vciUyMGNhdXRpb258ZW58MHx8fHwxNzQ4OTYwNzI2fDA&ixlib=rb-4.1.0&q=80&w=1080', description: 'Detalhe da escada escorregadia no Armazém B, causa do incidente RPT001.', dataAiHint: 'wet floor caution' },
+  { id: 'photo3', url: 'https://images.unsplash.com/photo-1599493347474-7e864c18489e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzYWZldHklMjB2aW9sYXRpb258ZW58MHx8fHwxNzQ4OTYwNzI1fDA&ixlib=rb-4.1.0&q=80&w=1080', description: 'Colaborador utilizando equipamento de forma inadequada na linha de produção.', dataAiHint: 'safety violation' },
 ];
 
 
@@ -195,3 +196,6 @@ export function ReportViewModal({
     </Dialog>
   );
 }
+
+
+    
