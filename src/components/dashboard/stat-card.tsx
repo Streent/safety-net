@@ -1,7 +1,7 @@
 
 'use client';
 import type { LucideIcon } from 'lucide-react';
-import { FileText, ShieldCheck, AlertTriangle, BarChart3, Archive, AlertCircle, CalendarClock } from 'lucide-react';
+import { FileText, ShieldCheck, AlertTriangle, BarChart3, Archive, AlertCircle, CalendarClock, Users } from 'lucide-react'; // Added Users
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -12,9 +12,10 @@ const iconMap = {
   ShieldCheck,
   AlertTriangle,
   BarChart3,
-  Archive, // Added
-  AlertCircle, // Added
-  CalendarClock, // Added
+  Archive,
+  AlertCircle,
+  CalendarClock,
+  Users, // Added Users icon to the map
 };
 
 interface StatCardProps {
