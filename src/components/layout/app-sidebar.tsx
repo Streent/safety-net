@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Home, FileText, Brain, Users, Car, Gem, ShieldCheck, Building, Megaphone, Library, Landmark, Settings as SettingsIcon, LifeBuoy,
-  ClipboardList, FileSearch, AlertOctagon, Signal, UploadCloud, CalendarDays, Award
+  ClipboardList, FileSearch, AlertOctagon, Signal, UploadCloud, CalendarDays, Award, CalendarCheck
 } from 'lucide-react';
 import {
   Sidebar,
@@ -29,6 +29,7 @@ const mainNavItems = [
 
 const moduleNavItems = [
   { href: '/trainings', label: 'Agenda', icon: CalendarDays },
+  { href: '/escalas', label: 'Planej. Escalas', icon: CalendarCheck },
   { href: '/fleet', label: 'Frota', icon: Car },
   { href: '/epis', label: 'EPIs', icon: ShieldCheck },
   { href: '/empresas', label: 'Empresas', icon: Building },
