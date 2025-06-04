@@ -1,3 +1,4 @@
+
 // src/app/(app)/escalas/page.tsx
 'use client';
 
@@ -5,11 +6,11 @@ import { PageHeader } from '@/components/common/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LayoutDashboard, Users, Plane, Settings2 } from 'lucide-react';
 
-// Importe os componentes de aba que criamos
-import EscalasDashboardTab from './escalas-dashboard';
-import EscalasTecnicosTab from './escalas-tecnicos';
-import EscalasViagensTab from './escalas-viagens';
-import EscalasControleTab from './escalas-controle';
+// Importe os componentes de aba usando path aliases e a extensão .tsx
+import EscalasDashboardTab from './escalas-dashboard.tsx';
+import EscalasTecnicosTab from './escalas-tecnicos.tsx';
+import EscalasViagensTab from './escalas-viagens.tsx';
+import EscalasControleTab from './escalas-controle.tsx';
 
 export default function EscalasPage() {
   return (

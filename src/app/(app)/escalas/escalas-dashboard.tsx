@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { StatCard } from '@/components/dashboard/stat-card'; // Assuming you have a generic StatCard
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from '@/components/ui/chart';
 import { BarChart as RechartsBarChartComponent, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
-import { mockTecnicosData, mockViagensData } from '@/app/(app)/escalas/data.ts';
-import { processEscalasData } from '@/app/(app)/escalas/utils.ts'; // Import from utils
-import type { TecnicoProcessado } from '@/app/(app)/escalas/data.ts'; // Import type
+import { mockTecnicosData, mockViagensData } from './data.ts';
+import { processEscalasData } from './utils.ts'; // Import from utils
+import type { TecnicoProcessado } from './data.ts'; // Import type
 
 // Define chart configs if not already globally available or specific to this dashboard
 const viagensChartConfig = {
@@ -101,14 +101,14 @@ export default function EscalasDashboardTab() {
             title="Técnico com Mais Viagens (Ano)" 
             value={kpis.tecnicoMaisViagens.viagens === 'N/A' ? 0 : parseInt(kpis.tecnicoMaisViagens.viagens) || 0} 
             subtitle={kpis.tecnicoMaisViagens.tecnico}
-            iconName="Users" // Changed from plane to Users as per StatCard options
+            iconName="Users" 
             iconColor="text-blue-500"
         />
         <StatCard 
             title="Técnicos Indisponíveis" 
             value={kpis.tecnicosIndisponiveis} 
             subtitle={`de ${kpis.totalTecnicos} técnicos totais`}
-            iconName="AlertTriangle" // Changed from no-entry to AlertTriangle
+            iconName="AlertTriangle" 
             iconColor="text-red-500"
         />
       </div>

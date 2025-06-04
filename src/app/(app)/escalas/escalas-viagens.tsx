@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { mockTecnicosData, mockViagensData, type ViagemRaw, type TecnicoRaw } from '@/app/(app)/escalas/data.ts';
-import { parseDateUTC } from '@/app/(app)/escalas/utils.ts';
+import { mockTecnicosData, mockViagensData, type ViagemRaw, type TecnicoRaw } from './data.ts';
+import { parseDateUTC } from './utils.ts';
 
 export default function EscalasViagensTab() {
   const [filtroDataViagem, setFiltroDataViagem] = useState('');
