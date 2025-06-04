@@ -8,51 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { mockTecnicosData, mockViagensData, type TecnicoRaw, type ViagemRaw, type TecnicoProcessado } from './data';
-import { parseDateUTC, diffInDaysUTC } from './utils'; // Assuming utils.ts will be created or functions moved
-
-// Function to process technician data (can be moved to a utils file)
-const processEscalasData = (
-  tecnicos: TecnicoRaw[],
-  viagens: ViagemRaw[],
-  hoje: Date
-): TecnicoProcessado[] => {
-  return tecnicos.map((tec) => {
-    const viagensTecnico = viagens.filter((v) => v.ID_Tecnico === tec.ID_Tecnico);
-    let ultimaViagemObj: ViagemRaw | null = null;
-
-    if (viagensTecnico.length > 0) {
-      ultimaViagemObj = viagensTecnico.reduce((latest, current) => {
-        const currentDate = parseDateUTC(current.Data_Viagem);
-        const latestDate = parseDateUTC(latest.Data_Viagem);
-        if (!currentDate) return latest;
-        if (!latestDate) return current;
-        return currentDate > latestDate ? current : latest;
-      });
-    }
-
-    const ultimaViagemData = ultimaViagemObj ? parseDateUTC(ultimaViagemObj.Data_Viagem) : null;
-    const diasSemViajar = ultimaViagemData ? diffInDaysUTC(hoje, ultimaViagemData) : Infinity;
-
-    const viagensNoAno = viagensTecnico.filter((v) => {
-      const dataViagem = parseDateUTC(v.Data_Viagem);
-      return dataViagem && dataViagem.getUTCFullYear() === hoje.getUTCFullYear();
-    }).length;
-
-    const statusDisponibilidadeSistema = tec.Status_Original_Tecnico === 'Ativo' ? 'Disponível' : 'Indisponível';
-
-    return {
-      ...tec,
-      diasSemViajar,
-      viagensNoAno,
-      statusDisponibilidadeSistema,
-      ultimaViagemDataFormatada: ultimaViagemData
-        ? ultimaViagemData.toLocaleDateString('pt-BR', { timeZone: 'UTC' })
-        : 'Nunca viajou',
-    };
-  });
-};
-
+import { mockTecnicosData, mockViagensData, type TecnicoProcessado } from './data'; // Import types
+import { processEscalasData } from './utils'; // Import from utils
 
 export default function EscalasTecnicosTab() {
   const hoje = useMemo(() => new Date("2025-06-04T00:00:00Z"), []); // Use UTC date
@@ -85,18 +42,20 @@ export default function EscalasTecnicosTab() {
   }, [dadosProcessados, filtroNome, filtroPerfil, filtroEspecialidade, filtroStatusSistema]);
 
   const getDiasSemViajarColor = (dias: number | typeof Infinity) => {
-    if (dias === Infinity) return 'text-slate-500';
-    if (dias > 60) return 'text-red-600 font-semibold';
-    if (dias > 30) return 'text-amber-600 font-semibold';
-    return 'text-green-600';
+    if (dias === Infinity) return 'text-slate-500 dark:text-slate-400';
+    if (dias > 60) return 'text-red-600 dark:text-red-500 font-semibold';
+    if (dias > 30) return 'text-amber-600 dark:text-amber-500 font-semibold';
+    return 'text-green-600 dark:text-green-500';
   };
 
   const getStatusSistemaBadge = (status: 'Disponível' | 'Indisponível') => {
-    return status === 'Disponível' ? 'bg-green-100 text-green-700 border-green-400' : 'bg-red-100 text-red-700 border-red-400';
+    return status === 'Disponível' ? 'bg-green-100 text-green-700 border-green-400 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700' 
+                                  : 'bg-red-100 text-red-700 border-red-400 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700';
   };
 
   const getStatusOriginalBadge = (status: string) => {
-    return status === 'Ativo' ? 'bg-blue-100 text-blue-700 border-blue-400' : 'bg-yellow-100 text-yellow-700 border-yellow-400';
+    return status === 'Ativo' ? 'bg-blue-100 text-blue-700 border-blue-400 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700' 
+                             : 'bg-yellow-100 text-yellow-700 border-yellow-400 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700';
   };
   
 
@@ -108,14 +67,14 @@ export default function EscalasTecnicosTab() {
           Consulte, filtre e ordene a lista de técnicos. A tabela abaixo exibe o perfil completo, o estado atual (calculado pelo sistema com base no seu estado original e restrições) e o tempo desde a última viagem. Alertas visuais ajudam a identificar rapidamente técnicos que não viajam há muito tempo ou que estão indisponíveis.
         </p>
       </div>
-      <Card>
+      <Card className="shadow-md">
         <CardContent className="p-4 md:p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Input
               type="text"
               value={filtroNome}
               onChange={e => setFiltroNome(e.target.value)}
-              className="placeholder-slate-400"
+              className="placeholder-slate-400 dark:placeholder-slate-500"
               placeholder="🔎 Filtrar por nome..."
               aria-label="Filtrar por nome"
             />
@@ -148,17 +107,17 @@ export default function EscalasTecnicosTab() {
               </SelectContent>
             </Select>
           </div>
-          <ScrollArea className="h-[60vh] w-full rounded-md border">
+          <ScrollArea className="h-[60vh] w-full rounded-md border dark:border-slate-700">
             <Table>
               <TableHeader className="sticky top-0 bg-slate-200 dark:bg-slate-700 z-10">
-                <TableRow>
-                  <TableHead className="px-6 py-3">Nome</TableHead>
-                  <TableHead className="px-6 py-3">Perfil</TableHead>
-                  <TableHead className="px-6 py-3">Especialidade</TableHead>
-                  <TableHead className="px-6 py-3">Residência</TableHead>
-                  <TableHead className="px-6 py-3 text-center">Dias s/ Viajar</TableHead>
-                  <TableHead className="px-6 py-3 text-center">Estado (Sistema)</TableHead>
-                  <TableHead className="px-6 py-3 text-center">Estado (Original)</TableHead>
+                <TableRow className="border-slate-300 dark:border-slate-600">
+                  <TableHead className="px-4 py-3 sm:px-6">Nome</TableHead>
+                  <TableHead className="px-4 py-3 sm:px-6">Perfil</TableHead>
+                  <TableHead className="px-4 py-3 sm:px-6">Especialidade</TableHead>
+                  <TableHead className="px-4 py-3 sm:px-6">Residência</TableHead>
+                  <TableHead className="px-4 py-3 sm:px-6 text-center">Dias s/ Viajar</TableHead>
+                  <TableHead className="px-4 py-3 sm:px-6 text-center">Estado (Sistema)</TableHead>
+                  <TableHead className="px-4 py-3 sm:px-6 text-center">Estado (Original)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -171,19 +130,19 @@ export default function EscalasTecnicosTab() {
                 ) : (
                   filteredTecnicos.map(t => (
                     <TableRow key={t.ID_Tecnico} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors duration-150">
-                      <TableCell className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">{t.Nome_Tecnico}</TableCell>
-                      <TableCell className="px-6 py-4 whitespace-nowrap">{t.Perfil_Tecnico || 'N/A'}</TableCell>
-                      <TableCell className="px-6 py-4 whitespace-nowrap">{t.Especialidade_Tecnica || 'N/A'}</TableCell>
-                      <TableCell className="px-6 py-4 whitespace-nowrap">{t.Residencia_Tecnico || 'N/A'}</TableCell>
-                      <TableCell className={`px-6 py-4 text-center whitespace-nowrap ${getDiasSemViajarColor(t.diasSemViajar)}`}>
+                      <TableCell className="px-4 py-4 sm:px-6 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">{t.Nome_Tecnico}</TableCell>
+                      <TableCell className="px-4 py-4 sm:px-6 whitespace-nowrap">{t.Perfil_Tecnico || 'N/A'}</TableCell>
+                      <TableCell className="px-4 py-4 sm:px-6 whitespace-nowrap">{t.Especialidade_Tecnica || 'N/A'}</TableCell>
+                      <TableCell className="px-4 py-4 sm:px-6 whitespace-nowrap">{t.Residencia_Tecnico || 'N/A'}</TableCell>
+                      <TableCell className={`px-4 py-4 sm:px-6 text-center whitespace-nowrap ${getDiasSemViajarColor(t.diasSemViajar)}`}>
                         {t.diasSemViajar === Infinity ? 'Nunca viajou' : t.diasSemViajar}
                       </TableCell>
-                      <TableCell className="px-6 py-4 text-center whitespace-nowrap">
+                      <TableCell className="px-4 py-4 sm:px-6 text-center whitespace-nowrap">
                         <Badge variant="outline" className={`text-xs ${getStatusSistemaBadge(t.statusDisponibilidadeSistema)}`}>
                           {t.statusDisponibilidadeSistema}
                         </Badge>
                       </TableCell>
-                      <TableCell className="px-6 py-4 text-center whitespace-nowrap">
+                      <TableCell className="px-4 py-4 sm:px-6 text-center whitespace-nowrap">
                         <Badge variant="outline" className={`text-xs ${getStatusOriginalBadge(t.Status_Original_Tecnico)}`}>
                           {t.Status_Original_Tecnico || 'N/A'}
                         </Badge>
@@ -199,4 +158,3 @@ export default function EscalasTecnicosTab() {
     </div>
   );
 }
-

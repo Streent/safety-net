@@ -1,5 +1,6 @@
 
 // src/app/(app)/escalas/utils.ts
+import type { TecnicoRaw, ViagemRaw, TecnicoProcessado } from './data';
 
 /**
  * Parses a date string in "YYYY-MM-DD" format into a Date object in UTC.
@@ -32,3 +33,47 @@ export function diffInDaysUTC(date1: Date | null, date2: Date | null): number {
   const utc2 = Date.UTC(date2.getUTCFullYear(), date2.getUTCMonth(), date2.getUTCDate());
   return Math.floor((utc1 - utc2) / oneDay);
 }
+
+/**
+ * Processes raw technician and trip data to include calculated fields.
+ */
+export const processEscalasData = (
+  tecnicos: TecnicoRaw[],
+  viagens: ViagemRaw[],
+  hoje: Date
+): TecnicoProcessado[] => {
+  return tecnicos.map((tec) => {
+    const viagensTecnico = viagens.filter((v) => v.ID_Tecnico === tec.ID_Tecnico);
+    let ultimaViagemObj: ViagemRaw | null = null;
+
+    if (viagensTecnico.length > 0) {
+      ultimaViagemObj = viagensTecnico.reduce((latest, current) => {
+        const currentDate = parseDateUTC(current.Data_Viagem);
+        const latestDate = parseDateUTC(latest.Data_Viagem);
+        if (!currentDate) return latest;
+        if (!latestDate) return current;
+        return currentDate > latestDate ? current : latest;
+      });
+    }
+
+    const ultimaViagemData = ultimaViagemObj ? parseDateUTC(ultimaViagemObj.Data_Viagem) : null;
+    const diasSemViajar = ultimaViagemData ? diffInDaysUTC(hoje, ultimaViagemData) : Infinity;
+
+    const viagensNoAno = viagensTecnico.filter((v) => {
+      const dataViagem = parseDateUTC(v.Data_Viagem);
+      return dataViagem && dataViagem.getUTCFullYear() === hoje.getUTCFullYear();
+    }).length;
+
+    const statusDisponibilidadeSistema = tec.Status_Original_Tecnico === 'Ativo' ? 'Disponível' : 'Indisponível';
+
+    return {
+      ...tec,
+      diasSemViajar,
+      viagensNoAno,
+      statusDisponibilidadeSistema,
+      ultimaViagemDataFormatada: ultimaViagemData
+        ? ultimaViagemData.toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+        : 'Nunca viajou',
+    };
+  });
+};
