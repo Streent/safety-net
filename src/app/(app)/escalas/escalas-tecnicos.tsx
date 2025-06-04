@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { mockTecnicosData, mockViagensData, type TecnicoProcessado } from './data'; // Import types
-import { processEscalasData } from './utils'; // Import from utils
+import { mockTecnicosData, mockViagensData, type TecnicoProcessado } from '@/app/(app)/escalas/data.ts'; // Import types
+import { processEscalasData } from '@/app/(app)/escalas/utils.ts'; // Import from utils
 
 export default function EscalasTecnicosTab() {
   const hoje = useMemo(() => new Date("2025-06-04T00:00:00Z"), []); // Use UTC date

@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { StatCard } from '@/components/dashboard/stat-card'; // Assuming you have a generic StatCard
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from '@/components/ui/chart';
 import { BarChart as RechartsBarChartComponent, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
-import { mockTecnicosData, mockViagensData } from './data';
-import { processEscalasData } from './utils'; // Import from utils
-import type { TecnicoProcessado } from './data'; // Import type
+import { mockTecnicosData, mockViagensData } from '@/app/(app)/escalas/data.ts';
+import { processEscalasData } from '@/app/(app)/escalas/utils.ts'; // Import from utils
+import type { TecnicoProcessado } from '@/app/(app)/escalas/data.ts'; // Import type
 
 // Define chart configs if not already globally available or specific to this dashboard
 const viagensChartConfig = {

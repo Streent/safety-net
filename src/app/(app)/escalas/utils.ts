@@ -1,6 +1,6 @@
 
 // src/app/(app)/escalas/utils.ts
-import type { TecnicoRaw, ViagemRaw, TecnicoProcessado } from './data';
+import type { TecnicoRaw, ViagemRaw, TecnicoProcessado } from '@/app/(app)/escalas/data.ts';
 
 /**
  * Parses a date string in "YYYY-MM-DD" format into a Date object in UTC.
