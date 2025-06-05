@@ -10,12 +10,12 @@ import { useState, useMemo } from 'react';
 import { mockTecnicosData, type TecnicoProcessado } from './data.ts';
 import { processEscalasData } from './utils.ts';
 
+const SELECT_ANY_OPTION_VALUE = "__ANY_OPTION_VALUE__"; // Constante para valor não vazio
+
 export default function EscalasControleTab() {
   const hoje = useMemo(() => new Date("2025-06-04T00:00:00Z"), []);
   const dadosProcessados: TecnicoProcessado[] = useMemo(() => {
-    // A importação de mockViagensData foi removida pois não era usada aqui.
-    // Se precisar dela para a lógica de simulação, precisará ser importada.
-    return processEscalasData(mockTecnicosData, [], hoje); // Passando array vazio para viagens
+    return processEscalasData(mockTecnicosData, [], hoje); 
   }, [hoje]);
 
 
@@ -53,7 +53,7 @@ export default function EscalasControleTab() {
         if (simuladorEspecialidade !== '' && t.Especialidade_Tecnica === simuladorEspecialidade) pontuacao += 75;
         pontuacao -= t.viagensNoAno * 0.5; // Menos viagens no ano = melhor
         return { ...t, pontuacao };
-    }).sort((a,b) => b.pontuacao - a.pontuacao); 
+    }).sort((a,b) => (b.pontuacao ?? 0) - (a.pontuacao ?? 0)); 
     
     setResultadoSimulacao(pontuados.slice(0,5));
   };
@@ -74,24 +74,30 @@ export default function EscalasControleTab() {
                 <CardContent className="space-y-6">
                     <div>
                         <label htmlFor="simuladorPerfil" className="block mb-2 text-sm font-medium text-foreground">Perfil Técnico Necessário:</label>
-                        <Select value={simuladorPerfil} onValueChange={setSimuladorPerfil}>
+                        <Select 
+                          value={simuladorPerfil || SELECT_ANY_OPTION_VALUE} 
+                          onValueChange={(value) => setSimuladorPerfil(value === SELECT_ANY_OPTION_VALUE ? '' : value)}
+                        >
                             <SelectTrigger id="simuladorPerfil">
                                 <SelectValue placeholder="Qualquer Perfil" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Qualquer Perfil</SelectItem>
+                                <SelectItem value={SELECT_ANY_OPTION_VALUE}>Qualquer Perfil</SelectItem>
                                 {uniquePerfis.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
                     <div>
                         <label htmlFor="simuladorEspecialidade" className="block mb-2 text-sm font-medium text-foreground">Especialidade Requerida:</label>
-                         <Select value={simuladorEspecialidade} onValueChange={setSimuladorEspecialidade}>
+                         <Select 
+                           value={simuladorEspecialidade || SELECT_ANY_OPTION_VALUE} 
+                           onValueChange={(value) => setSimuladorEspecialidade(value === SELECT_ANY_OPTION_VALUE ? '' : value)}
+                         >
                             <SelectTrigger id="simuladorEspecialidade">
                                 <SelectValue placeholder="Qualquer Especialidade" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Qualquer Especialidade</SelectItem>
+                                <SelectItem value={SELECT_ANY_OPTION_VALUE}>Qualquer Especialidade</SelectItem>
                                 {uniqueEspecialidades.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
                             </SelectContent>
                         </Select>
