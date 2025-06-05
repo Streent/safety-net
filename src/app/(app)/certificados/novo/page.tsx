@@ -1,3 +1,4 @@
+
 // src/app/(app)/certificados/novo/page.tsx
 'use client';
 
@@ -19,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import type { Certificado } from '../page'; // Import Certificado type
 
 const certificateFormSchema = z.object({
   nomeAluno: z.string().min(3, { message: "O nome do aluno deve ter pelo menos 3 caracteres." }),
@@ -28,7 +30,7 @@ const certificateFormSchema = z.object({
   nomeCurso: z.string().min(3, { message: "O nome do curso/NR deve ter pelo menos 3 caracteres." }),
   cargaHoraria: z.coerce.number().positive({ message: "A carga horária deve ser um número positivo." }),
   dataRealizacao: z.date({ required_error: "A data de realização é obrigatória." }),
-  dataValidade: z.date().optional(),
+  dataValidade: z.date().optional().nullable(),
   localRealizacao: z.string().min(3, { message: "O local deve ter pelo menos 3 caracteres." }),
   instrutorResponsavel: z.string().min(3, { message: "O instrutor deve ter pelo menos 3 caracteres." }),
   conteudoProgramatico: z.string().optional(),
@@ -51,6 +53,8 @@ const certificateFormSchema = z.object({
 });
 
 type CertificateFormValues = z.infer<typeof certificateFormSchema>;
+
+const CERTIFICATES_STORAGE_KEY = 'safetyNetCertificates';
 
 export default function NewCertificatePage() {
   const { toast } = useToast();
@@ -100,16 +104,60 @@ export default function NewCertificatePage() {
 
   const onSubmit = async (data: CertificateFormValues) => {
     setIsLoading(true);
-    console.log("Dados do Certificado:", data);
-    // Simular geração de PDF e salvamento
+    console.log("Dados do Certificado para Salvar:", data);
+    
     await new Promise(resolve => setTimeout(resolve, 1500));
-    toast({
-      title: "Certificado Gerado (Simulado)",
-      description: `O certificado para ${data.nomeAluno} do curso ${data.nomeCurso} foi gerado com sucesso.`,
-      action: <Button variant="outline" size="sm"><Save className="mr-2 h-4 w-4"/>Salvo</Button>
-    });
+
+    try {
+      const storedCertificatesRaw = localStorage.getItem(CERTIFICATES_STORAGE_KEY);
+      const existingCertificates: Certificado[] = storedCertificatesRaw ? JSON.parse(storedCertificatesRaw).map((cert: any) => ({
+        ...cert,
+        dataRealizacao: new Date(cert.dataRealizacao),
+        dataValidade: cert.dataValidade ? new Date(cert.dataValidade) : null,
+      })) : [];
+
+      const newCertificateEntry: Certificado = {
+        id: `CERT-${Date.now()}`,
+        alunoNome: data.nomeAluno,
+        alunoCPF: data.cpfAluno,
+        // emailAluno: data.emailAluno, // Interface Certificado não tem emailAluno
+        cursoNome: data.nomeCurso,
+        cargaHoraria: data.cargaHoraria,
+        dataRealizacao: data.dataRealizacao,
+        dataValidade: data.dataValidade || null,
+        localRealizacao: data.localRealizacao,
+        instrutorResponsavel: data.instrutorResponsavel,
+        conteudoProgramatico: data.conteudoProgramatico || '',
+        nomeEmpresa: data.nomeEmpresa || '',
+        cnpjEmpresa: data.cnpjEmpresa || '',
+        observacoesAdicionais: data.observacoesAdicionais || '',
+        templateCertificado: data.templateCertificado,
+        status: 'Emitido',
+      };
+
+      const updatedCertificates = [newCertificateEntry, ...existingCertificates];
+      
+      localStorage.setItem(CERTIFICATES_STORAGE_KEY, JSON.stringify(updatedCertificates.map(cert => ({
+        ...cert,
+        dataRealizacao: cert.dataRealizacao.toISOString(), // Armazenar como string ISO
+        dataValidade: cert.dataValidade ? (cert.dataValidade as Date).toISOString() : null, // Armazenar como string ISO ou null
+      }))));
+      
+      toast({
+        title: "Certificado Gerado e Salvo!",
+        description: `O certificado para ${data.nomeAluno} do curso ${data.nomeCurso} foi gerado e salvo localmente com sucesso.`,
+        action: <Button variant="outline" size="sm"><Save className="mr-2 h-4 w-4"/>Salvo</Button>
+      });
+      form.reset();
+    } catch (error) {
+      console.error("Erro ao salvar certificado no localStorage:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Salvar",
+        description: "Não foi possível salvar o certificado localmente.",
+      });
+    }
     setIsLoading(false);
-    form.reset(); // Resetar formulário após sucesso
   };
   
   const sectionWrapperClass = "p-6 border rounded-lg bg-background shadow-sm";
@@ -206,7 +254,7 @@ export default function NewCertificatePage() {
                         {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button></FormControl></PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < (form.getValues('dataRealizacao') || new Date()) || isLoading} initialFocus locale={ptBR}/></PopoverContent>
+                      <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} disabled={(date) => date < (form.getValues('dataRealizacao') || new Date()) || isLoading} initialFocus locale={ptBR}/></PopoverContent>
                     </Popover><FormMessage />
                   </FormItem>
                 )}/>
@@ -317,3 +365,4 @@ export default function NewCertificatePage() {
     </>
   );
 }
+
