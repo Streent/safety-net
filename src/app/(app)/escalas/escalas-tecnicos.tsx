@@ -8,11 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { mockTecnicosData, mockViagensData, type TecnicoProcessado } from './data.ts'; // Import types
-import { processEscalasData } from './utils.ts'; // Import from utils
+import { mockTecnicosData, mockViagensData, type TecnicoProcessado } from './data.ts';
+import { processEscalasData } from './utils.ts';
+
+const SELECT_ALL_OPTION_VALUE = "__ALL_OPTION_VALUE__"; // Define a non-empty constant
 
 export default function EscalasTecnicosTab() {
-  const hoje = useMemo(() => new Date("2025-06-04T00:00:00Z"), []); // Use UTC date
+  const hoje = useMemo(() => new Date("2025-06-04T00:00:00Z"), []);
   const [dadosProcessados, setDadosProcessados] = useState<TecnicoProcessado[]>([]);
 
   const [filtroNome, setFiltroNome] = useState('');
@@ -49,15 +51,14 @@ export default function EscalasTecnicosTab() {
   };
 
   const getStatusSistemaBadge = (status: 'Disponível' | 'Indisponível') => {
-    return status === 'Disponível' ? 'bg-green-100 text-green-700 border-green-400 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700' 
+    return status === 'Disponível' ? 'bg-green-100 text-green-700 border-green-400 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700'
                                   : 'bg-red-100 text-red-700 border-red-400 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700';
   };
 
   const getStatusOriginalBadge = (status: string) => {
-    return status === 'Ativo' ? 'bg-blue-100 text-blue-700 border-blue-400 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700' 
+    return status === 'Ativo' ? 'bg-blue-100 text-blue-700 border-blue-400 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700'
                              : 'bg-yellow-100 text-yellow-700 border-yellow-400 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700';
   };
-  
 
   return (
     <div className="space-y-6">
@@ -78,30 +79,30 @@ export default function EscalasTecnicosTab() {
               placeholder="🔎 Filtrar por nome..."
               aria-label="Filtrar por nome"
             />
-            <Select value={filtroPerfil} onValueChange={setFiltroPerfil}>
+            <Select value={filtroPerfil || SELECT_ALL_OPTION_VALUE} onValueChange={(value) => setFiltroPerfil(value === SELECT_ALL_OPTION_VALUE ? '' : value)}>
               <SelectTrigger aria-label="Filtrar por perfil">
                 <SelectValue placeholder="Todos os Perfis" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os Perfis</SelectItem>
+                <SelectItem value={SELECT_ALL_OPTION_VALUE}>Todos os Perfis</SelectItem>
                 {uniquePerfis.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={filtroEspecialidade} onValueChange={setFiltroEspecialidade}>
+            <Select value={filtroEspecialidade || SELECT_ALL_OPTION_VALUE} onValueChange={(value) => setFiltroEspecialidade(value === SELECT_ALL_OPTION_VALUE ? '' : value)}>
               <SelectTrigger aria-label="Filtrar por especialidade">
                 <SelectValue placeholder="Todas as Especialidades" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as Especialidades</SelectItem>
+                <SelectItem value={SELECT_ALL_OPTION_VALUE}>Todas as Especialidades</SelectItem>
                 {uniqueEspecialidades.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={filtroStatusSistema} onValueChange={setFiltroStatusSistema}>
+            <Select value={filtroStatusSistema || SELECT_ALL_OPTION_VALUE} onValueChange={(value) => setFiltroStatusSistema(value === SELECT_ALL_OPTION_VALUE ? '' : value)}>
               <SelectTrigger aria-label="Filtrar por status do sistema">
                 <SelectValue placeholder="Todos os Estados (Sistema)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os Estados (Sistema)</SelectItem>
+                <SelectItem value={SELECT_ALL_OPTION_VALUE}>Todos os Estados (Sistema)</SelectItem>
                 <SelectItem value="Disponível">Disponível</SelectItem>
                 <SelectItem value="Indisponível">Indisponível</SelectItem>
               </SelectContent>

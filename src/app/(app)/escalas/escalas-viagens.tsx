@@ -10,6 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { mockTecnicosData, mockViagensData, type ViagemRaw, type TecnicoRaw } from './data.ts';
 import { parseDateUTC } from './utils.ts';
 
+const SELECT_ALL_OPTION_VALUE = "__ALL_OPTION_VALUE__"; // Define a non-empty constant
+
 export default function EscalasViagensTab() {
   const [filtroDataViagem, setFiltroDataViagem] = useState('');
   const [filtroClienteViagem, setFiltroClienteViagem] = useState('');
@@ -73,30 +75,30 @@ export default function EscalasViagensTab() {
               placeholder="🔎 Data (AAAA-MM-DD)"
               aria-label="Filtrar por data da viagem"
             />
-            <Select value={filtroClienteViagem} onValueChange={setFiltroClienteViagem}>
+            <Select value={filtroClienteViagem || SELECT_ALL_OPTION_VALUE} onValueChange={(value) => setFiltroClienteViagem(value === SELECT_ALL_OPTION_VALUE ? '' : value)}>
               <SelectTrigger aria-label="Filtrar por cliente">
                 <SelectValue placeholder="Todos os Clientes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os Clientes</SelectItem>
+                <SelectItem value={SELECT_ALL_OPTION_VALUE}>Todos os Clientes</SelectItem>
                 {uniqueClientes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={filtroCidadeViagem} onValueChange={setFiltroCidadeViagem}>
+            <Select value={filtroCidadeViagem || SELECT_ALL_OPTION_VALUE} onValueChange={(value) => setFiltroCidadeViagem(value === SELECT_ALL_OPTION_VALUE ? '' : value)}>
               <SelectTrigger aria-label="Filtrar por cidade">
                 <SelectValue placeholder="Todas as Cidades" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as Cidades</SelectItem>
+                <SelectItem value={SELECT_ALL_OPTION_VALUE}>Todas as Cidades</SelectItem>
                 {uniqueCidades.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={filtroTecnicoViagem} onValueChange={setFiltroTecnicoViagem}>
+            <Select value={filtroTecnicoViagem || SELECT_ALL_OPTION_VALUE} onValueChange={(value) => setFiltroTecnicoViagem(value === SELECT_ALL_OPTION_VALUE ? '' : value)}>
               <SelectTrigger aria-label="Filtrar por técnico">
                 <SelectValue placeholder="Todos os Técnicos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os Técnicos</SelectItem>
+                <SelectItem value={SELECT_ALL_OPTION_VALUE}>Todos os Técnicos</SelectItem>
                 {uniqueNomesTecnicos.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
               </SelectContent>
             </Select>
