@@ -183,6 +183,16 @@ html, body {
     border-radius: 50%;
     background-color: hsl(var(--primary)); /* Dot color */
   }
+
+  /* Melhoria para a tabela, para que as células não quebrem palavras desnecessariamente */
+  .table-fixed-layout {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .table-fixed-layout td, .table-fixed-layout th {
+    word-wrap: break-word; /* Quebra palavras longas */
+    overflow-wrap: break-word; /* Equivalente moderno */
+  }
 }
 
 
