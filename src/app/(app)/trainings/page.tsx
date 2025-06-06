@@ -10,8 +10,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, PlusCircle, GripVertical, UsersRound, Edit, Trash2, Loader2, Filter } from 'lucide-react'; 
-import { format, isEqual, startOfDay, addMonths, differenceInDays as fnsDifferenceInDays, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, PlusCircle, GripVertical, UsersRound, Edit, Trash2, Loader2, Filter, Repeat, RefreshCw } from 'lucide-react'; 
+import { format, isEqual, startOfDay, addMonths, differenceInDays as fnsDifferenceInDays, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -23,8 +23,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useForm } from 'react-hook-form'; // Added missing import
 
 
 interface TrainingSession {
@@ -40,9 +43,10 @@ interface TrainingSession {
   participants?: string;
   description?: string;
   isRecurring?: boolean;
-  renewalDue?: Date | null; // Permitir null para consistência no localStorage
+  renewalDue?: Date | null; 
   capacity?: number;
   bookedSlots?: number;
+  missionStatusPlaceholder?: 'Pendente' | 'Em Andamento' | 'Concluída'; // Placeholder
 }
 
 const appointmentFormSchema = z.object({
@@ -56,6 +60,7 @@ const appointmentFormSchema = z.object({
   technician: z.string().min(1, { message: 'Selecione um técnico/responsável.' }),
   participants: z.string().optional(),
   description: z.string().optional(),
+  isRecurring: z.boolean().optional().default(false),
   capacity: z.coerce.number().optional(),
   renewalDue: z.date().optional().nullable(),
 }).refine(data => {
@@ -75,18 +80,19 @@ const appointmentFormSchema = z.object({
 
 type AppointmentFormValues = z.infer<typeof appointmentFormSchema>;
 
-const mockTechnicians = ['Carlos Silva', 'Ana Pereira', 'Juliana Costa', 'Roberto Alves', 'Fernanda Lima'];
+const mockTechnicians = ['Carlos Silva', 'Ana Pereira', 'Juliana Costa', 'Roberto Alves', 'Fernanda Lima', 'Usuário Simulado'];
 const ALL_EVENT_TYPES = "__ALL_EVENT_TYPES__";
 const ALL_TECHNICIANS = "__ALL_TECHNICIANS__";
 const AGENDA_SESSIONS_STORAGE_KEY = 'safetyNetAgendaSessions';
+const SIMULATED_LOGGED_IN_TECHNICIAN = 'Carlos Silva'; // Simulação de técnico logado
 
 const initialMockSessions: TrainingSession[] = [
-  { id: 'TRN001', title: 'NR-35 (Trabalho em Altura)', type: 'Treinamento', topic: 'Segurança em Altura', location: 'Sala de Treinamento A', date: new Date(2024, 6, 15), startTime: '09:00', endTime: '17:00', technician: 'Carlos Silva', renewalDue: addMonths(new Date(2024, 6, 15), 11), capacity: 20, bookedSlots: 15, participants: 'João, Maria, Pedro', description: 'Treinamento completo sobre NR-35.' },
-  { id: 'TRN002', title: 'Uso Correto de EPIs', type: 'Treinamento', topic: 'Equipamentos de Proteção', location: 'Auditório Principal', date: new Date(2024, 6, 15), startTime: '14:00', endTime: '16:00', technician: 'Ana Pereira', capacity: 50, bookedSlots: 48, participants: 'Lista extensa de participantes...' },
-  { id: 'TRN003', title: 'Primeiros Socorros Básico', type: 'Treinamento', topic: 'Atendimento Emergencial', location: 'Sala de Treinamento B', date: new Date(2024, 6, 22), startTime: '08:00', endTime: '12:00', technician: 'Juliana Costa', capacity: 15, bookedSlots: 10 },
-  { id: 'CON001', title: 'Consultoria PGR', type: 'Consultoria', topic: 'Análise de Riscos', location: 'Cliente Y - Sala Reuniões', date: new Date(2024, 6, 18), startTime: '10:00', endTime: '12:00', technician: 'Roberto Alves', capacity: 5, bookedSlots: 3 },
-  { id: 'AUD001', title: 'Auditoria Interna ISO 45001', type: 'Auditoria Agendada', topic: 'Sistema de Gestão', location: 'Setor de Produção', date: new Date(2024, 7, 5), startTime: '09:00', endTime: '17:00', technician: 'Fernanda Lima', isRecurring: true, capacity: 10, bookedSlots: 7 },
-  { id: 'TRN004', title: 'Segurança com Eletricidade', type: 'Treinamento', topic: 'NR-10 Básico', location: 'Sala de Treinamento A', date: new Date(2024, 7, 5), startTime: '13:00', endTime: '17:00', technician: 'Carlos Silva', capacity: 20, bookedSlots: 18 },
+  { id: 'TRN001', title: 'NR-35 (Trabalho em Altura)', type: 'Treinamento', topic: 'Segurança em Altura', location: 'Sala de Treinamento A', date: new Date(2024, 6, 15), startTime: '09:00', endTime: '17:00', technician: 'Carlos Silva', renewalDue: addMonths(new Date(2024, 6, 15), 11), capacity: 20, bookedSlots: 15, participants: 'João, Maria, Pedro', description: 'Treinamento completo sobre NR-35.', isRecurring: false, missionStatusPlaceholder: 'Pendente' },
+  { id: 'TRN002', title: 'Uso Correto de EPIs', type: 'Treinamento', topic: 'Equipamentos de Proteção', location: 'Auditório Principal', date: new Date(2024, 6, 15), startTime: '14:00', endTime: '16:00', technician: 'Ana Pereira', capacity: 50, bookedSlots: 48, participants: 'Lista extensa de participantes...', isRecurring: true, missionStatusPlaceholder: 'Em Andamento' },
+  { id: 'TRN003', title: 'Primeiros Socorros Básico', type: 'Treinamento', topic: 'Atendimento Emergencial', location: 'Sala de Treinamento B', date: new Date(2024, 6, 22), startTime: '08:00', endTime: '12:00', technician: 'Juliana Costa', capacity: 15, bookedSlots: 10, renewalDue: addMonths(new Date(2024, 6, 22), 23), missionStatusPlaceholder: 'Concluída' },
+  { id: 'CON001', title: 'Consultoria PGR', type: 'Consultoria', topic: 'Análise de Riscos', location: 'Cliente Y - Sala Reuniões', date: new Date(2024, 6, 18), startTime: '10:00', endTime: '12:00', technician: 'Roberto Alves', capacity: 5, bookedSlots: 3, missionStatusPlaceholder: 'Pendente' },
+  { id: 'AUD001', title: 'Auditoria Interna ISO 45001', type: 'Auditoria Agendada', topic: 'Sistema de Gestão', location: 'Setor de Produção', date: new Date(2024, 7, 5), startTime: '09:00', endTime: '17:00', technician: 'Fernanda Lima', isRecurring: true, capacity: 10, bookedSlots: 7, missionStatusPlaceholder: 'Pendente' },
+  { id: 'TRN004', title: 'Segurança com Eletricidade', type: 'Treinamento', topic: 'NR-10 Básico', location: 'Sala de Treinamento A', date: new Date(2024, 7, 5), startTime: '13:00', endTime: '17:00', technician: 'Carlos Silva', capacity: 20, bookedSlots: 18, renewalDue: new Date(2024, 8, 1), missionStatusPlaceholder: 'Pendente' },
 ];
 
 const eventTypeOptions: { value: TrainingSession['type'] | typeof ALL_EVENT_TYPES; label: string }[] = [
@@ -115,6 +121,7 @@ export default function TrainingsAndAppointmentsPage() {
 
   const [filterEventType, setFilterEventType] = useState<string>(ALL_EVENT_TYPES);
   const [filterTechnician, setFilterTechnician] = useState<string>(ALL_TECHNICIANS);
+  const [showOnlyMyEvents, setShowOnlyMyEvents] = useState(false);
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentFormSchema),
@@ -122,13 +129,12 @@ export default function TrainingsAndAppointmentsPage() {
       title: '', type: undefined, topic: '', location: '',
       date: new Date(), startTime: '09:00', endTime: '17:00',
       technician: '', participants: '', description: '',
-      capacity: undefined, renewalDue: undefined,
+      isRecurring: false, capacity: undefined, renewalDue: undefined,
     },
   });
   
   const watchEventType = form.watch('type');
 
-  // Load sessions from localStorage on mount
   useEffect(() => {
     const storedSessions = localStorage.getItem(AGENDA_SESSIONS_STORAGE_KEY);
     if (storedSessions) {
@@ -137,39 +143,42 @@ export default function TrainingsAndAppointmentsPage() {
           ...s,
           date: new Date(s.date),
           renewalDue: s.renewalDue ? new Date(s.renewalDue) : null,
+          isRecurring: s.isRecurring || false,
         }));
         setSessions(parsedSessions);
       } catch (error) {
         console.error("Failed to parse sessions from localStorage", error);
-        setSessions(initialMockSessions); // Fallback to mocks
+        setSessions(initialMockSessions.map(s => ({...s, isRecurring: s.isRecurring || false })));
         localStorage.setItem(AGENDA_SESSIONS_STORAGE_KEY, JSON.stringify(
             initialMockSessions.map(s => ({
               ...s,
               date: s.date.toISOString(),
               renewalDue: s.renewalDue ? s.renewalDue.toISOString() : null,
+              isRecurring: s.isRecurring || false,
             }))
         ));
       }
     } else {
-      setSessions(initialMockSessions);
+      setSessions(initialMockSessions.map(s => ({...s, isRecurring: s.isRecurring || false })));
       localStorage.setItem(AGENDA_SESSIONS_STORAGE_KEY, JSON.stringify(
         initialMockSessions.map(s => ({
           ...s,
           date: s.date.toISOString(),
           renewalDue: s.renewalDue ? s.renewalDue.toISOString() : null,
+          isRecurring: s.isRecurring || false,
         }))
       ));
     }
   }, []);
 
-  // Save sessions to localStorage whenever they change
   useEffect(() => {
-    if (sessions.length > 0 || localStorage.getItem(AGENDA_SESSIONS_STORAGE_KEY)) { // Avoid saving empty array if initial load failed or was empty
+    if (sessions.length > 0 || localStorage.getItem(AGENDA_SESSIONS_STORAGE_KEY)) { 
         localStorage.setItem(AGENDA_SESSIONS_STORAGE_KEY, JSON.stringify(
         sessions.map(s => ({
             ...s,
             date: s.date.toISOString(),
             renewalDue: s.renewalDue ? s.renewalDue.toISOString() : null,
+            isRecurring: s.isRecurring || false,
         }))
         ));
     }
@@ -179,9 +188,10 @@ export default function TrainingsAndAppointmentsPage() {
     return sessions.filter(session => {
       const typeMatch = filterEventType === ALL_EVENT_TYPES || session.type === filterEventType;
       const techMatch = filterTechnician === ALL_TECHNICIANS || session.technician === filterTechnician;
-      return typeMatch && techMatch;
+      const myEventsMatch = !showOnlyMyEvents || session.technician === SIMULATED_LOGGED_IN_TECHNICIAN;
+      return typeMatch && techMatch && myEventsMatch;
     });
-  }, [sessions, filterEventType, filterTechnician]);
+  }, [sessions, filterEventType, filterTechnician, showOnlyMyEvents]);
 
   const scheduledDays = useMemo(() => filteredSessions.map(s => startOfDay(s.date)), [filteredSessions]);
 
@@ -208,6 +218,22 @@ export default function TrainingsAndAppointmentsPage() {
     });
     return newSessionsPerDay;
   }, [currentWeekDays, filteredSessions]);
+  
+  const upcomingRenewals = useMemo(() => {
+    const today = startOfDay(new Date());
+    const sixtyDaysFromNow = addMonths(today, 2); // Approx 60 days
+
+    return sessions
+      .filter(session => 
+        session.type === 'Treinamento' && 
+        session.renewalDue && 
+        !isPast(session.renewalDue) && // Renewal date is not in the past
+        fnsDifferenceInDays(session.renewalDue, today) <= 60 // Due in the next 60 days
+      )
+      .sort((a, b) => (a.renewalDue as Date).getTime() - (b.renewalDue as Date).getTime())
+      .slice(0, 5);
+  }, [sessions]);
+
 
   const handleDateSelect = useCallback((date: Date | undefined) => {
     setSelectedDate(date);
@@ -216,6 +242,16 @@ export default function TrainingsAndAppointmentsPage() {
     }
   }, []);
   
+  const handleWeeklyEventClick = (session: TrainingSession) => {
+    setSelectedDate(session.date);
+    setIsSheetOpen(true);
+  };
+  
+  const handleDayHeaderClick = (day: Date) => {
+    setSelectedDate(day);
+    setIsSheetOpen(true);
+  };
+
   const handleCheckIn = useCallback((sessionId: string) => {
     toast({
       title: 'Check-in via Selfie (Placeholder)',
@@ -236,6 +272,7 @@ export default function TrainingsAndAppointmentsPage() {
       form.reset({
         ...sessionToEdit,
         date: new Date(sessionToEdit.date),
+        isRecurring: sessionToEdit.isRecurring || false,
         renewalDue: sessionToEdit.renewalDue ? new Date(sessionToEdit.renewalDue) : undefined,
       });
     } else {
@@ -244,7 +281,7 @@ export default function TrainingsAndAppointmentsPage() {
         date: dateForNew || new Date(),
         startTime: '09:00', endTime: '17:00',
         technician: '', participants: '', description: '',
-        capacity: undefined, renewalDue: undefined,
+        isRecurring: false, capacity: undefined, renewalDue: undefined,
       });
     }
     setIsAppointmentModalOpen(true);
@@ -254,17 +291,23 @@ export default function TrainingsAndAppointmentsPage() {
     setIsSubmittingForm(true);
     await new Promise(resolve => setTimeout(resolve, 700)); 
 
+    const sessionDataToSave = {
+        ...data,
+        date: new Date(data.date),
+        renewalDue: data.renewalDue ? new Date(data.renewalDue) : null,
+        isRecurring: data.isRecurring || false,
+    };
+
     if (editingSession) {
       setSessions(prevSessions => 
-        prevSessions.map(s => s.id === editingSession.id ? { ...s, ...data, date: new Date(data.date), renewalDue: data.renewalDue ? new Date(data.renewalDue) : null } : s)
+        prevSessions.map(s => s.id === editingSession.id ? { ...s, ...sessionDataToSave } : s)
       );
       toast({ title: "Agendamento Atualizado!", description: `O evento "${data.title}" foi atualizado.` });
     } else {
       const newSession: TrainingSession = {
         id: `EVT-${Date.now()}`,
-        ...data,
-        date: new Date(data.date),
-        renewalDue: data.renewalDue ? new Date(data.renewalDue) : null,
+        ...sessionDataToSave,
+        missionStatusPlaceholder: 'Pendente', // Default status for new missions
       };
       setSessions(prevSessions => [...prevSessions, newSession]);
       toast({ title: "Novo Agendamento Criado!", description: `O evento "${data.title}" foi adicionado à agenda.` });
@@ -305,10 +348,21 @@ export default function TrainingsAndAppointmentsPage() {
         default: return 'bg-gray-500/20 text-gray-700 border-gray-500/30';
     }
   };
+  
+  const getEventTypeBorderColor = (type: TrainingSession['type']) => {
+    switch(type) {
+        case 'Treinamento': return 'border-blue-500';
+        case 'Consultoria': return 'border-purple-500';
+        case 'Auditoria Agendada': return 'border-teal-500';
+        default: return 'border-gray-500';
+    }
+  };
 
   const handlePreviousWeek = () => setCurrentWeekStartDate(prev => subWeeks(prev, 1));
   const handleNextWeek = () => setCurrentWeekStartDate(prev => addWeeks(prev, 1));
-  const handleWeeklyEventClick = (session: TrainingSession) => handleDateSelect(session.date);
+  
+  const isCurrentDay = (day: Date) => isEqual(startOfDay(day), startOfDay(new Date()));
+
 
   return (
     <>
@@ -327,7 +381,7 @@ export default function TrainingsAndAppointmentsPage() {
         <CardHeader>
             <CardTitle className="text-lg flex items-center">
                 <Filter className="mr-2 h-5 w-5 text-primary"/>
-                Filtrar Agenda
+                Filtros da Agenda
             </CardTitle>
         </CardHeader>
         <CardContent className="p-4">
@@ -353,9 +407,44 @@ export default function TrainingsAndAppointmentsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <div className="flex items-center space-x-2 ml-auto">
+                <Switch
+                    id="my-events-toggle"
+                    checked={showOnlyMyEvents}
+                    onCheckedChange={setShowOnlyMyEvents}
+                />
+                <Label htmlFor="my-events-toggle" className="text-sm">Apenas Meus Agendamentos</Label>
+                </div>
           </div>
         </CardContent>
       </Card>
+      
+       {upcomingRenewals.length > 0 && (
+        <Card className="mb-6 shadow-md border-yellow-500/50 bg-yellow-500/10">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center text-yellow-700 dark:text-yellow-400">
+              <RefreshCw className="mr-2 h-5 w-5 animate-pulse" />
+              Renovações de Treinamento Próximas (60 dias)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {upcomingRenewals.map(session => (
+              <div key={session.id} className="flex justify-between items-center p-2 border-b border-yellow-500/30 last:border-b-0">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{session.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Vence em: {format(session.renewalDue as Date, 'dd/MM/yyyy', { locale: ptBR })} (Responsável: {session.technician})
+                  </p>
+                </div>
+                <Button variant="outline" size="xs" onClick={() => handleDateSelect(session.date)}>
+                  Ver na Agenda
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
 
       <Tabs defaultValue="month" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4 sm:w-[400px]">
@@ -405,8 +494,18 @@ export default function TrainingsAndAppointmentsPage() {
               {currentWeekDays.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-7 gap-1 md:gap-2">
                   {currentWeekDays.map(day => (
-                    <div key={day.toISOString()} className="border rounded-lg p-2 bg-card min-h-[150px] flex flex-col">
-                      <h3 className="font-semibold text-xs sm:text-sm text-center mb-2 text-foreground">
+                    <div 
+                        key={day.toISOString()} 
+                        className="border rounded-lg p-2 bg-card min-h-[150px] flex flex-col cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleDayHeaderClick(day)}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Ver eventos para ${format(day, 'PPP', { locale: ptBR })}`}
+                    >
+                      <h3 className={cn(
+                        "font-semibold text-xs sm:text-sm text-center mb-2 text-foreground pb-1 border-b",
+                        isCurrentDay(day) && "bg-primary/10 text-primary rounded-t-md py-1 border-primary/30"
+                        )}>
                         {format(day, 'EEE', { locale: ptBR }).toUpperCase()}
                         <br />
                         <span className="text-xs text-muted-foreground">{format(day, 'dd/MM')}</span>
@@ -417,9 +516,8 @@ export default function TrainingsAndAppointmentsPage() {
                             sessionsPerDayOfWeek[format(day, 'yyyy-MM-dd')]?.map(session => (
                               <Button 
                                 key={session.id} variant="outline" size="sm" 
-                                className="w-full text-left h-auto py-1.5 whitespace-normal border-l-4"
-                                style={{ borderColor: getEventTypeColor(session.type).split(' ')[2].replace('border-', 'var(--') + ')'}}
-                                onClick={() => handleWeeklyEventClick(session)}
+                                className={cn("w-full text-left h-auto py-1.5 whitespace-normal border-l-4", getEventTypeBorderColor(session.type))}
+                                onClick={(e) => { e.stopPropagation(); handleWeeklyEventClick(session);}}
                               >
                                 <div className="flex flex-col w-full overflow-hidden">
                                   <span className="text-[10px] font-medium">{session.startTime} - {session.endTime}</span>
@@ -461,11 +559,13 @@ export default function TrainingsAndAppointmentsPage() {
               <div className="space-y-4 p-3">
                 {sessionsForSelectedDate.map(session => {
                   const availableSlots = session.capacity && session.bookedSlots !== undefined ? session.capacity - session.bookedSlots : undefined;
+                  const isRenewalDueSoon = session.type === 'Treinamento' && session.renewalDue && fnsDifferenceInDays(session.renewalDue, new Date()) <= 30 && !isPast(session.renewalDue);
                   return (
                     <Card key={session.id} className="shadow-md hover:shadow-lg transition-shadow">
-                      <CardHeader className="pb-3"><div className="flex justify-between items-start">
-                          <CardTitle className="text-lg">{session.title}</CardTitle>
-                          <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getEventTypeColor(session.type)}`}>{session.type}</span>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-start">
+                            <CardTitle className="text-lg">{session.title}</CardTitle>
+                            <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getEventTypeColor(session.type)}`}>{session.type}</span>
                         </div>
                         <CardDescription className="text-sm pt-1">{session.topic}</CardDescription>
                       </CardHeader>
@@ -473,18 +573,27 @@ export default function TrainingsAndAppointmentsPage() {
                         <p><strong className="font-medium">Local:</strong> {session.location}</p>
                         <p><strong className="font-medium">Horário:</strong> {session.startTime} - {session.endTime}</p>
                         <p><strong className="font-medium">Técnico/Responsável:</strong> {session.technician}</p>
-                         {session.description && <p><strong className="font-medium">Descrição:</strong> {session.description}</p>}
-                         {session.participants && <p><strong className="font-medium">Participantes:</strong> {session.participants}</p>}
+                        {session.description && <p><strong className="font-medium">Descrição:</strong> {session.description}</p>}
+                        {session.participants && <p><strong className="font-medium">Participantes:</strong> {session.participants}</p>}
                         {session.capacity !== undefined && (
                           <p className="flex items-center"><UsersRound className="mr-1.5 h-4 w-4 text-muted-foreground" />
                             <strong className="font-medium">Vagas:</strong>&nbsp;
                             {availableSlots !== undefined ? `${availableSlots > 0 ? `${availableSlots} de ${session.capacity}` : `Lotado (${session.bookedSlots}/${session.capacity})`}` : 'N/D'}
                           </p>)}
-                        {session.renewalDue && fnsDifferenceInDays(session.renewalDue, new Date()) <= 30 && (
+                        {session.isRecurring && (<p className="flex items-center text-muted-foreground"><Repeat className="mr-1.5 h-4 w-4"/> Evento Recorrente</p>)}
+                        {isRenewalDueSoon && (
                           <Card className="mt-3 p-3 bg-destructive/10 border-destructive/30">
                               <div className="flex items-center text-destructive"><AlertTriangle className="h-5 w-5 mr-2" />
-                                  <p className="text-xs font-semibold">Alerta: Renovação necessária em breve ({format(session.renewalDue, 'dd/MM/yyyy', {locale: ptBR})})!</p>
-                              </div></Card>)}
+                                  <p className="text-xs font-semibold">Alerta: Renovação necessária em {format(session.renewalDue as Date, 'dd/MM/yyyy', {locale: ptBR})}!</p>
+                              </div>
+                          </Card>
+                        )}
+                        <Separator className="my-3"/>
+                        <div>
+                            <h4 className="text-xs font-semibold mb-1">Status da Missão (Placeholder):</h4>
+                            <p className="text-xs text-muted-foreground italic">{session.missionStatusPlaceholder || 'Não definido'}</p>
+                             <p className="text-xs text-muted-foreground italic mt-1">Checklist da Missão: (A ser vinculado)</p>
+                        </div>
                         <div className="pt-3 space-y-2 sm:flex sm:space-y-0 sm:space-x-2">
                            <Button variant="outline" size="sm" className="w-full sm:flex-1" onClick={() => handleCheckIn(session.id)}>
                             <Camera className="mr-2 h-4 w-4"/> Check-in </Button>
@@ -547,6 +656,14 @@ export default function TrainingsAndAppointmentsPage() {
                 <FormItem><FormLabel>Participantes (Opcional)</FormLabel><FormControl><Textarea placeholder="Liste os nomes dos participantes, um por linha ou separados por vírgula." {...field} rows={3}/></FormControl><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="description" render={({ field }) => (
                 <FormItem><FormLabel>Descrição/Detalhes Adicionais (Opcional)</FormLabel><FormControl><Textarea placeholder="Qualquer informação extra sobre o evento." {...field} rows={3}/></FormControl><FormMessage /></FormItem>)}/>
+              
+              <FormField control={form.control} name="isRecurring" render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-muted/50">
+                    <div className="space-y-0.5"><FormLabel>Evento Recorrente?</FormLabel>
+                    <UiFormDescription className="text-xs">Marque se este evento se repete.</UiFormDescription></div>
+                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                </FormItem>)}/>
+
               {watchEventType === 'Treinamento' && (<>
                   <FormField control={form.control} name="capacity" render={({ field }) => (
                     <FormItem><FormLabel>Capacidade de Vagas (Opcional)</FormLabel><FormControl><Input type="number" placeholder="Ex: 20" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} /></FormControl><FormMessage /></FormItem>)}/>
@@ -560,7 +677,7 @@ export default function TrainingsAndAppointmentsPage() {
                       </Popover><FormMessage /></FormItem>)}/>
                 </>)}
               <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                <Button type="submit" disabled={isSubmittingForm || !form.formState.isDirty || !form.formState.isValid}>
+                <Button type="submit" disabled={isSubmittingForm || (!form.formState.isDirty && !!editingSession) || !form.formState.isValid}>
                   {isSubmittingForm ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingSession ? 'Salvar Alterações' : 'Criar Agendamento')}
                 </Button></DialogFooter></form></Form></DialogContent></Dialog>
 
