@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import * as z from 'zod'; // <--- ADICIONADO AQUI
+import * as z from 'zod';
 import { Calendar as ShadcnCalendar } from '@/components/ui/calendar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,6 +24,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox'; // Added Checkbox import
 import { Card, CardContent, CardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -250,7 +251,7 @@ export default function TrainingsAndAppointmentsPage() {
   const handleDayHeaderClick = (day: Date) => {
     setSelectedDate(day);
     setCurrentDisplayMonth(day);
-    setMiniCalendarMonth(day); // Also sync mini calendar
+    setMiniCalendarMonth(day); 
     setIsSheetOpen(true);
   };
 
