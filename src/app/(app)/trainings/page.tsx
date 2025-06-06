@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, PlusCircle, GripVertical, UsersRound, Edit, Trash2, Loader2, Filter, Repeat, RefreshCw, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, PlusCircle, GripVertical, UsersRound, Edit, Trash2, Loader2, Filter, Repeat, RefreshCw, ChevronLeft, ChevronRight, Search, FileText, ShieldCheck as ShieldCheckIconLucide, Car as CarIconLucide, Star as StarIconLucide } from 'lucide-react';
 import { format, isEqual, startOfDay, addMonths, subMonths, differenceInDays as fnsDifferenceInDays, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval, isPast, addDays, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -388,6 +388,18 @@ export default function TrainingsAndAppointmentsPage() {
     setCurrentDisplayMonth(today);
     setMiniCalendarMonth(today);
     setCurrentWeekStartDate(startOfWeek(today, { weekStartsOn: 1 }));
+    if (isSheetOpen) {
+       // If sheet is open for a different day, and we click "Today",
+       // and today has events, keep it open for today.
+       // If today has no events, consider closing or let user close it.
+       // For now, keep it open and let user close if they wish.
+       const todayEvents = filteredSessions.filter(session => isEqual(startOfDay(session.date), startOfDay(today)));
+       if (todayEvents.length > 0) {
+           setIsSheetOpen(true);
+       } else {
+           setIsSheetOpen(false); // Close if today has no events for a cleaner "Today" click
+       }
+    }
   };
 
   const isCurrentDay = (day: Date) => isEqual(startOfDay(day), startOfDay(new Date()));
@@ -412,7 +424,6 @@ export default function TrainingsAndAppointmentsPage() {
           className="rounded-md border shadow-sm p-2 w-full"
           modifiers={{ scheduled: scheduledDays }}
           modifiersClassNames={{ scheduled: 'day-scheduled' }}
-          captionLayout="dropdown-buttons"
           fromYear={new Date().getFullYear() - 2}
           toYear={new Date().getFullYear() + 2}
         />
@@ -464,6 +475,9 @@ export default function TrainingsAndAppointmentsPage() {
                   <p className="text-muted-foreground">
                     Vence: {format(session.renewalDue as Date, 'dd/MM/yy', { locale: ptBR })} ({session.technician})
                   </p>
+                   <Button variant="link" size="xs" className="p-0 h-auto text-primary hover:underline" onClick={() => handleDateSelect(session.date)}>
+                     Ver na Agenda
+                   </Button>
                 </div>
               ))}
             </CardContent>
@@ -610,7 +624,7 @@ export default function TrainingsAndAppointmentsPage() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs> {/* Correctly closes Tabs around both list and content */}
+        </Tabs>
       </main>
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
