@@ -1,4 +1,5 @@
 
+// src/app/(app)/trainings/page.tsx
 'use client';
 
 import * as React from 'react';
@@ -9,8 +10,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, PlusCircle, GripVertical, UsersRound, Edit, Trash2, Loader2, Filter, Repeat, RefreshCw, ChevronLeft, ChevronRight, Search, FileText, ShieldCheck as ShieldCheckIconLucide, Car as CarIconLucide, Star as StarIconLucide } from 'lucide-react';
-import { format, isEqual, startOfDay, addMonths, subMonths, differenceInDays as fnsDifferenceInDays, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval, isPast, addDays, subDays } from 'date-fns';
+import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, PlusCircle, GripVertical, UsersRound, Edit, Trash2, Loader2, Filter, Repeat, RefreshCw, ChevronLeft, ChevronRight, Search, FileText, ShieldCheck as ShieldCheckIconLucide, Car as CarIconLucide, Star as StarIconLucide, Send, Share2 } from 'lucide-react'; // Added Send, Share2
+import { format, isEqual, startOfDay, addMonths, subMonths, differenceInDays as fnsDifferenceInDays, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval, isPast, addDays, subDays, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -29,6 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle as UiCardTitle, CardDescriptio
 import { Button, buttonVariants } from '@/components/ui/button';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { convertToCSV, downloadCSV } from '@/lib/csvUtils'; // Added CSV utils
 
 
 interface TrainingSession {
@@ -389,20 +391,61 @@ export default function TrainingsAndAppointmentsPage() {
     setMiniCalendarMonth(today);
     setCurrentWeekStartDate(startOfWeek(today, { weekStartsOn: 1 }));
     if (isSheetOpen) {
-       // If sheet is open for a different day, and we click "Today",
-       // and today has events, keep it open for today.
-       // If today has no events, consider closing or let user close it.
-       // For now, keep it open and let user close if they wish.
        const todayEvents = filteredSessions.filter(session => isEqual(startOfDay(session.date), startOfDay(today)));
        if (todayEvents.length > 0) {
            setIsSheetOpen(true);
        } else {
-           setIsSheetOpen(false); // Close if today has no events for a cleaner "Today" click
+           setIsSheetOpen(false); 
        }
     }
   };
 
   const isCurrentDay = (day: Date) => isEqual(startOfDay(day), startOfDay(new Date()));
+
+  const handleExportCSV = () => {
+    if (filteredSessions.length === 0) {
+      toast({ title: "Nenhum dado para exportar", description: "Não há agendamentos visíveis para exportar.", variant: "default" });
+      return;
+    }
+
+    const dataToExport = filteredSessions.map(session => ({
+      ID: session.id,
+      Titulo: session.title,
+      Tipo: session.type,
+      Topico: session.topic,
+      Local: session.location,
+      Data: format(session.date, "dd/MM/yyyy", { locale: ptBR }),
+      Inicio: session.startTime,
+      Fim: session.endTime,
+      Tecnico: session.technician,
+      Participantes: session.participants || '',
+      Descricao: session.description || '',
+      Recorrente: session.isRecurring ? 'Sim' : 'Não',
+      Renovacao_Em: session.renewalDue ? format(session.renewalDue, "dd/MM/yyyy", { locale: ptBR }) : '',
+      Capacidade: session.capacity ?? '',
+      Vagas_Reservadas: session.bookedSlots ?? '',
+      Status_Missao: session.missionStatusPlaceholder || '',
+    }));
+
+    const csvString = convertToCSV(dataToExport);
+    downloadCSV(csvString, `agenda_safetynet_${format(new Date(), "yyyyMMdd_HHmmss")}.csv`);
+    toast({ title: "Exportação CSV Iniciada", description: "O arquivo da agenda está sendo baixado." });
+  };
+
+  const handleShareMission = (session: TrainingSession) => {
+     toast({
+      title: 'Compartilhar Missão (Placeholder)',
+      description: `Funcionalidade para compartilhar/enviar a missão "${session.title}" para o técnico e participantes será implementada aqui.`,
+    });
+  };
+  
+  const handleExportMissionPDF = (session: TrainingSession) => {
+     toast({
+      title: 'Exportar Missão PDF (Placeholder)',
+      description: `Funcionalidade para gerar um PDF detalhado da missão "${session.title}" será implementada aqui.`,
+    });
+  };
+
 
   return (
     <div className="flex flex-col md:flex-row h-full gap-0 md:gap-6">
@@ -422,8 +465,8 @@ export default function TrainingsAndAppointmentsPage() {
           onMonthChange={setMiniCalendarMonth}
           locale={ptBR}
           className="rounded-md border shadow-sm p-2 w-full"
-          modifiers={{ scheduled: scheduledDays }}
-          modifiersClassNames={{ scheduled: 'day-scheduled' }}
+          modifiers={{ scheduled: scheduledDays, today: new Date() }}
+          modifiersClassNames={{ scheduled: 'day-scheduled', today: 'rdp-day_today_custom_highlight' }}
           fromYear={new Date().getFullYear() - 2}
           toYear={new Date().getFullYear() + 2}
         />
@@ -473,7 +516,7 @@ export default function TrainingsAndAppointmentsPage() {
                 <div key={session.id} className="border-b border-yellow-500/30 pb-1.5 last:border-b-0">
                   <p className="font-medium text-foreground truncate">{session.title}</p>
                   <p className="text-muted-foreground">
-                    Vence: {format(session.renewalDue as Date, 'dd/MM/yy', { locale: ptBR })} ({session.technician})
+                    Vence: {session.renewalDue ? format(session.renewalDue, 'dd/MM/yy', { locale: ptBR }) : 'N/A'} ({session.technician})
                   </p>
                    <Button variant="link" size="xs" className="p-0 h-auto text-primary hover:underline" onClick={() => handleDateSelect(session.date)}>
                      Ver na Agenda
@@ -518,10 +561,15 @@ export default function TrainingsAndAppointmentsPage() {
                                       : `${format(currentWeekDays[0], 'd MMM', { locale: ptBR })} - ${format(currentWeekDays[6], 'd MMM yyyy', { locale: ptBR })}`}
               </h2>
             </div>
-            <TabsList className="grid w-full grid-cols-2 sm:w-auto">
-              <TabsTrigger value="month">Mês</TabsTrigger>
-              <TabsTrigger value="week">Semana</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleExportCSV} className="hidden sm:flex">
+                    <Download className="mr-2 h-4 w-4" /> Exportar CSV
+                </Button>
+                <TabsList className="grid w-full grid-cols-2 sm:w-auto">
+                <TabsTrigger value="month">Mês</TabsTrigger>
+                <TabsTrigger value="week">Semana</TabsTrigger>
+                </TabsList>
+            </div>
           </div>
 
           <TabsContent value="month" className={cn(activeTab !== 'month' && "hidden")}>
@@ -625,6 +673,9 @@ export default function TrainingsAndAppointmentsPage() {
             </Card>
           </TabsContent>
         </Tabs>
+         <Button variant="outline" size="sm" onClick={handleExportCSV} className="mt-4 w-full sm:hidden">
+            <Download className="mr-2 h-4 w-4" /> Exportar CSV (Visão Atual)
+        </Button>
       </main>
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -671,10 +722,10 @@ export default function TrainingsAndAppointmentsPage() {
                               {availableSlots !== undefined ? `${availableSlots > 0 ? `${availableSlots} de ${session.capacity}` : `Lotado (${session.bookedSlots}/${session.capacity})`}` : 'N/D'}
                           </p>)}
                           {isEventRecurring && (<p className="flex items-center text-muted-foreground"><Repeat className="mr-1.5 h-4 w-4"/> Evento Recorrente</p>)}
-                          {isRenewalDueSoon && (
+                          {isRenewalDueSoon && session.renewalDue && (
                           <Card className="mt-3 p-3 bg-destructive/10 border-destructive/30">
                               <div className="flex items-center text-destructive"><AlertTriangle className="h-5 w-5 mr-2" />
-                                  <p className="text-xs font-semibold">Alerta: Renovação necessária em {format(session.renewalDue as Date, 'dd/MM/yyyy', {locale: ptBR})}!</p>
+                                  <p className="text-xs font-semibold">Alerta: Renovação necessária em {format(session.renewalDue, 'dd/MM/yyyy', {locale: ptBR})}!</p>
                               </div>
                           </Card>
                           )}
@@ -685,15 +736,25 @@ export default function TrainingsAndAppointmentsPage() {
                               <p className="text-xs text-muted-foreground italic mt-1">Checklist da Missão: (A ser vinculado)</p>
                           </div>
                           <div className="pt-3 space-y-2 sm:flex sm:space-y-0 sm:space-x-2">
-                          <Button variant="outline" size="sm" className="w-full sm:flex-1" onClick={() => handleCheckIn(session.id)}>
-                              <Camera className="mr-2 h-4 w-4"/> Check-in </Button>
-                          <Button variant="secondary" size="sm" className="w-full sm:flex-1" onClick={() => handleGenerateCertificate(session.id)}>
-                              <Download className="mr-2 h-4 w-4"/> Certificado </Button></div>
+                            <Button variant="outline" size="sm" className="w-full sm:flex-1" onClick={() => handleShareMission(session)}>
+                                <Share2 className="mr-2 h-4 w-4"/> Compartilhar Missão
+                            </Button>
+                            <Button variant="outline" size="sm" className="w-full sm:flex-1" onClick={() => handleExportMissionPDF(session)}>
+                                <FileText className="mr-2 h-4 w-4"/> Exportar PDF
+                            </Button>
+                          </div>
                           <div className="pt-2 space-y-2 sm:flex sm:space-y-0 sm:space-x-2">
-                          <Button variant="ghost" size="sm" className="w-full sm:flex-1 text-primary hover:bg-primary/10" onClick={() => handleOpenAppointmentModal(session)}>
-                              <Edit className="mr-2 h-4 w-4"/> Editar </Button>
-                          <Button variant="ghost" size="sm" className="w-full sm:flex-1 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteSession(session)}>
-                              <Trash2 className="mr-2 h-4 w-4"/> Excluir </Button></div>
+                            <Button variant="outline" size="sm" className="w-full sm:flex-1" onClick={() => handleCheckIn(session.id)}>
+                                <Camera className="mr-2 h-4 w-4"/> Check-in </Button>
+                            <Button variant="secondary" size="sm" className="w-full sm:flex-1" onClick={() => handleGenerateCertificate(session.id)}>
+                                <Download className="mr-2 h-4 w-4"/> Certificado </Button>
+                          </div>
+                          <div className="pt-2 space-y-2 sm:flex sm:space-y-0 sm:space-x-2">
+                            <Button variant="ghost" size="sm" className="w-full sm:flex-1 text-primary hover:bg-primary/10" onClick={() => handleOpenAppointmentModal(session)}>
+                                <Edit className="mr-2 h-4 w-4"/> Editar </Button>
+                            <Button variant="ghost" size="sm" className="w-full sm:flex-1 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteSession(session)}>
+                                <Trash2 className="mr-2 h-4 w-4"/> Excluir </Button>
+                          </div>
                       </CardContent>
                       </Card>);})}
               </div>
@@ -728,7 +789,7 @@ export default function TrainingsAndAppointmentsPage() {
                   <FormItem className="flex flex-col"><FormLabel>Data</FormLabel>
                   <Popover><PopoverTrigger asChild><FormControl>
                       <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                      <CalendarIcon className="mr-2 h-4 w-4" />{field.value && isValid(new Date(field.value)) ? format(new Date(field.value), "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                       </Button></FormControl></PopoverTrigger>
                       <PopoverContent className="w-auto p-0"><ShadcnCalendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent>
                   </Popover><FormMessage /></FormItem>)}/>
@@ -761,7 +822,7 @@ export default function TrainingsAndAppointmentsPage() {
                       <FormItem className="flex flex-col"><FormLabel>Data de Renovação (Opcional)</FormLabel>
                       <Popover><PopoverTrigger asChild><FormControl>
                           <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(new Date(field.value), "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                          <CalendarIcon className="mr-2 h-4 w-4" />{field.value && isValid(new Date(field.value)) ? format(new Date(field.value), "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                           </Button></FormControl></PopoverTrigger>
                           <PopoverContent className="w-auto p-0"><ShadcnCalendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent>
                       </Popover><FormMessage /></FormItem>)}/>
@@ -782,3 +843,22 @@ export default function TrainingsAndAppointmentsPage() {
     </div>
   );
 }
+
+// Estilo para destacar o dia de hoje no mini-calendário
+const todayHighlightStyle = `
+  .rdp-day_today_custom_highlight:not([aria-selected]) {
+    font-weight: bold;
+    color: hsl(var(--primary));
+  }
+  .rdp-day_today_custom_highlight:not([aria-selected]):hover {
+    background-color: hsl(var(--accent) / 0.5);
+  }
+`;
+
+if (typeof window !== 'undefined') {
+  const styleSheet = document.createElement("style");
+  styleSheet.type = "text/css";
+  styleSheet.innerText = todayHighlightStyle;
+  document.head.appendChild(styleSheet);
+}
+

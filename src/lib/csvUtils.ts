@@ -1,8 +1,9 @@
 
 // src/lib/csvUtils.ts
-import type { CostDataPoint } from '@/app/(app)/api/forecastCosts/route';
+// Removida a tipagem específica de CostDataPoint para tornar a função mais genérica
+// import type { CostDataPoint } from '@/app/(app)/api/forecastCosts/route';
 
-export function convertToCSV(data: CostDataPoint[]): string {
+export function convertToCSV(data: Record<string, any>[]): string {
   if (!data || data.length === 0) {
     return '';
   }
@@ -11,14 +12,29 @@ export function convertToCSV(data: CostDataPoint[]): string {
   const csvRows = [
     headers.join(','), // Header row
     ...data.map(row =>
-      headers.map(header => JSON.stringify(row[header as keyof CostDataPoint], (_, value) => value === null ? '' : value)).join(',')
+      headers.map(headerName => {
+        const value = row[headerName as keyof typeof row];
+        // Stringify para tratar vírgulas e aspas dentro dos valores
+        // Se o valor for null ou undefined, retorna string vazia
+        if (value === null || value === undefined) {
+          return '';
+        }
+        const stringValue = String(value);
+        // Escapa aspas duplas dentro do valor, duplicando-as
+        const escapedValue = stringValue.replace(/"/g, '""');
+        // Envolve o valor em aspas duplas se contiver vírgula, aspas duplas ou quebra de linha
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${escapedValue}"`;
+        }
+        return escapedValue;
+      }).join(',')
     ),
   ];
 
   return csvRows.join('\n');
 }
 
-export function downloadCSV(csvString: string, filename: string = 'forecast.csv'): void {
+export function downloadCSV(csvString: string, filename: string = 'export.csv'): void {
   const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   if (link.download !== undefined) {
@@ -32,3 +48,4 @@ export function downloadCSV(csvString: string, filename: string = 'forecast.csv'
     URL.revokeObjectURL(url);
   }
 }
+
