@@ -15,7 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { useState, useEffect } from 'react';
-import { CalendarIcon, User, FileText, Link as LinkIcon, Building, AlertTriangle, Send, Loader2, Save, Award } from 'lucide-react';
+import { CalendarIcon, User, FileText, Link as LinkIcon, Building, AlertTriangle, Send, Loader2, Save, Award, Edit2Icon } from 'lucide-react'; // Added Edit2Icon
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -55,15 +55,63 @@ const certificateFormSchema = z.object({
 type CertificateFormValues = z.infer<typeof certificateFormSchema>;
 
 const CERTIFICATES_STORAGE_KEY = 'safetyNetCertificates';
+const EDIT_CERTIFICATE_ID_KEY = 'safetyNetEditCertificateId';
 
 export default function NewCertificatePage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [editingCertificateId, setEditingCertificateId] = useState<string | null>(null);
+  const [pageTitle, setPageTitle] = useState("Emitir Novo Certificado");
+  const [submitButtonText, setSubmitButtonText] = useState("Gerar e Salvar Certificado");
+  const [submitButtonIcon, setSubmitButtonIcon] = useState(<Send className="mr-2 h-4 w-4" />);
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    const editId = sessionStorage.getItem(EDIT_CERTIFICATE_ID_KEY);
+    if (editId) {
+      setEditingCertificateId(editId);
+      sessionStorage.removeItem(EDIT_CERTIFICATE_ID_KEY); // Clear after use
+      const storedCertificatesRaw = localStorage.getItem(CERTIFICATES_STORAGE_KEY);
+      if (storedCertificatesRaw) {
+        const existingCertificates: Certificado[] = JSON.parse(storedCertificatesRaw).map((cert: any) => ({
+          ...cert,
+          dataRealizacao: new Date(cert.dataRealizacao),
+          dataValidade: cert.dataValidade ? new Date(cert.dataValidade) : null,
+        }));
+        const certToEdit = existingCertificates.find(c => c.id === editId);
+        if (certToEdit) {
+          form.reset({
+            nomeAluno: certToEdit.alunoNome,
+            cpfAluno: certToEdit.alunoCPF,
+            // emailAluno: certToEdit.emailAluno, // Assuming email is not part of Certificado interface yet or needs mapping
+            emailAluno: '', // Placeholder, adjust if email is in Certificado type
+            nomeCurso: certToEdit.cursoNome,
+            cargaHoraria: certToEdit.cargaHoraria,
+            dataRealizacao: new Date(certToEdit.dataRealizacao),
+            dataValidade: certToEdit.dataValidade ? new Date(certToEdit.dataValidade) : null,
+            localRealizacao: certToEdit.localRealizacao,
+            instrutorResponsavel: certToEdit.instrutorResponsavel,
+            conteudoProgramatico: certToEdit.conteudoProgramatico || '',
+            nomeEmpresa: certToEdit.nomeEmpresa || '',
+            cnpjEmpresa: certToEdit.cnpjEmpresa || '',
+            templateCertificado: certToEdit.templateCertificado || '',
+            observacoesAdicionais: certToEdit.observacoesAdicionais || '',
+          });
+          setPageTitle(`Editar Certificado: ${certToEdit.id}`);
+          setSubmitButtonText("Salvar Alterações");
+          setSubmitButtonIcon(<Save className="mr-2 h-4 w-4" />);
+        } else {
+          toast({ variant: "destructive", title: "Erro", description: "Certificado para edição não encontrado." });
+          setEditingCertificateId(null); // Reset if not found
+        }
+      }
+    } else {
+      setPageTitle("Emitir Novo Certificado");
+      setSubmitButtonText("Gerar e Salvar Certificado");
+      setSubmitButtonIcon(<Send className="mr-2 h-4 w-4" />);
+    }
+  }, [toast]); // form should not be a dependency here to avoid re-runs on form state change
 
   const form = useForm<CertificateFormValues>({
     resolver: zodResolver(certificateFormSchema),
@@ -104,51 +152,86 @@ export default function NewCertificatePage() {
 
   const onSubmit = async (data: CertificateFormValues) => {
     setIsLoading(true);
-    console.log("Dados do Certificado para Salvar:", data);
+    console.log("Dados do Certificado para Salvar/Atualizar:", data);
     
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     try {
       const storedCertificatesRaw = localStorage.getItem(CERTIFICATES_STORAGE_KEY);
-      const existingCertificates: Certificado[] = storedCertificatesRaw ? JSON.parse(storedCertificatesRaw).map((cert: any) => ({
+      let existingCertificates: Certificado[] = storedCertificatesRaw ? JSON.parse(storedCertificatesRaw).map((cert: any) => ({
         ...cert,
         dataRealizacao: new Date(cert.dataRealizacao),
         dataValidade: cert.dataValidade ? new Date(cert.dataValidade) : null,
       })) : [];
 
-      const newCertificateEntry: Certificado = {
-        id: `CERT-${Date.now()}`,
-        alunoNome: data.nomeAluno,
-        alunoCPF: data.cpfAluno,
-        // emailAluno: data.emailAluno, // Interface Certificado não tem emailAluno
-        cursoNome: data.nomeCurso,
-        cargaHoraria: data.cargaHoraria,
-        dataRealizacao: data.dataRealizacao,
-        dataValidade: data.dataValidade || null,
-        localRealizacao: data.localRealizacao,
-        instrutorResponsavel: data.instrutorResponsavel,
-        conteudoProgramatico: data.conteudoProgramatico || '',
-        nomeEmpresa: data.nomeEmpresa || '',
-        cnpjEmpresa: data.cnpjEmpresa || '',
-        observacoesAdicionais: data.observacoesAdicionais || '',
-        templateCertificado: data.templateCertificado,
-        status: 'Emitido',
-      };
-
-      const updatedCertificates = [newCertificateEntry, ...existingCertificates];
+      if (editingCertificateId) {
+        // Modo de Edição
+        existingCertificates = existingCertificates.map(cert => 
+          cert.id === editingCertificateId 
+            ? { 
+                ...cert, // Mantém ID original e outros campos não editáveis se houver
+                alunoNome: data.nomeAluno,
+                alunoCPF: data.cpfAluno,
+                // emailAluno: data.emailAluno, // Mapear se necessário
+                cursoNome: data.nomeCurso,
+                cargaHoraria: data.cargaHoraria,
+                dataRealizacao: data.dataRealizacao,
+                dataValidade: data.dataValidade || null,
+                localRealizacao: data.localRealizacao,
+                instrutorResponsavel: data.instrutorResponsavel,
+                conteudoProgramatico: data.conteudoProgramatico || '',
+                nomeEmpresa: data.nomeEmpresa || '',
+                cnpjEmpresa: data.cnpjEmpresa || '',
+                observacoesAdicionais: data.observacoesAdicionais || '',
+                templateCertificado: data.templateCertificado,
+                status: cert.status, // Mantém status original, a menos que haja lógica para mudar
+              } 
+            : cert
+        );
+        toast({
+          title: "Certificado Atualizado!",
+          description: `O certificado para ${data.nomeAluno} foi atualizado com sucesso.`,
+           action: <Button variant="outline" size="sm"><Save className="mr-2 h-4 w-4"/>Salvo</Button>
+        });
+      } else {
+        // Modo de Criação
+        const newCertificateEntry: Certificado = {
+          id: `CERT-${Date.now()}`,
+          alunoNome: data.nomeAluno,
+          alunoCPF: data.cpfAluno,
+          cursoNome: data.nomeCurso,
+          cargaHoraria: data.cargaHoraria,
+          dataRealizacao: data.dataRealizacao,
+          dataValidade: data.dataValidade || null,
+          localRealizacao: data.localRealizacao,
+          instrutorResponsavel: data.instrutorResponsavel,
+          conteudoProgramatico: data.conteudoProgramatico || '',
+          nomeEmpresa: data.nomeEmpresa || '',
+          cnpjEmpresa: data.cnpjEmpresa || '',
+          observacoesAdicionais: data.observacoesAdicionais || '',
+          templateCertificado: data.templateCertificado,
+          status: 'Emitido',
+        };
+        existingCertificates = [newCertificateEntry, ...existingCertificates];
+        toast({
+          title: "Certificado Gerado e Salvo!",
+          description: `O certificado para ${data.nomeAluno} do curso ${data.nomeCurso} foi gerado e salvo localmente com sucesso.`,
+          action: <Button variant="outline" size="sm"><Save className="mr-2 h-4 w-4"/>Salvo</Button>
+        });
+      }
       
-      localStorage.setItem(CERTIFICATES_STORAGE_KEY, JSON.stringify(updatedCertificates.map(cert => ({
+      localStorage.setItem(CERTIFICATES_STORAGE_KEY, JSON.stringify(existingCertificates.map(cert => ({
         ...cert,
-        dataRealizacao: cert.dataRealizacao.toISOString(), // Armazenar como string ISO
-        dataValidade: cert.dataValidade ? (cert.dataValidade as Date).toISOString() : null, // Armazenar como string ISO ou null
+        dataRealizacao: cert.dataRealizacao.toISOString(),
+        dataValidade: cert.dataValidade ? (cert.dataValidade as Date).toISOString() : null,
       }))));
       
-      toast({
-        title: "Certificado Gerado e Salvo!",
-        description: `O certificado para ${data.nomeAluno} do curso ${data.nomeCurso} foi gerado e salvo localmente com sucesso.`,
-        action: <Button variant="outline" size="sm"><Save className="mr-2 h-4 w-4"/>Salvo</Button>
-      });
       form.reset();
+      setEditingCertificateId(null); // Resetar modo de edição
+      setPageTitle("Emitir Novo Certificado");
+      setSubmitButtonText("Gerar e Salvar Certificado");
+      setSubmitButtonIcon(<Send className="mr-2 h-4 w-4" />);
+
     } catch (error) {
       console.error("Erro ao salvar certificado no localStorage:", error);
       toast({
@@ -167,8 +250,8 @@ export default function NewCertificatePage() {
   return (
     <>
       <PageHeader
-        title="Emitir Novo Certificado"
-        description="Preencha os dados abaixo para gerar um novo certificado de treinamento."
+        title={pageTitle}
+        description={editingCertificateId ? "Altere os dados do certificado abaixo." : "Preencha os dados abaixo para gerar um novo certificado de treinamento."}
       />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -346,14 +429,20 @@ export default function NewCertificatePage() {
           </Card>
           
           <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 mt-6 border-t">
-            <Button type="button" variant="outline" onClick={() => form.reset()} disabled={isLoading} className="w-full sm:w-auto">
+            <Button type="button" variant="outline" onClick={() => {
+              form.reset();
+              setEditingCertificateId(null);
+              setPageTitle("Emitir Novo Certificado");
+              setSubmitButtonText("Gerar e Salvar Certificado");
+              setSubmitButtonIcon(<Send className="mr-2 h-4 w-4" />);
+            }} disabled={isLoading} className="w-full sm:w-auto">
               Limpar Formulário
             </Button>
-            <Button type="submit" disabled={isLoading || !form.formState.isDirty || !form.formState.isValid} className="w-full sm:w-auto">
+            <Button type="submit" disabled={isLoading || (!form.formState.isDirty && editingCertificateId) || !form.formState.isValid} className="w-full sm:w-auto">
               {isLoading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {editingCertificateId ? 'Salvando...' : 'Gerando...'}</>
               ) : (
-                <><Send className="mr-2 h-4 w-4" /> Gerar e Salvar Certificado</>
+                <>{submitButtonIcon} {submitButtonText}</>
               )}
             </Button>
           </div>
@@ -365,4 +454,3 @@ export default function NewCertificatePage() {
     </>
   );
 }
-

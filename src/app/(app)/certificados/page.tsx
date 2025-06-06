@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // Importar useRouter
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,29 +32,30 @@ export interface Certificado {
   alunoNome: string;
   alunoCPF: string;
   cursoNome: string;
-  dataRealizacao: Date; // Renomeado de dataEmissao
+  dataRealizacao: Date;
   cargaHoraria: number;
   localRealizacao: string;
   instrutorResponsavel: string;
-  dataValidade?: Date | null; // Pode ser Date ou null/undefined
+  dataValidade?: Date | null;
   conteudoProgramatico?: string;
   nomeEmpresa?: string;
   cnpjEmpresa?: string;
   observacoesAdicionais?: string;
-  templateCertificado?: string; // Se relevante para a visualização
-  status: 'Emitido' | 'Pendente' | 'Cancelado';
-  pdfUrl?: string;
+  templateCertificado?: string;
+  status: 'Emitido' | 'Pendente' | 'Cancelado'; // Adicionar outros status conforme necessário
+  pdfUrl?: string; // Placeholder para link do PDF
 }
 
 const initialMockCertificados: Certificado[] = [
-  { id: 'CERT001', alunoNome: 'Ana Beatriz Costa', alunoCPF: '111.222.333-44', cursoNome: 'NR-35 Trabalho em Altura', dataRealizacao: new Date(2024, 4, 15), cargaHoraria: 8, localRealizacao: 'Sala de Treinamento A', instrutorResponsavel: 'Robson Perusso', nomeEmpresa: 'Construtora Segura Ltda.', status: 'Emitido', pdfUrl: '#', conteudoProgramatico: 'Normas e regulamentos aplicáveis ao trabalho em altura; Análise de Risco e condições impeditivas; Riscos potenciais inerentes ao trabalho em altura e medidas de prevenção e controle; Sistemas, equipamentos e procedimentos de proteção coletiva; Equipamentos de Proteção Individual para trabalho em altura: seleção, inspeção, conservação e limitação de uso; Acidentes típicos em trabalhos em altura; Condutas em situações de emergência, incluindo noções de técnicas de resgate e de primeiros socorros.' },
-  { id: 'CERT002', alunoNome: 'Carlos Eduardo Lima', alunoCPF: '222.333.444-55', cursoNome: 'NR-10 Segurança em Eletricidade', dataRealizacao: new Date(2024, 5, 20), cargaHoraria: 40, localRealizacao: 'Centro de Treinamento XYZ', instrutorResponsavel: 'Juliana Dias', nomeEmpresa: 'Indústria Forte S.A.', status: 'Emitido', pdfUrl: '#', dataValidade: new Date(2026, 5, 19) },
-  { id: 'CERT003', alunoNome: 'Daniela Almeida Silva', alunoCPF: '333.444.555-66', cursoNome: 'Primeiros Socorros Avançado', dataRealizacao: new Date(2024, 3, 10), cargaHoraria: 16, localRealizacao: 'Sede SafetyNet', instrutorResponsavel: 'Dr. Ricardo Mendes', status: 'Cancelado', pdfUrl: '#' },
-  { id: 'CERT004', alunoNome: 'Eduardo Ferreira Matos', alunoCPF: '444.555.666-77', cursoNome: 'NR-33 Espaço Confinado', dataRealizacao: new Date(2024, 6, 1), cargaHoraria: 16, localRealizacao: 'Unidade Industrial Z', instrutorResponsavel: 'Marcos Oliveira', nomeEmpresa: 'Tecnologia Inovadora ME', status: 'Pendente' },
-  { id: 'CERT005', alunoNome: 'Fernanda Gonçalves Ribeiro', alunoCPF: '555.666.777-88', cursoNome: 'Brigada de Incêndio', dataRealizacao: new Date(2024, 2, 25), cargaHoraria: 20, localRealizacao: 'Corpo de Bombeiros Local', instrutorResponsavel: 'Sgt. Almeida', nomeEmpresa: 'Agropecuária Campos Verdes', status: 'Emitido' },
+  { id: 'CERT001', alunoNome: 'Ana Beatriz Costa', alunoCPF: '111.222.333-44', cursoNome: 'NR-35 Trabalho em Altura', dataRealizacao: new Date(2024, 4, 15), cargaHoraria: 8, localRealizacao: 'Sala de Treinamento A', instrutorResponsavel: 'Robson Perusso', nomeEmpresa: 'Construtora Segura Ltda.', status: 'Emitido', pdfUrl: '#', conteudoProgramatico: 'Normas e regulamentos aplicáveis ao trabalho em altura; Análise de Risco e condições impeditivas; Riscos potenciais inerentes ao trabalho em altura e medidas de prevenção e controle; Sistemas, equipamentos e procedimentos de proteção coletiva; Equipamentos de Proteção Individual para trabalho em altura: seleção, inspeção, conservação e limitação de uso; Acidentes típicos em trabalhos em altura; Condutas em situações de emergência, incluindo noções de técnicas de resgate e de primeiros socorros.', templateCertificado: 'padrao_safetynet', dataValidade: new Date(2026, 4, 14)},
+  { id: 'CERT002', alunoNome: 'Carlos Eduardo Lima', alunoCPF: '222.333.444-55', cursoNome: 'NR-10 Segurança em Eletricidade', dataRealizacao: new Date(2024, 5, 20), cargaHoraria: 40, localRealizacao: 'Centro de Treinamento XYZ', instrutorResponsavel: 'Juliana Dias', nomeEmpresa: 'Indústria Forte S.A.', status: 'Emitido', pdfUrl: '#', dataValidade: new Date(2026, 5, 19), templateCertificado: 'nr10_basico' },
+  { id: 'CERT003', alunoNome: 'Daniela Almeida Silva', alunoCPF: '333.444.555-66', cursoNome: 'Primeiros Socorros Avançado', dataRealizacao: new Date(2024, 3, 10), cargaHoraria: 16, localRealizacao: 'Sede SafetyNet', instrutorResponsavel: 'Dr. Ricardo Mendes', status: 'Cancelado', pdfUrl: '#', templateCertificado: 'primeiros_socorros' },
+  { id: 'CERT004', alunoNome: 'Eduardo Ferreira Matos', alunoCPF: '444.555.666-77', cursoNome: 'NR-33 Espaço Confinado', dataRealizacao: new Date(2024, 6, 1), cargaHoraria: 16, localRealizacao: 'Unidade Industrial Z', instrutorResponsavel: 'Marcos Oliveira', nomeEmpresa: 'Tecnologia Inovadora ME', status: 'Pendente', templateCertificado: 'padrao_safetynet' },
+  { id: 'CERT005', alunoNome: 'Fernanda Gonçalves Ribeiro', alunoCPF: '555.666.777-88', cursoNome: 'Brigada de Incêndio', dataRealizacao: new Date(2024, 2, 25), cargaHoraria: 20, localRealizacao: 'Corpo de Bombeiros Local', instrutorResponsavel: 'Sgt. Almeida', nomeEmpresa: 'Agropecuária Campos Verdes', status: 'Emitido', templateCertificado: 'padrao_safetynet' },
 ];
 
 const CERTIFICATES_STORAGE_KEY = 'safetyNetCertificates';
+const EDIT_CERTIFICATE_ID_KEY = 'safetyNetEditCertificateId'; // Key for sessionStorage
 
 const getStatusBadgeClass = (status: Certificado['status']) => {
   switch (status) {
@@ -70,6 +72,7 @@ const getStatusBadgeClass = (status: Certificado['status']) => {
 
 export default function CertificadosPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [certificates, setCertificates] = useState<Certificado[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [cursoFilter, setCursoFilter] = useState('');
@@ -91,6 +94,7 @@ export default function CertificadosPage() {
         }));
         setCertificates(parsedCerts);
       } else {
+        // Salvar os mocks no localStorage se estiver vazio
         setCertificates(initialMockCertificados);
         localStorage.setItem(CERTIFICATES_STORAGE_KEY, JSON.stringify(initialMockCertificados.map(cert => ({
           ...cert,
@@ -100,7 +104,7 @@ export default function CertificadosPage() {
       }
     } catch (error) {
       console.error("Erro ao carregar certificados do localStorage:", error);
-      setCertificates(initialMockCertificados);
+      setCertificates(initialMockCertificados); // Fallback para mocks em caso de erro
     }
   }, []);
 
@@ -120,7 +124,13 @@ export default function CertificadosPage() {
     setIsViewModalOpen(true);
   };
 
+  const handleEditCertificate = (certificateId: string) => {
+    sessionStorage.setItem(EDIT_CERTIFICATE_ID_KEY, certificateId);
+    router.push('/certificados/novo');
+  };
+  
   const handleAction = (action: string, certificadoId: string, alunoNome: string) => {
+    // This function can be expanded or replaced by specific handlers like handleEditCertificate
     toast({
       title: `Ação: ${action} (Placeholder)`,
       description: `Funcionalidade para "${action.toLowerCase()}" o certificado ${certificadoId} de ${alunoNome} será implementada.`,
@@ -171,7 +181,7 @@ export default function CertificadosPage() {
               type="date"
               placeholder="Filtrar por Data de Realização"
               value={dataFilter ? format(dataFilter, 'yyyy-MM-dd') : ''}
-              onChange={(e) => setDataFilter(e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined)}
+              onChange={(e) => setDataFilter(e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined)} // Ajuste para considerar a data completa
               data-ai-hint="data de realização"
             />
           </div>
@@ -226,7 +236,7 @@ export default function CertificadosPage() {
                           <DropdownMenuItem onClick={() => handleViewPdf(cert)}>
                             <Eye className="mr-2 h-4 w-4" /> Visualizar PDF
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction('Editar', cert.id, cert.alunoNome)}>
+                          <DropdownMenuItem onClick={() => handleEditCertificate(cert.id)}>
                             <Edit className="mr-2 h-4 w-4" /> Editar
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleAction('Reemitir', cert.id, cert.alunoNome)}>
@@ -267,4 +277,3 @@ export default function CertificadosPage() {
     </>
   );
 }
-
