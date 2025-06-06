@@ -1,14 +1,16 @@
 
-'use client'; 
+'use client';
 
+import * as React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Calendar as ShadcnCalendar } from '@/components/ui/calendar'; 
+import * as z from 'zod'; // <--- ADICIONADO AQUI
+import { Calendar as ShadcnCalendar } from '@/components/ui/calendar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, PlusCircle, GripVertical, UsersRound, Edit, Trash2, Loader2, Filter, Repeat, RefreshCw, ChevronLeft, ChevronRight, Search } from 'lucide-react'; 
-import { format, isEqual, startOfDay, addMonths, differenceInDays as fnsDifferenceInDays, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval, isPast, addDays, subDays } from 'date-fns';
+import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, PlusCircle, GripVertical, UsersRound, Edit, Trash2, Loader2, Filter, Repeat, RefreshCw, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { format, isEqual, startOfDay, addMonths, subMonths, differenceInDays as fnsDifferenceInDays, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval, isPast, addDays, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -41,10 +43,10 @@ interface TrainingSession {
   participants?: string;
   description?: string;
   isRecurring?: boolean;
-  renewalDue?: Date | null; 
+  renewalDue?: Date | null;
   capacity?: number;
   bookedSlots?: number;
-  missionStatusPlaceholder?: 'Pendente' | 'Em Andamento' | 'Concluída'; 
+  missionStatusPlaceholder?: 'Pendente' | 'Em Andamento' | 'Concluída';
 }
 
 const appointmentFormSchema = z.object({
@@ -69,11 +71,11 @@ const appointmentFormSchema = z.object({
   const endDateTime = new Date(data.date);
   const [endHours, endMinutes] = data.endTime.split(':').map(Number);
   endDateTime.setHours(endHours, endMinutes);
-  
+
   return endDateTime > startDateTime;
 }, {
   message: 'A hora de término deve ser posterior à hora de início.',
-  path: ['endTime'], 
+  path: ['endTime'],
 });
 
 type AppointmentFormValues = z.infer<typeof appointmentFormSchema>;
@@ -82,7 +84,7 @@ const mockTechnicians = ['Carlos Silva', 'Ana Pereira', 'Juliana Costa', 'Robert
 const ALL_EVENT_TYPES = "__ALL_EVENT_TYPES__";
 const ALL_TECHNICIANS = "__ALL_TECHNICIANS__";
 const AGENDA_SESSIONS_STORAGE_KEY = 'safetyNetAgendaSessions';
-const SIMULATED_LOGGED_IN_TECHNICIAN = 'Carlos Silva'; 
+const SIMULATED_LOGGED_IN_TECHNICIAN = 'Carlos Silva';
 
 const initialMockSessions: TrainingSession[] = [
   { id: 'TRN001', title: 'NR-35 (Trabalho em Altura)', type: 'Treinamento', topic: 'Segurança em Altura', location: 'Sala de Treinamento A', date: new Date(2024, 6, 15), startTime: '09:00', endTime: '17:00', technician: 'Carlos Silva', renewalDue: addMonths(new Date(2024, 6, 15), 11), capacity: 20, bookedSlots: 15, participants: 'João, Maria, Pedro', description: 'Treinamento completo sobre NR-35.', isRecurring: false, missionStatusPlaceholder: 'Pendente' },
@@ -104,17 +106,17 @@ const eventTypeOptions: { value: TrainingSession['type'] | typeof ALL_EVENT_TYPE
 export default function TrainingsAndAppointmentsPage() {
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [currentDisplayMonth, setCurrentDisplayMonth] = useState<Date>(new Date()); // For main calendar month
-  const [miniCalendarMonth, setMiniCalendarMonth] = useState<Date>(new Date()); // For sidebar mini-calendar month
+  const [currentDisplayMonth, setCurrentDisplayMonth] = useState<Date>(new Date());
+  const [miniCalendarMonth, setMiniCalendarMonth] = useState<Date>(new Date());
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  
+
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<TrainingSession | null>(null);
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
-  
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<TrainingSession | null>(null);
 
@@ -123,7 +125,7 @@ export default function TrainingsAndAppointmentsPage() {
   const [filterEventType, setFilterEventType] = useState<string>(ALL_EVENT_TYPES);
   const [filterTechnician, setFilterTechnician] = useState<string>(ALL_TECHNICIANS);
   const [showOnlyMyEvents, setShowOnlyMyEvents] = useState(false);
-  
+
   const [activeTab, setActiveTab] = useState<'month' | 'week'>('month');
 
   const form = useForm<AppointmentFormValues>({
@@ -135,7 +137,7 @@ export default function TrainingsAndAppointmentsPage() {
       isRecurring: false, capacity: undefined, renewalDue: undefined,
     },
   });
-  
+
   const watchEventType = form.watch('type');
 
   useEffect(() => {
@@ -167,7 +169,7 @@ export default function TrainingsAndAppointmentsPage() {
   }, []);
 
   useEffect(() => {
-    if (sessions.length > 0 || localStorage.getItem(AGENDA_SESSIONS_STORAGE_KEY)) { 
+    if (sessions.length > 0 || localStorage.getItem(AGENDA_SESSIONS_STORAGE_KEY)) {
         localStorage.setItem(AGENDA_SESSIONS_STORAGE_KEY, JSON.stringify(
         sessions.map(s => ({
             ...s,
@@ -192,7 +194,7 @@ export default function TrainingsAndAppointmentsPage() {
 
   const sessionsForSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
-    return filteredSessions.filter(session => 
+    return filteredSessions.filter(session =>
         isEqual(startOfDay(session.date), startOfDay(selectedDate))
       ).sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [selectedDate, filteredSessions]);
@@ -207,21 +209,21 @@ export default function TrainingsAndAppointmentsPage() {
     const newSessionsPerDay: Record<string, TrainingSession[]> = {};
     currentWeekDays.forEach(day => {
       const dayString = format(day, 'yyyy-MM-dd');
-      newSessionsPerDay[dayString] = filteredSessions.filter(session => 
+      newSessionsPerDay[dayString] = filteredSessions.filter(session =>
         isEqual(startOfDay(session.date), startOfDay(day))
       ).sort((a, b) => a.startTime.localeCompare(b.startTime));
     });
     return newSessionsPerDay;
   }, [currentWeekDays, filteredSessions]);
-  
+
   const upcomingRenewals = useMemo(() => {
     const today = startOfDay(new Date());
     return sessions
-      .filter(session => 
-        session.type === 'Treinamento' && 
-        session.renewalDue && 
+      .filter(session =>
+        session.type === 'Treinamento' &&
+        session.renewalDue &&
         !isPast(session.renewalDue) &&
-        fnsDifferenceInDays(session.renewalDue, today) <= 60 
+        fnsDifferenceInDays(session.renewalDue, today) <= 60
       )
       .sort((a, b) => (a.renewalDue as Date).getTime() - (b.renewalDue as Date).getTime())
       .slice(0, 5);
@@ -230,9 +232,9 @@ export default function TrainingsAndAppointmentsPage() {
 
   const handleDateSelect = useCallback((date: Date | undefined) => {
     setSelectedDate(date);
-    if (date) { 
-      setCurrentDisplayMonth(date); // Sync main calendar month with selected date
-      setMiniCalendarMonth(date); // Also sync mini calendar
+    if (date) {
+      setCurrentDisplayMonth(date);
+      setMiniCalendarMonth(date);
       setIsSheetOpen(true);
     }
   }, []);
@@ -241,19 +243,19 @@ export default function TrainingsAndAppointmentsPage() {
     if(date) {
       setSelectedDate(date);
       setCurrentDisplayMonth(date);
-      // Optionally open sheet or just navigate the main view
-      // setIsSheetOpen(true); 
+      setIsSheetOpen(true);
     }
   };
-  
-  const handleWeeklyEventClick = (session: TrainingSession) => {
-    setSelectedDate(session.date);
-    setIsSheetOpen(true);
-  };
-  
+
   const handleDayHeaderClick = (day: Date) => {
     setSelectedDate(day);
     setCurrentDisplayMonth(day);
+    setMiniCalendarMonth(day); // Also sync mini calendar
+    setIsSheetOpen(true);
+  };
+
+  const handleWeeklyEventClick = (session: TrainingSession) => {
+    setSelectedDate(session.date);
     setIsSheetOpen(true);
   };
 
@@ -283,7 +285,7 @@ export default function TrainingsAndAppointmentsPage() {
     } else {
       form.reset({
         title: '', type: undefined, topic: '', location: '',
-        date: dateForNew || selectedDate || new Date(), // Use selectedDate from main calendar if available
+        date: dateForNew || selectedDate || new Date(),
         startTime: '09:00', endTime: '17:00',
         technician: '', participants: '', description: '',
         isRecurring: false, capacity: undefined, renewalDue: undefined,
@@ -291,10 +293,10 @@ export default function TrainingsAndAppointmentsPage() {
     }
     setIsAppointmentModalOpen(true);
   };
-  
+
   const handleAppointmentFormSubmit = async (data: AppointmentFormValues) => {
     setIsSubmittingForm(true);
-    await new Promise(resolve => setTimeout(resolve, 700)); 
+    await new Promise(resolve => setTimeout(resolve, 700));
 
     const sessionDataToSave = {
         ...data,
@@ -304,7 +306,7 @@ export default function TrainingsAndAppointmentsPage() {
     };
 
     if (editingSession) {
-      setSessions(prevSessions => 
+      setSessions(prevSessions =>
         prevSessions.map(s => s.id === editingSession.id ? { ...s, ...sessionDataToSave } : s)
       );
       toast({ title: "Agendamento Atualizado!", description: `O evento "${data.title}" foi atualizado.` });
@@ -312,7 +314,7 @@ export default function TrainingsAndAppointmentsPage() {
       const newSession: TrainingSession = {
         id: `EVT-${Date.now()}`,
         ...sessionDataToSave,
-        missionStatusPlaceholder: 'Pendente', 
+        missionStatusPlaceholder: 'Pendente',
       };
       setSessions(prevSessions => [...prevSessions, newSession]);
       toast({ title: "Novo Agendamento Criado!", description: `O evento "${data.title}" foi adicionado à agenda.` });
@@ -353,7 +355,7 @@ export default function TrainingsAndAppointmentsPage() {
         default: return 'bg-gray-500/20 text-gray-700 border-gray-500/30';
     }
   };
-  
+
   const getEventTypeBorderColor = (type: TrainingSession['type']) => {
     switch(type) {
         case 'Treinamento': return 'border-blue-500';
@@ -367,7 +369,7 @@ export default function TrainingsAndAppointmentsPage() {
     if (activeTab === 'month') {
       setCurrentDisplayMonth(prev => subMonths(prev, 1));
       setMiniCalendarMonth(prev => subMonths(prev,1));
-    } else { // week view
+    } else {
       setCurrentWeekStartDate(prev => subWeeks(prev, 1));
     }
   };
@@ -375,7 +377,7 @@ export default function TrainingsAndAppointmentsPage() {
     if (activeTab === 'month') {
       setCurrentDisplayMonth(prev => addMonths(prev, 1));
       setMiniCalendarMonth(prev => addMonths(prev,1));
-    } else { // week view
+    } else {
       setCurrentWeekStartDate(prev => addWeeks(prev, 1));
     }
   };
@@ -386,20 +388,19 @@ export default function TrainingsAndAppointmentsPage() {
     setMiniCalendarMonth(today);
     setCurrentWeekStartDate(startOfWeek(today, { weekStartsOn: 1 }));
   };
-  
+
   const isCurrentDay = (day: Date) => isEqual(startOfDay(day), startOfDay(new Date()));
 
   return (
     <div className="flex flex-col md:flex-row h-full gap-0 md:gap-6">
-      {/* Sidebar Esquerdo */}
       <aside className="w-full md:w-64 lg:w-72 flex-shrink-0 p-1 md:p-0 md:sticky md:top-[calc(4rem+1rem)] md:h-[calc(100vh-5rem-1rem)] md:overflow-y-auto md:border-r md:pr-4">
-        <Button 
-          onClick={() => handleOpenAppointmentModal(null, selectedDate || new Date())} 
+        <Button
+          onClick={() => handleOpenAppointmentModal(null, selectedDate || new Date())}
           className="w-full mb-4 shadow-md hover:shadow-lg transition-shadow"
         >
           <PlusCircle className="mr-2 h-5 w-5"/> Criar Agendamento
         </Button>
-        
+
         <ShadcnCalendar
           mode="single"
           selected={selectedDate}
@@ -410,39 +411,42 @@ export default function TrainingsAndAppointmentsPage() {
           className="rounded-md border shadow-sm p-2 w-full"
           modifiers={{ scheduled: scheduledDays }}
           modifiersClassNames={{ scheduled: 'day-scheduled' }}
-          captionLayout="dropdown-buttons" 
-          fromYear={new Date().getFullYear() - 2} 
+          captionLayout="dropdown-buttons"
+          fromYear={new Date().getFullYear() - 2}
           toYear={new Date().getFullYear() + 2}
         />
 
-        <div className="mt-4 space-y-3 p-2 border rounded-md shadow-sm">
-          <h3 className="text-sm font-semibold text-muted-foreground px-1">Filtros da Agenda</h3>
-          <Select value={filterEventType} onValueChange={setFilterEventType}>
-            <SelectTrigger aria-label="Filtrar por tipo de evento">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {eventTypeOptions.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterTechnician} onValueChange={setFilterTechnician}>
-            <SelectTrigger aria-label="Filtrar por técnico">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_TECHNICIANS}>Todos os Técnicos</SelectItem>
-              {mockTechnicians.map(tech => (
-                <SelectItem key={tech} value={tech}>{tech}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex items-center space-x-2 pt-1">
-            <Switch id="my-events-toggle" checked={showOnlyMyEvents} onCheckedChange={setShowOnlyMyEvents} />
-            <Label htmlFor="my-events-toggle" className="text-xs">Apenas Meus Agendamentos</Label>
-          </div>
-        </div>
+        <Card className="mt-4 p-3 border rounded-md shadow-sm">
+            <Label className="text-xs font-semibold text-muted-foreground px-1 block mb-2">Filtros da Agenda</Label>
+            <div className="space-y-3">
+                <Select value={filterEventType} onValueChange={setFilterEventType}>
+                    <SelectTrigger aria-label="Filtrar por tipo de evento" className="h-9 text-xs">
+                    <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                    {eventTypeOptions.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                <Select value={filterTechnician} onValueChange={setFilterTechnician}>
+                    <SelectTrigger aria-label="Filtrar por técnico" className="h-9 text-xs">
+                    <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value={ALL_TECHNICIANS} className="text-xs">Todos os Técnicos</SelectItem>
+                    {mockTechnicians.map(tech => (
+                        <SelectItem key={tech} value={tech} className="text-xs">{tech}</SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                <div className="flex items-center space-x-2 pt-1">
+                    <Switch id="my-events-toggle" checked={showOnlyMyEvents} onCheckedChange={setShowOnlyMyEvents} />
+                    <Label htmlFor="my-events-toggle" className="text-xs cursor-pointer">Apenas Meus Agendamentos</Label>
+                </div>
+            </div>
+        </Card>
+
 
         {upcomingRenewals.length > 0 && (
           <Card className="mt-4 shadow-md border-yellow-500/50 bg-yellow-500/10">
@@ -464,7 +468,7 @@ export default function TrainingsAndAppointmentsPage() {
             </CardContent>
           </Card>
         )}
-        <div className="mt-4 p-2 space-y-2">
+         <div className="mt-4 p-2 space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground">Pesquisar pessoas (Placeholder)</h4>
             <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -481,13 +485,9 @@ export default function TrainingsAndAppointmentsPage() {
             <h4 className="text-xs font-semibold text-muted-foreground">Outras agendas (Placeholder)</h4>
             <div className="flex items-center space-x-2"><Checkbox id="cal-feriados" checked disabled/><Label htmlFor="cal-feriados" className="text-xs">Feriados no Brasil</Label></div>
         </div>
-
-
       </aside>
 
-      {/* Área Principal da Agenda */}
       <main className="flex-1 min-w-0">
-        {/* Cabeçalho da Área Principal */}
         <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-2 p-2 sm:p-0">
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={handleToday} size="sm">Hoje</Button>
@@ -509,7 +509,7 @@ export default function TrainingsAndAppointmentsPage() {
             </TabsList>
           </Tabs>
         </div>
-        
+
         <TabsContent value="month" className={cn(activeTab !== 'month' && "hidden")}>
           <Card className="shadow-lg">
             <CardContent className="p-2 sm:p-3">
@@ -567,13 +567,14 @@ export default function TrainingsAndAppointmentsPage() {
               {currentWeekDays.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-7 gap-1 md:gap-1.5">
                   {currentWeekDays.map(day => (
-                    <div 
-                        key={day.toISOString()} 
-                        className="border rounded-lg p-1.5 sm:p-2 bg-card min-h-[180px] flex flex-col cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => handleDayHeaderClick(day)}
+                    <div
+                        key={day.toISOString()}
+                        className="border rounded-lg p-1.5 sm:p-2 bg-card min-h-[180px] flex flex-col"
                         role="button"
                         tabIndex={0}
                         aria-label={`Ver eventos para ${format(day, 'PPP', { locale: ptBR })}`}
+                        onClick={() => handleDayHeaderClick(day)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleDayHeaderClick(day);}}
                     >
                       <h3 className={cn(
                         "font-semibold text-[10px] sm:text-xs text-center mb-1.5 text-foreground pb-1 border-b",
@@ -583,12 +584,12 @@ export default function TrainingsAndAppointmentsPage() {
                         <br />
                         <span className="text-xs text-muted-foreground">{format(day, 'dd/MM')}</span>
                       </h3>
-                      <ScrollArea className="flex-1 pr-1"> 
+                      <ScrollArea className="flex-1 pr-1">
                         <div className="space-y-1">
                           {sessionsPerDayOfWeek[format(day, 'yyyy-MM-dd')]?.length > 0 ? (
                             sessionsPerDayOfWeek[format(day, 'yyyy-MM-dd')]?.map(session => (
-                              <Button 
-                                key={session.id} variant="outline" size="sm" 
+                              <Button
+                                key={session.id} variant="outline" size="sm"
                                 className={cn("w-full text-left h-auto py-1 px-1.5 whitespace-normal border-l-4", getEventTypeBorderColor(session.type))}
                                 onClick={(e) => { e.stopPropagation(); handleWeeklyEventClick(session);}}
                               >
@@ -611,8 +612,8 @@ export default function TrainingsAndAppointmentsPage() {
         </TabsContent>
 
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-            <SheetContent 
-                side={isMobile ? "bottom" : "right"} 
+            <SheetContent
+                side={isMobile ? "bottom" : "right"}
                 className={cn( "flex flex-col rounded-t-lg sm:rounded-t-none p-0", isMobile ? "h-[85vh]" : "w-full sm:max-w-md lg:max-w-lg" )}>
             <SheetHeader className="p-4 border-b">
                 {isMobile && <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-2 cursor-grab active:cursor-grabbing"></div>}
@@ -660,7 +661,7 @@ export default function TrainingsAndAppointmentsPage() {
                                 </div>
                             </Card>
                             )}
-                            <Separator className="my-3"/>
+                             <Separator className="my-3"/>
                             <div>
                                 <h4 className="text-xs font-semibold mb-1">Status da Missão (Placeholder):</h4>
                                 <p className="text-xs text-muted-foreground italic">{session.missionStatusPlaceholder || 'Não definido'}</p>
@@ -728,7 +729,7 @@ export default function TrainingsAndAppointmentsPage() {
                     <FormItem><FormLabel>Participantes (Opcional)</FormLabel><FormControl><Textarea placeholder="Liste os nomes dos participantes, um por linha ou separados por vírgula." {...field} rows={3}/></FormControl><FormMessage /></FormItem>)}/>
                 <FormField control={form.control} name="description" render={({ field }) => (
                     <FormItem><FormLabel>Descrição/Detalhes Adicionais (Opcional)</FormLabel><FormControl><Textarea placeholder="Qualquer informação extra sobre o evento." {...field} rows={3}/></FormControl><FormMessage /></FormItem>)}/>
-                
+
                 <FormField control={form.control} name="isRecurring" render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-muted/50">
                         <div className="space-y-0.5"><FormLabel>Evento Recorrente?</FormLabel>
@@ -764,4 +765,3 @@ export default function TrainingsAndAppointmentsPage() {
     </div>
   );
 }
-    
