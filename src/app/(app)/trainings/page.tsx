@@ -4,13 +4,13 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Calendar as ShadcnCalendar } from '@/components/ui/calendar'; 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, PlusCircle, GripVertical, UsersRound, Edit, Trash2, Loader2 } from 'lucide-react'; 
+import { CalendarIcon, Users, Download, Camera, AlertTriangle, CheckCircle, PlusCircle, GripVertical, UsersRound, Edit, Trash2, Loader2, Filter } from 'lucide-react'; 
 import { format, isEqual, startOfDay, addMonths, differenceInDays as fnsDifferenceInDays, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -37,10 +37,10 @@ interface TrainingSession {
   startTime: string;
   endTime:string;
   technician: string;
-  participants?: string; // Alterado para string simples para Textarea
+  participants?: string;
   description?: string;
   isRecurring?: boolean;
-  renewalDue?: Date;
+  renewalDue?: Date | null; // Permitir null para consistência no localStorage
   capacity?: number;
   bookedSlots?: number;
 }
@@ -63,7 +63,7 @@ const appointmentFormSchema = z.object({
   const [startHours, startMinutes] = data.startTime.split(':').map(Number);
   startDateTime.setHours(startHours, startMinutes);
 
-  const endDateTime = new Date(data.date); // Assume same day for now, can be extended
+  const endDateTime = new Date(data.date);
   const [endHours, endMinutes] = data.endTime.split(':').map(Number);
   endDateTime.setHours(endHours, endMinutes);
   
@@ -75,8 +75,10 @@ const appointmentFormSchema = z.object({
 
 type AppointmentFormValues = z.infer<typeof appointmentFormSchema>;
 
-// Mock data, em uma aplicação real, viria de um backend
 const mockTechnicians = ['Carlos Silva', 'Ana Pereira', 'Juliana Costa', 'Roberto Alves', 'Fernanda Lima'];
+const ALL_EVENT_TYPES = "__ALL_EVENT_TYPES__";
+const ALL_TECHNICIANS = "__ALL_TECHNICIANS__";
+const AGENDA_SESSIONS_STORAGE_KEY = 'safetyNetAgendaSessions';
 
 const initialMockSessions: TrainingSession[] = [
   { id: 'TRN001', title: 'NR-35 (Trabalho em Altura)', type: 'Treinamento', topic: 'Segurança em Altura', location: 'Sala de Treinamento A', date: new Date(2024, 6, 15), startTime: '09:00', endTime: '17:00', technician: 'Carlos Silva', renewalDue: addMonths(new Date(2024, 6, 15), 11), capacity: 20, bookedSlots: 15, participants: 'João, Maria, Pedro', description: 'Treinamento completo sobre NR-35.' },
@@ -87,9 +89,16 @@ const initialMockSessions: TrainingSession[] = [
   { id: 'TRN004', title: 'Segurança com Eletricidade', type: 'Treinamento', topic: 'NR-10 Básico', location: 'Sala de Treinamento A', date: new Date(2024, 7, 5), startTime: '13:00', endTime: '17:00', technician: 'Carlos Silva', capacity: 20, bookedSlots: 18 },
 ];
 
+const eventTypeOptions: { value: TrainingSession['type'] | typeof ALL_EVENT_TYPES; label: string }[] = [
+  { value: ALL_EVENT_TYPES, label: 'Todos os Tipos' },
+  { value: 'Treinamento', label: 'Treinamento' },
+  { value: 'Consultoria', label: 'Consultoria' },
+  { value: 'Auditoria Agendada', label: 'Auditoria Agendada' },
+  { value: 'Outro Evento', label: 'Outro Evento' },
+];
 
 export default function TrainingsAndAppointmentsPage() {
-  const [sessions, setSessions] = useState<TrainingSession[]>(initialMockSessions);
+  const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const { toast } = useToast();
@@ -104,35 +113,84 @@ export default function TrainingsAndAppointmentsPage() {
 
   const [currentWeekStartDate, setCurrentWeekStartDate] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
+  const [filterEventType, setFilterEventType] = useState<string>(ALL_EVENT_TYPES);
+  const [filterTechnician, setFilterTechnician] = useState<string>(ALL_TECHNICIANS);
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
-      title: '',
-      type: undefined,
-      topic: '',
-      location: '',
-      date: new Date(),
-      startTime: '09:00',
-      endTime: '17:00',
-      technician: '',
-      participants: '',
-      description: '',
-      capacity: undefined,
-      renewalDue: undefined,
+      title: '', type: undefined, topic: '', location: '',
+      date: new Date(), startTime: '09:00', endTime: '17:00',
+      technician: '', participants: '', description: '',
+      capacity: undefined, renewalDue: undefined,
     },
   });
   
   const watchEventType = form.watch('type');
 
-  const scheduledDays = useMemo(() => sessions.map(s => startOfDay(s.date)), [sessions]);
+  // Load sessions from localStorage on mount
+  useEffect(() => {
+    const storedSessions = localStorage.getItem(AGENDA_SESSIONS_STORAGE_KEY);
+    if (storedSessions) {
+      try {
+        const parsedSessions: TrainingSession[] = JSON.parse(storedSessions).map((s: any) => ({
+          ...s,
+          date: new Date(s.date),
+          renewalDue: s.renewalDue ? new Date(s.renewalDue) : null,
+        }));
+        setSessions(parsedSessions);
+      } catch (error) {
+        console.error("Failed to parse sessions from localStorage", error);
+        setSessions(initialMockSessions); // Fallback to mocks
+        localStorage.setItem(AGENDA_SESSIONS_STORAGE_KEY, JSON.stringify(
+            initialMockSessions.map(s => ({
+              ...s,
+              date: s.date.toISOString(),
+              renewalDue: s.renewalDue ? s.renewalDue.toISOString() : null,
+            }))
+        ));
+      }
+    } else {
+      setSessions(initialMockSessions);
+      localStorage.setItem(AGENDA_SESSIONS_STORAGE_KEY, JSON.stringify(
+        initialMockSessions.map(s => ({
+          ...s,
+          date: s.date.toISOString(),
+          renewalDue: s.renewalDue ? s.renewalDue.toISOString() : null,
+        }))
+      ));
+    }
+  }, []);
+
+  // Save sessions to localStorage whenever they change
+  useEffect(() => {
+    if (sessions.length > 0 || localStorage.getItem(AGENDA_SESSIONS_STORAGE_KEY)) { // Avoid saving empty array if initial load failed or was empty
+        localStorage.setItem(AGENDA_SESSIONS_STORAGE_KEY, JSON.stringify(
+        sessions.map(s => ({
+            ...s,
+            date: s.date.toISOString(),
+            renewalDue: s.renewalDue ? s.renewalDue.toISOString() : null,
+        }))
+        ));
+    }
+  }, [sessions]);
+
+  const filteredSessions = useMemo(() => {
+    return sessions.filter(session => {
+      const typeMatch = filterEventType === ALL_EVENT_TYPES || session.type === filterEventType;
+      const techMatch = filterTechnician === ALL_TECHNICIANS || session.technician === filterTechnician;
+      return typeMatch && techMatch;
+    });
+  }, [sessions, filterEventType, filterTechnician]);
+
+  const scheduledDays = useMemo(() => filteredSessions.map(s => startOfDay(s.date)), [filteredSessions]);
 
   const sessionsForSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
-    return sessions.filter(session => 
+    return filteredSessions.filter(session => 
         isEqual(startOfDay(session.date), startOfDay(selectedDate))
       ).sort((a, b) => a.startTime.localeCompare(b.startTime));
-  }, [selectedDate, sessions]);
+  }, [selectedDate, filteredSessions]);
 
   const currentWeekDays = useMemo(() => {
     const start = startOfWeek(currentWeekStartDate, { weekStartsOn: 1 });
@@ -144,12 +202,12 @@ export default function TrainingsAndAppointmentsPage() {
     const newSessionsPerDay: Record<string, TrainingSession[]> = {};
     currentWeekDays.forEach(day => {
       const dayString = format(day, 'yyyy-MM-dd');
-      newSessionsPerDay[dayString] = sessions.filter(session => 
+      newSessionsPerDay[dayString] = filteredSessions.filter(session => 
         isEqual(startOfDay(session.date), startOfDay(day))
       ).sort((a, b) => a.startTime.localeCompare(b.startTime));
     });
     return newSessionsPerDay;
-  }, [currentWeekDays, sessions]);
+  }, [currentWeekDays, filteredSessions]);
 
   const handleDateSelect = useCallback((date: Date | undefined) => {
     setSelectedDate(date);
@@ -183,7 +241,7 @@ export default function TrainingsAndAppointmentsPage() {
     } else {
       form.reset({
         title: '', type: undefined, topic: '', location: '',
-        date: dateForNew || new Date(), // Use pre-selected date if available
+        date: dateForNew || new Date(),
         startTime: '09:00', endTime: '17:00',
         technician: '', participants: '', description: '',
         capacity: undefined, renewalDue: undefined,
@@ -194,11 +252,11 @@ export default function TrainingsAndAppointmentsPage() {
   
   const handleAppointmentFormSubmit = async (data: AppointmentFormValues) => {
     setIsSubmittingForm(true);
-    await new Promise(resolve => setTimeout(resolve, 700)); // Simular delay
+    await new Promise(resolve => setTimeout(resolve, 700)); 
 
     if (editingSession) {
       setSessions(prevSessions => 
-        prevSessions.map(s => s.id === editingSession.id ? { ...s, ...data, date: new Date(data.date), renewalDue: data.renewalDue ? new Date(data.renewalDue) : undefined } : s)
+        prevSessions.map(s => s.id === editingSession.id ? { ...s, ...data, date: new Date(data.date), renewalDue: data.renewalDue ? new Date(data.renewalDue) : null } : s)
       );
       toast({ title: "Agendamento Atualizado!", description: `O evento "${data.title}" foi atualizado.` });
     } else {
@@ -206,7 +264,7 @@ export default function TrainingsAndAppointmentsPage() {
         id: `EVT-${Date.now()}`,
         ...data,
         date: new Date(data.date),
-        renewalDue: data.renewalDue ? new Date(data.renewalDue) : undefined,
+        renewalDue: data.renewalDue ? new Date(data.renewalDue) : null,
       };
       setSessions(prevSessions => [...prevSessions, newSession]);
       toast({ title: "Novo Agendamento Criado!", description: `O evento "${data.title}" foi adicionado à agenda.` });
@@ -231,15 +289,13 @@ export default function TrainingsAndAppointmentsPage() {
     }
     setShowDeleteConfirm(false);
     setSessionToDelete(null);
-    // Se o sheet estiver aberto para a data do evento excluído e não houver mais eventos, feche-o.
-    if (selectedDate && isEqual(startOfDay(selectedDate), startOfDay(sessionToDelete!.date))) {
-      const remainingSessions = sessions.filter(s => s.id !== sessionToDelete!.id && isEqual(startOfDay(s.date), startOfDay(selectedDate)));
+    if (selectedDate && sessionToDelete && isEqual(startOfDay(selectedDate), startOfDay(sessionToDelete.date))) {
+      const remainingSessions = sessions.filter(s => s.id !== sessionToDelete.id && isEqual(startOfDay(s.date), startOfDay(selectedDate)));
       if (remainingSessions.length === 0) {
         setIsSheetOpen(false);
       }
     }
   };
-
 
   const getEventTypeColor = (type: TrainingSession['type']) => {
     switch(type) {
@@ -250,17 +306,9 @@ export default function TrainingsAndAppointmentsPage() {
     }
   };
 
-  const handlePreviousWeek = () => {
-    setCurrentWeekStartDate(prev => subWeeks(prev, 1));
-  };
-
-  const handleNextWeek = () => {
-    setCurrentWeekStartDate(prev => addWeeks(prev, 1));
-  };
-
-  const handleWeeklyEventClick = (session: TrainingSession) => {
-    handleDateSelect(session.date);
-  };
+  const handlePreviousWeek = () => setCurrentWeekStartDate(prev => subWeeks(prev, 1));
+  const handleNextWeek = () => setCurrentWeekStartDate(prev => addWeeks(prev, 1));
+  const handleWeeklyEventClick = (session: TrainingSession) => handleDateSelect(session.date);
 
   return (
     <>
@@ -274,6 +322,41 @@ export default function TrainingsAndAppointmentsPage() {
           </Button>
         }
       />
+
+      <Card className="mb-6 shadow-sm">
+        <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+                <Filter className="mr-2 h-5 w-5 text-primary"/>
+                Filtrar Agenda
+            </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-start">
+              <Select value={filterEventType} onValueChange={setFilterEventType}>
+                <SelectTrigger className="w-full sm:w-[220px]" aria-label="Filtrar por tipo de evento">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {eventTypeOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterTechnician} onValueChange={setFilterTechnician}>
+                <SelectTrigger className="w-full sm:w-[220px]" aria-label="Filtrar por técnico">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_TECHNICIANS}>Todos os Técnicos</SelectItem>
+                  {mockTechnicians.map(tech => (
+                    <SelectItem key={tech} value={tech}>{tech}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="month" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4 sm:w-[400px]">
           <TabsTrigger value="month">Visão Mensal</TabsTrigger>
@@ -292,24 +375,14 @@ export default function TrainingsAndAppointmentsPage() {
             </CardHeader>
             <CardContent className="flex flex-col items-center">
               <ShadcnCalendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                locale={ptBR}
-                className="rounded-md border p-3 shadow-sm"
-                modifiers={{ 
-                  scheduled: scheduledDays 
-                }}
-                modifiersClassNames={{
-                  scheduled: 'day-scheduled', 
-                }}
-                 captionLayout="dropdown-buttons" 
-                 fromYear={new Date().getFullYear() -1} 
-                 toYear={new Date().getFullYear() + 2}
+                mode="single" selected={selectedDate} onSelect={handleDateSelect} locale={ptBR}
+                className="rounded-md border p-3 shadow-sm" modifiers={{ scheduled: scheduledDays }}
+                modifiersClassNames={{ scheduled: 'day-scheduled' }}
+                captionLayout="dropdown-buttons" fromYear={new Date().getFullYear() -1} toYear={new Date().getFullYear() + 2}
               />
               <p className="text-xs text-muted-foreground mt-3">
                 <span className="inline-block w-2.5 h-2.5 bg-primary rounded-full mr-1.5 align-middle"></span>
-                Dias com eventos agendados.
+                Dias com eventos agendados (considerando filtros).
               </p>
             </CardContent>
           </Card>
@@ -343,11 +416,9 @@ export default function TrainingsAndAppointmentsPage() {
                           {sessionsPerDayOfWeek[format(day, 'yyyy-MM-dd')]?.length > 0 ? (
                             sessionsPerDayOfWeek[format(day, 'yyyy-MM-dd')]?.map(session => (
                               <Button 
-                                key={session.id} 
-                                variant="outline" 
-                                size="sm" 
+                                key={session.id} variant="outline" size="sm" 
                                 className="w-full text-left h-auto py-1.5 whitespace-normal border-l-4"
-                                style={{ borderColor: getEventTypeColor(session.type).split(' ')[2].replace('border-', 'var(--') + ')'}} // Dynamic border color
+                                style={{ borderColor: getEventTypeColor(session.type).split(' ')[2].replace('border-', 'var(--') + ')'}}
                                 onClick={() => handleWeeklyEventClick(session)}
                               >
                                 <div className="flex flex-col w-full overflow-hidden">
@@ -357,17 +428,13 @@ export default function TrainingsAndAppointmentsPage() {
                                 </div>
                               </Button>
                             ))
-                          ) : (
-                            <p className="text-xs text-muted-foreground text-center italic mt-4">Nenhum evento</p>
-                          )}
+                          ) : ( <p className="text-xs text-muted-foreground text-center italic mt-4">Nenhum evento</p> )}
                         </div>
                       </ScrollArea>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-center text-muted-foreground p-4">Carregando dados da semana...</p>
-              )}
+              ) : ( <p className="text-center text-muted-foreground p-4">Carregando dados da semana...</p> )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -376,11 +443,7 @@ export default function TrainingsAndAppointmentsPage() {
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent 
             side={isMobile ? "bottom" : "right"} 
-            className={cn(
-                "flex flex-col rounded-t-lg sm:rounded-t-none p-0", // Changed p-0
-                isMobile ? "h-[85vh]" : "w-full sm:max-w-md lg:max-w-lg"
-            )}
-        >
+            className={cn( "flex flex-col rounded-t-lg sm:rounded-t-none p-0", isMobile ? "h-[85vh]" : "w-full sm:max-w-md lg:max-w-lg" )}>
           <SheetHeader className="p-4 border-b">
              {isMobile && <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-2 cursor-grab active:cursor-grabbing"></div>}
             <SheetTitle className="text-center text-xl">
@@ -390,25 +453,19 @@ export default function TrainingsAndAppointmentsPage() {
           </SheetHeader>
           <div className="p-4 flex justify-end border-b">
             <Button onClick={() => handleOpenAppointmentModal(null, selectedDate)} size="sm">
-                <PlusCircle className="mr-2 h-4 w-4"/>
-                Novo Agendamento
+                <PlusCircle className="mr-2 h-4 w-4"/> Novo Agendamento
             </Button>
           </div>
           <ScrollArea className="flex-1 px-1 py-4">
             {sessionsForSelectedDate.length > 0 ? (
               <div className="space-y-4 p-3">
                 {sessionsForSelectedDate.map(session => {
-                  const availableSlots = session.capacity && session.bookedSlots !== undefined 
-                                         ? session.capacity - session.bookedSlots 
-                                         : undefined;
+                  const availableSlots = session.capacity && session.bookedSlots !== undefined ? session.capacity - session.bookedSlots : undefined;
                   return (
                     <Card key={session.id} className="shadow-md hover:shadow-lg transition-shadow">
-                      <CardHeader className="pb-3">
-                        <div className="flex justify-between items-start">
+                      <CardHeader className="pb-3"><div className="flex justify-between items-start">
                           <CardTitle className="text-lg">{session.title}</CardTitle>
-                          <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getEventTypeColor(session.type)}`}>
-                              {session.type}
-                          </span>
+                          <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getEventTypeColor(session.type)}`}>{session.type}</span>
                         </div>
                         <CardDescription className="text-sm pt-1">{session.topic}</CardDescription>
                       </CardHeader>
@@ -419,100 +476,55 @@ export default function TrainingsAndAppointmentsPage() {
                          {session.description && <p><strong className="font-medium">Descrição:</strong> {session.description}</p>}
                          {session.participants && <p><strong className="font-medium">Participantes:</strong> {session.participants}</p>}
                         {session.capacity !== undefined && (
-                          <p className="flex items-center">
-                            <UsersRound className="mr-1.5 h-4 w-4 text-muted-foreground" />
+                          <p className="flex items-center"><UsersRound className="mr-1.5 h-4 w-4 text-muted-foreground" />
                             <strong className="font-medium">Vagas:</strong>&nbsp;
-                            {availableSlots !== undefined 
-                              ? `${availableSlots > 0 ? `${availableSlots} de ${session.capacity}` : `Lotado (${session.bookedSlots}/${session.capacity})`}` 
-                              : 'N/D'}
-                          </p>
-                        )}
-                        
+                            {availableSlots !== undefined ? `${availableSlots > 0 ? `${availableSlots} de ${session.capacity}` : `Lotado (${session.bookedSlots}/${session.capacity})`}` : 'N/D'}
+                          </p>)}
                         {session.renewalDue && fnsDifferenceInDays(session.renewalDue, new Date()) <= 30 && (
                           <Card className="mt-3 p-3 bg-destructive/10 border-destructive/30">
-                              <div className="flex items-center text-destructive">
-                                  <AlertTriangle className="h-5 w-5 mr-2" />
+                              <div className="flex items-center text-destructive"><AlertTriangle className="h-5 w-5 mr-2" />
                                   <p className="text-xs font-semibold">Alerta: Renovação necessária em breve ({format(session.renewalDue, 'dd/MM/yyyy', {locale: ptBR})})!</p>
-                              </div>
-                          </Card>
-                        )}
-
+                              </div></Card>)}
                         <div className="pt-3 space-y-2 sm:flex sm:space-y-0 sm:space-x-2">
-                           <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="w-full sm:flex-1"
-                              onClick={() => handleCheckIn(session.id)}
-                            >
-                            <Camera className="mr-2 h-4 w-4"/> Check-in
-                          </Button>
-                           <Button 
-                              variant="secondary" 
-                              size="sm" 
-                              className="w-full sm:flex-1"
-                              onClick={() => handleGenerateCertificate(session.id)}
-                            >
-                              <Download className="mr-2 h-4 w-4"/> Certificado
-                          </Button>
-                        </div>
+                           <Button variant="outline" size="sm" className="w-full sm:flex-1" onClick={() => handleCheckIn(session.id)}>
+                            <Camera className="mr-2 h-4 w-4"/> Check-in </Button>
+                           <Button variant="secondary" size="sm" className="w-full sm:flex-1" onClick={() => handleGenerateCertificate(session.id)}>
+                              <Download className="mr-2 h-4 w-4"/> Certificado </Button></div>
                          <div className="pt-2 space-y-2 sm:flex sm:space-y-0 sm:space-x-2">
                           <Button variant="ghost" size="sm" className="w-full sm:flex-1 text-primary hover:bg-primary/10" onClick={() => handleOpenAppointmentModal(session)}>
-                            <Edit className="mr-2 h-4 w-4"/> Editar
-                          </Button>
+                            <Edit className="mr-2 h-4 w-4"/> Editar </Button>
                           <Button variant="ghost" size="sm" className="w-full sm:flex-1 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteSession(session)}>
-                            <Trash2 className="mr-2 h-4 w-4"/> Excluir
-                          </Button>
-                        </div>
+                            <Trash2 className="mr-2 h-4 w-4"/> Excluir </Button></div>
                       </CardContent>
-                    </Card>
-                  );
-                })}
+                    </Card>);})}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center p-6">
+            ) : ( <div className="flex flex-col items-center justify-center h-full text-center p-6">
                 <CalendarIcon className="w-16 h-16 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">Nenhum evento agendado para esta data.</p>
                  <Button onClick={() => handleOpenAppointmentModal(null, selectedDate)} size="sm" className="mt-4">
-                    <PlusCircle className="mr-2 h-4 w-4"/>
-                    Agendar Novo Evento
-                </Button>
-              </div>
-            )}
+                    <PlusCircle className="mr-2 h-4 w-4"/> Agendar Novo Evento </Button></div>)}
           </ScrollArea>
         </SheetContent>
       </Sheet>
 
       <Dialog open={isAppointmentModalOpen} onOpenChange={setIsAppointmentModalOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg"><DialogHeader>
             <DialogTitle>{editingSession ? 'Editar Agendamento' : 'Novo Agendamento'}</DialogTitle>
-            <DialogDescription>
-              {editingSession ? 'Atualize os detalhes do evento abaixo.' : 'Preencha os detalhes para criar um novo evento na agenda.'}
-            </DialogDescription>
+            <DialogDescription>{editingSession ? 'Atualize os detalhes do evento abaixo.' : 'Preencha os detalhes para criar um novo evento na agenda.'}</DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleAppointmentFormSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+          <Form {...form}><form onSubmit={form.handleSubmit(handleAppointmentFormSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
               <FormField control={form.control} name="title" render={({ field }) => (
-                <FormItem><FormLabel>Título do Evento</FormLabel><FormControl><Input placeholder="Ex: Treinamento NR-35" {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
+                <FormItem><FormLabel>Título do Evento</FormLabel><FormControl><Input placeholder="Ex: Treinamento NR-35" {...field} /></FormControl><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="type" render={({ field }) => (
                 <FormItem><FormLabel>Tipo de Evento</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      <SelectItem value="Treinamento">Treinamento</SelectItem>
-                      <SelectItem value="Consultoria">Consultoria</SelectItem>
-                      <SelectItem value="Auditoria Agendada">Auditoria Agendada</SelectItem>
-                      <SelectItem value="Outro Evento">Outro Evento</SelectItem>
-                    </SelectContent>
-                  </Select><FormMessage />
-                </FormItem>
-              )}/>
+                    <SelectContent><SelectItem value="Treinamento">Treinamento</SelectItem><SelectItem value="Consultoria">Consultoria</SelectItem>
+                      <SelectItem value="Auditoria Agendada">Auditoria Agendada</SelectItem><SelectItem value="Outro Evento">Outro Evento</SelectItem>
+                    </SelectContent></Select><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="topic" render={({ field }) => (
-                <FormItem><FormLabel>Tópico/Assunto</FormLabel><FormControl><Input placeholder="Ex: Segurança em Altura" {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
+                <FormItem><FormLabel>Tópico/Assunto</FormLabel><FormControl><Input placeholder="Ex: Segurança em Altura" {...field} /></FormControl><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="location" render={({ field }) => (
-                <FormItem><FormLabel>Local</FormLabel><FormControl><Input placeholder="Ex: Sala de Treinamento A / Cliente X" {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
+                <FormItem><FormLabel>Local</FormLabel><FormControl><Input placeholder="Ex: Sala de Treinamento A / Cliente X" {...field} /></FormControl><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="date" render={({ field }) => (
                 <FormItem className="flex flex-col"><FormLabel>Data</FormLabel>
                   <Popover><PopoverTrigger asChild><FormControl>
@@ -520,37 +532,24 @@ export default function TrainingsAndAppointmentsPage() {
                       <CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                     </Button></FormControl></PopoverTrigger>
                     <PopoverContent className="w-auto p-0"><ShadcnCalendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent>
-                  </Popover><FormMessage />
-                </FormItem>
-              )}/>
+                  </Popover><FormMessage /></FormItem>)}/>
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="startTime" render={({ field }) => (
-                  <FormItem><FormLabel>Hora Início</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                  <FormItem><FormLabel>Hora Início</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)}/>
                 <FormField control={form.control} name="endTime" render={({ field }) => (
-                  <FormItem><FormLabel>Hora Fim</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
-              </div>
+                  <FormItem><FormLabel>Hora Fim</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)}/></div>
               <FormField control={form.control} name="technician" render={({ field }) => (
                 <FormItem><FormLabel>Técnico/Responsável</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o técnico" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      {mockTechnicians.map(tech => <SelectItem key={tech} value={tech}>{tech}</SelectItem>)}
-                    </SelectContent>
-                  </Select><FormMessage />
-                </FormItem>
-              )}/>
+                    <SelectContent>{mockTechnicians.map(tech => <SelectItem key={tech} value={tech}>{tech}</SelectItem>)}</SelectContent>
+                  </Select><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="participants" render={({ field }) => (
-                <FormItem><FormLabel>Participantes (Opcional)</FormLabel><FormControl><Textarea placeholder="Liste os nomes dos participantes, um por linha ou separados por vírgula." {...field} rows={3}/></FormControl><FormMessage /></FormItem>
-              )}/>
+                <FormItem><FormLabel>Participantes (Opcional)</FormLabel><FormControl><Textarea placeholder="Liste os nomes dos participantes, um por linha ou separados por vírgula." {...field} rows={3}/></FormControl><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="description" render={({ field }) => (
-                <FormItem><FormLabel>Descrição/Detalhes Adicionais (Opcional)</FormLabel><FormControl><Textarea placeholder="Qualquer informação extra sobre o evento." {...field} rows={3}/></FormControl><FormMessage /></FormItem>
-              )}/>
-              {watchEventType === 'Treinamento' && (
-                <>
+                <FormItem><FormLabel>Descrição/Detalhes Adicionais (Opcional)</FormLabel><FormControl><Textarea placeholder="Qualquer informação extra sobre o evento." {...field} rows={3}/></FormControl><FormMessage /></FormItem>)}/>
+              {watchEventType === 'Treinamento' && (<>
                   <FormField control={form.control} name="capacity" render={({ field }) => (
-                    <FormItem><FormLabel>Capacidade de Vagas (Opcional)</FormLabel><FormControl><Input type="number" placeholder="Ex: 20" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} /></FormControl><FormMessage /></FormItem>
-                  )}/>
+                    <FormItem><FormLabel>Capacidade de Vagas (Opcional)</FormLabel><FormControl><Input type="number" placeholder="Ex: 20" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} /></FormControl><FormMessage /></FormItem>)}/>
                   <FormField control={form.control} name="renewalDue" render={({ field }) => (
                     <FormItem className="flex flex-col"><FormLabel>Data de Renovação (Opcional)</FormLabel>
                       <Popover><PopoverTrigger asChild><FormControl>
@@ -558,38 +557,21 @@ export default function TrainingsAndAppointmentsPage() {
                           <CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(new Date(field.value), "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                         </Button></FormControl></PopoverTrigger>
                         <PopoverContent className="w-auto p-0"><ShadcnCalendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent>
-                      </Popover><FormMessage />
-                    </FormItem>
-                  )}/>
-                </>
-              )}
-              <DialogFooter>
-                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                      </Popover><FormMessage /></FormItem>)}/>
+                </>)}
+              <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                 <Button type="submit" disabled={isSubmittingForm || !form.formState.isDirty || !form.formState.isValid}>
                   {isSubmittingForm ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingSession ? 'Salvar Alterações' : 'Criar Agendamento')}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+                </Button></DialogFooter></form></Form></DialogContent></Dialog>
 
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o evento "{sessionToDelete?.title}"? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}><AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja excluir o evento "{sessionToDelete?.title}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader><AlertDialogFooter>
             <AlertDialogCancel onClick={() => setSessionToDelete(null)}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteSession} className={buttonVariants({ variant: "destructive" })}>Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </AlertDialogFooter></AlertDialogContent></AlertDialog>
     </>
   );
 }
-
     
